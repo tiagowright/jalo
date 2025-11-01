@@ -28,7 +28,7 @@ Conventions:
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 
 
@@ -50,12 +50,59 @@ class Metric:
             order=1: shape (N,)
             order=2: shape (N, N)
             order=3: shape (N, N, N)
-    weight : float
-        Linear weight to multiply this metric in the overall objective.
     """
     order: int
     V: np.ndarray
-    weight: float = 1.0
+
+
+# ---------------------------------------------------------------------------
+# Objective definition
+# ---------------------------------------------------------------------------
+
+class Objective:
+    """
+    Linear combination of metrics used to score layouts.
+
+    Parameters
+    ----------
+    terms : Iterable[Tuple[Metric, float]]
+        Each entry couples a Metric with its scalar weight in the objective.
+    """
+
+    def __init__(self, terms: Iterable[Tuple[Metric, float]]):
+        self._terms: List[Tuple[Metric, float]] = [
+            (metric, float(weight)) for metric, weight in terms
+        ]
+        if not self._terms:
+            raise ValueError("Objective must contain at least one metric term.")
+
+    @property
+    def terms(self) -> Sequence[Tuple[Metric, float]]:
+        """Return the metric-weight pairs in insertion order."""
+        return tuple(self._terms)
+
+    def preaggregate(self, N: int, dtype: np.dtype) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Reduce the objective terms into weighted tensors over positions.
+        """
+        V1 = np.zeros((N,), dtype=dtype)
+        V2 = np.zeros((N, N), dtype=dtype)
+        V3 = np.zeros((N, N, N), dtype=dtype)
+
+        for metric, weight in self._terms:
+            if metric.order == 1:
+                assert metric.V.shape == (N,), "Metric(order=1) must be shape (N,)"
+                V1 += weight * np.asarray(metric.V, dtype=dtype)
+            elif metric.order == 2:
+                assert metric.V.shape == (N, N), "Metric(order=2) must be shape (N,N)"
+                V2 += weight * np.asarray(metric.V, dtype=dtype)
+            elif metric.order == 3:
+                assert metric.V.shape == (N, N, N), "Metric(order=3) must be shape (N,N,N)"
+                V3 += weight * np.asarray(metric.V, dtype=dtype)
+            else:
+                raise ValueError("Metric order must be 1, 2, or 3.")
+
+        return V1, V2, V3
 
 
 # ---------------------------------------------------------------------------
@@ -75,9 +122,9 @@ class KeyboardModel:
           - F3[i,j,k]       (shape: (N,N,N))
         Any of them can be None if not used.
 
-    metrics : List[Metric]
-        Metrics defined over POSITIONS, potentially dozens of them, possibly
-        mixed orders (1, 2, 3). These are pre-aggregated once.
+    objective : Objective
+        Linear combination of metrics defined over POSITIONS, potentially dozens
+        of mixed orders (1, 2, 3). Pre-aggregated once for scoring speed.
 
     dtype : np.dtype
         Numeric dtype for internal arrays (np.float64 for clarity,
@@ -101,14 +148,14 @@ class KeyboardModel:
         F1: Optional[np.ndarray],
         F2: Optional[np.ndarray],
         F3: Optional[np.ndarray],
-        metrics: List[Metric],
+        objective: Objective,
         dtype: np.dtype = np.float64,
     ):
         # Store frequency tensors (character domain), possibly None
         self.F1 = None if F1 is None else np.asarray(F1, dtype=dtype)
         self.F2 = None if F2 is None else np.asarray(F2, dtype=dtype)
         self.F3 = None if F3 is None else np.asarray(F3, dtype=dtype)
-        self.metrics = metrics
+        self.objective = objective
         self.dtype = dtype
 
         # Infer N from whichever F* is provided
@@ -124,8 +171,8 @@ class KeyboardModel:
         assert N is not None, "At least one of F1/F2/F3 must be provided."
         self.N = N
 
-        # Pre-aggregate all metrics into three total tensors over POSITIONS
-        self.V1_tot, self.V2_tot, self.V3_tot = self._preaggregate_metrics(metrics)
+        # Pre-aggregate the objective into three total tensors over POSITIONS
+        self.V1_tot, self.V2_tot, self.V3_tot = self._preaggregate_objective(objective)
 
     # -------------------- Utilities --------------------
 
@@ -136,38 +183,20 @@ class KeyboardModel:
 
     # -------------------- Metrics pre-aggregation --------------------
 
-    def _preaggregate_metrics(self, metrics: List[Metric]):
+    def _preaggregate_objective(self, objective: Objective):
         """
-        Fold all (weight * metric.V) into three tensors over POSITIONS:
+        Fold all objective terms into three tensors over POSITIONS:
           V1_tot (N,), V2_tot (N,N), V3_tot (N,N,N)
-        Missing orders simply remain zeros.
         """
-        V1 = np.zeros((self.N,), dtype=self.dtype)
-        V2 = np.zeros((self.N, self.N), dtype=self.dtype)
-        V3 = np.zeros((self.N, self.N, self.N), dtype=self.dtype)
+        return objective.preaggregate(self.N, self.dtype)
 
-        for m in metrics:
-            if m.order == 1:
-                assert m.V.shape == (self.N,), "Metric(order=1) must be shape (N,)"
-                V1 += m.weight * np.asarray(m.V, dtype=self.dtype)
-            elif m.order == 2:
-                assert m.V.shape == (self.N, self.N), "Metric(order=2) must be shape (N,N)"
-                V2 += m.weight * np.asarray(m.V, dtype=self.dtype)
-            elif m.order == 3:
-                assert m.V.shape == (self.N, self.N, self.N), "Metric(order=3) must be shape (N,N,N)"
-                V3 += m.weight * np.asarray(m.V, dtype=self.dtype)
-            else:
-                raise ValueError("Metric order must be 1, 2, or 3.")
-
-        return V1, V2, V3
-
-    def update_metrics(self, metrics: List[Metric]):
+    def update_objective(self, objective: Objective):
         """
-        Replaces metrics and recomputes V1_tot/V2_tot/V3_tot.
-        Call this only if you change your metric set or weights.
+        Replace the objective and recompute V1_tot/V2_tot/V3_tot.
+        Call this when metric weights or combinations change.
         """
-        self.metrics = metrics
-        self.V1_tot, self.V2_tot, self.V3_tot = self._preaggregate_metrics(metrics)
+        self.objective = objective
+        self.V1_tot, self.V2_tot, self.V3_tot = self._preaggregate_objective(objective)
 
     # -------------------- Character n-grams -> Position n-grams --------------------
 
@@ -346,6 +375,8 @@ class KeyboardModel:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    from optimizer import SimulatedAnnealingOptimizer
+
     rng = np.random.default_rng(42)
     N = 8  # toy example size
 
@@ -375,13 +406,20 @@ if __name__ == "__main__":
 
     # Bundle many metrics (you could have dozens). Here we just use 3 with weights.
     metrics: List[Metric] = [
-        Metric(order=1, V=V1, weight=0.1),
-        Metric(order=2, V=V2, weight=1.0),
-        Metric(order=3, V=V3, weight=0.7),
+        Metric(order=1, V=V1),
+        Metric(order=2, V=V2),
+        Metric(order=3, V=V3),
     ]
+    objective = Objective(
+        [
+            (metrics[0], 0.1),
+            (metrics[1], 1.0),
+            (metrics[2], 0.7),
+        ]
+    )
 
     # Build the model (pre-aggregates metrics once)
-    model = KeyboardModel(F1=F1, F2=F2, F3=F3, metrics=metrics, dtype=np.float32)
+    model = KeyboardModel(F1=F1, F2=F2, F3=F3, objective=objective, dtype=np.float32)
 
     # Start from identity layout and compute score
     layout = np.arange(N, dtype=int)
@@ -400,3 +438,14 @@ if __name__ == "__main__":
     print(f"[swap {p}<->{q}]  full  = {full_score:.6f}")
     print(f"[check] base + delta = {base_score + delta:.6f}")
     print(f"[error] abs diff     = {abs((base_score + delta) - full_score):.6e}")
+
+    # Run a short annealing pass starting from the identity layout
+    optimizer = SimulatedAnnealingOptimizer(model, rng=rng)
+    stats = optimizer.optimize(
+        layout,
+        temperature_start=0.5,
+        temperature_end=1e-3,
+        sweeps=50,
+        moves_per_sweep=4 * N,
+    )
+    print(f"[anneal] best score = {stats.best_score:.6f}")
