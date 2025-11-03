@@ -1,0 +1,100 @@
+import numpy as np
+from collections import defaultdict
+from typing import List
+import os
+from hardware import Finger, KeyboardHardware, Position
+from dataclasses import dataclass
+
+DEFAULT_HARDWARE = 'ortho'
+
+@dataclass(frozen=True)
+class LayoutKey:
+    """
+    Represent a key on a keyboard layout.
+    """
+    char: str
+    row: int
+    col: int
+    x: float
+    y: float
+    finger: Finger
+    position: Position
+
+
+def _name_or_hardware(name_or_hardware: str | KeyboardHardware) -> KeyboardHardware:
+    """Convert a hardware name string or KeyboardHardware instance to KeyboardHardware."""
+    if isinstance(name_or_hardware, str):
+        return KeyboardHardware.from_name(name_or_hardware)
+    return name_or_hardware
+
+
+class KeyboardLayout:
+    def __init__(self, keys: List[LayoutKey], hardware: KeyboardHardware):
+        self.keys = keys
+        self.hardware = hardware
+
+        # validate that keys match hardware: every key points to a position and every position is pointed to by a key   
+        position_set = set(key.position for key in keys)
+        if len(position_set) != len(keys):
+            raise ValueError("Keys must point to unique positions")
+        if len(position_set) != len(hardware.positions):
+            raise ValueError("Keys must point to all positions in hardware")
+        
+        self.char_to_key = {key.char: key for key in keys}
+
+        self.grid = defaultdict(lambda: defaultdict(list)) # row -> col -> keys
+        for key in keys:
+            self.grid[key.row][key.col].append(key) 
+
+    def __repr__(self) -> str:
+        return f"KeyboardLayout(keys={self.keys!r}, hardware='{self.hardware.name}')"
+    
+    def __str__(self) -> str:
+        return '\n'.join(
+            ' '.join(
+                ''.join(
+                    key.char 
+                    for key in sorted(self.grid[row][col])
+                ) 
+                for col in sorted(self.grid[row].keys())
+            )
+            for row in sorted(self.grid.keys()) 
+        )
+
+    @classmethod
+    def from_text_file(cls, text_file_name: str, hardware: str | KeyboardHardware = DEFAULT_HARDWARE) -> 'KeyboardLayout':
+        """Load a keyboard layout from a text file."""
+        # text_file_path is in the layouts directory    
+        text_file_path = os.path.join('layouts', text_file_name)
+        with open(text_file_path, 'r') as file:
+            text_grid = file.read()
+        return cls.from_text(text_grid, hardware)
+
+    @classmethod
+    def from_text(cls, text_grid: str, hardware: str | KeyboardHardware = DEFAULT_HARDWARE) -> 'KeyboardLayout':
+        """Create a keyboard layout from a text grid."""
+        hardware = _name_or_hardware(hardware)
+        
+        occupied_positions = set()
+        keys = []
+        for row, line in enumerate(text_grid.split('\n')):
+            if not line.strip():
+                continue
+            for col, char in enumerate(line.split()):
+                for position in hardware.grid[row][col]:
+                    if position in occupied_positions:
+                        continue
+                    occupied_positions.add(position)
+                    break
+                else:
+                    raise ValueError(f"Cannot find available positions ({row}, {col}) for character {char}. Occupied positions: {hardware.grid[row][col]!r}")
+                keys.append(LayoutKey(char, row, col, position.x, position.y, position.finger, position))
+        
+        return cls(keys, hardware)
+
+
+
+if __name__ == "__main__":
+    char_grid = KeyboardLayout.from_text_file('qwerty.kb')
+    print(repr(char_grid))
+    print(str(char_grid))

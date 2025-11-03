@@ -31,9 +31,8 @@ from dataclasses import dataclass
 from typing import Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 
-
 # ---------------------------------------------------------------------------
-# Metric definition
+# Metric model
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -45,6 +44,8 @@ class Metric:
     ----------
     order : int
         1 for single-key metric, 2 for bigram metric, 3 for trigram metric.
+        note that a skip grap is order 2, since the metric is only based on the first and third character
+        
     V : np.ndarray
         Metric tensor over positions:
             order=1: shape (N,)
@@ -90,6 +91,8 @@ class Objective:
         V3 = np.zeros((N, N, N), dtype=dtype)
 
         for metric, weight in self._terms:
+        	if not weight:
+        		continue
             if metric.order == 1:
                 assert metric.V.shape == (N,), "Metric(order=1) must be shape (N,)"
                 V1 += weight * np.asarray(metric.V, dtype=dtype)
