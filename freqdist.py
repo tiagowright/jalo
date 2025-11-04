@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Iterator
 from enum import Enum
+import numpy as np
+from functools import cache
 
 class NgramType(Enum):
     MONOGRAM = 1
@@ -37,6 +39,10 @@ class FreqDist:
             else:
                 ngram_type = ngram_name_or_type
             self.freqdist[ngram_type] = freqdist[ngram_name_or_type]
+        
+        # sort monograms by frequency descending
+        self.char_seq = sorted(self.freqdist[NgramType.MONOGRAM].keys(), key=lambda x: self.freqdist[NgramType.MONOGRAM][x], reverse=True)
+
 
     @classmethod
     def from_ngram_file(cls, ngram_file_name: str) -> FreqDist:
@@ -64,6 +70,111 @@ class FreqDist:
         with corpus_path.open("r", encoding="utf-8") as fp:
             return cls(ngram_file_name, freqdist=json.load(fp))
 
+    def select(self, char_set: set[str]) -> FreqDist:
+        """Select a subset of the frequency distribution for the given list of characters."""
+        return FreqDist(
+            self.corpus_name, 
+            freqdist={
+                t : {
+                    ngram : v 
+                    for ngram, v in self.freqdist[t].items() 
+                    if all(c in char_set for c in ngram)
+                } for t in self.freqdist
+            }
+        )
+    
+    def top(self, n: int) -> FreqDist:
+        """Select the top n n-grams for each ngram type."""
+        top_monograms = sorted(
+            self.freqdist[NgramType.MONOGRAM], 
+            key=lambda x: self.freqdist[NgramType.MONOGRAM][x], 
+            reverse=True)[:n]
+        return self.select(set(top_monograms))
+    
+    def normalized(self) -> FreqDist:
+        """Normalize the frequency distribution so that the sum of the frequencies is 1."""
+
+        sum_monograms = sum(self.freqdist[NgramType.MONOGRAM].values())
+
+        if not sum_monograms:
+            return self
+        
+        return FreqDist(
+            self.corpus_name, 
+            freqdist={
+                t : {ngram : v / sum_monograms for ngram, v in self.freqdist[t].items()} for t in self.freqdist
+            }
+        )
+    
+    # cache the result of this method
+    @cache
+    def to_numpy(self) -> dict[NgramType, np.ndarray]:
+        """
+        Convert each ngramtype in the frequency distribution to a numpy array.
+        The numpy arrays are sorted by frequency descending of the monograms, 
+        so an order 1 array at 0 will have the most frequent monogram and so on
+
+        Example: in English, frequencies corresponding to monograms ['e', 't', 'a', ...]
+
+        An order 2 ngram (bigram, skipgram) array at 0,0 will have the frequency of
+        the bigram of the most frequent monogram followed by the same monogram.
+        At 0,1 will have the frequency of the bigram of the most frequent monogram followed by the 
+        second most frequent monogram.
+
+        Example: in English, frequencies corresponding to bigrams:
+        [['ee', 'et', 'ea', ...], ['te', 'tt', 'ta', ...], ...]
+
+        The same pattern to order 3 ngrams.
+
+        Example: in English, frequencies corresponding to trigrams:
+        [
+            [
+                ['eee', 'eet', 'eea', ...], 
+                ['ete', 'ett', 'eta', ...], 
+                ...
+            ], [
+                ['tee', 'tet', 'tea', ...], 
+                ['tte', 'ttt', 'tta', ...], 
+                ...
+            ], 
+            ...
+        ]
+        
+        """
+ 
+        F = {}
+        for ngramtype in self.freqdist:
+            if ngramtype.order == 1:
+                # F[ngramtype] = np_array(shape=(N,)) where F[ngramtype][i] = frequency of the i-th monogram in self.char_seq
+                F[ngramtype] = np.array(
+                    [
+                        self.freqdist[ngramtype].get(char, 0.0) for char in self.char_seq
+                    ], dtype=np.float64
+                )
+            elif ngramtype.order == 2:
+                # F[ngramtype] = np_array(shape=(N,N)) where F[ngramtype][i,j] = frequency of the i-th and j-th self.char_seq in self.char_seq
+                F[ngramtype] = np.array(
+                    [
+                        [
+                            self.freqdist[ngramtype].get(char1 + char2, 0.0) for char2 in self.char_seq
+                        ] for char1 in self.char_seq
+                    ], dtype=np.float64
+                )
+            elif ngramtype.order == 3:
+                # F[ngramtype] = np_array(shape=(N,N,N)) where F[ngramtype][i,j,k] = frequency of the i-th, j-th, and k-th self.char_seq in self.char_seq
+                F[ngramtype] = np.array(
+                    [
+                        [
+                            [
+                                self.freqdist[ngramtype].get(char1 + char2 + char3, 0.0) for char3 in self.char_seq
+                            ] for char2 in self.char_seq
+                        ] for char1 in self.char_seq
+                    ], dtype=np.float64
+                )
+            else:
+                raise ValueError(f"Unsupported ngram type: {ngramtype} of order {ngramtype.order}. Only order 1, 2, and 3 are supported.")
+        
+        return F
 
 # add a main function to test the freqdist
 if __name__ == "__main__":
@@ -79,3 +190,10 @@ if __name__ == "__main__":
             print(f"{ngram_type.name}: {len(freqdist.freqdist[ngram_type])} entries")
             print(freqdist.freqdist[ngram_type])
         print()
+
+    print("Top 3:")
+    print(freqdist.top(3).normalized().freqdist)
+
+    print()
+    print("Numpy arrays for top 3:")
+    print(freqdist.top(3).normalized().to_numpy())

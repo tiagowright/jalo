@@ -1,6 +1,6 @@
 from math import sqrt
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Any
 
 from hardware import FingerType, Position, Hand
@@ -42,7 +42,7 @@ class Metric:
     # for bigram or skipgram, two arguments are positions
     # for trigram, three arguments are positions
     # the function should return a float that is the value of the metric for the ngram given
-    function: Callable[[Position], float] | Callable[[Position, Position], float] | Callable[[Position, Position, Position], float]
+    function: Callable[[Position], float] | Callable[[Position, Position], float] | Callable[[Position, Position, Position], float] = field(hash=False, compare=False)
 
     @property
     def order(self) -> int:
@@ -79,6 +79,8 @@ def sft(a, b, c):
 
 # distance squared
 def distance_squared(a, b):
+    if not same_finger(a, b):
+        return 0
     return (a.x - b.x)**2 + (a.y - b.y)**2
 
 # distance

@@ -41,6 +41,8 @@ class KeyboardLayout:
             raise ValueError("Keys must point to all positions in hardware")
         
         self.char_to_key = {key.char: key for key in keys}
+        self.key_at_position = {key.position: key for key in keys}
+        self.char_at_position = {key.position: key.char for key in keys}
 
         self.grid = defaultdict(lambda: defaultdict(list)) # row -> col -> keys
         for key in keys:
@@ -65,7 +67,7 @@ class KeyboardLayout:
     def from_text_file(cls, text_file_name: str, hardware: str | KeyboardHardware = DEFAULT_HARDWARE) -> 'KeyboardLayout':
         """Load a keyboard layout from a text file."""
         # text_file_path is in the layouts directory    
-        text_file_path = os.path.join('layouts', text_file_name)
+        text_file_path = os.path.join('layouts', f'{text_file_name}.kb')
         with open(text_file_path, 'r') as file:
             text_grid = file.read()
         return cls.from_text(text_grid, hardware)
@@ -95,6 +97,6 @@ class KeyboardLayout:
 
 
 if __name__ == "__main__":
-    char_grid = KeyboardLayout.from_text_file('qwerty.kb')
+    char_grid = KeyboardLayout.from_text_file('qwerty')
     print(repr(char_grid))
     print(str(char_grid))
