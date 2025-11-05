@@ -1,19 +1,31 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`keyboard_model.py` holds the entire public API. It defines the `Metric` dataclass plus the `KeyboardModel` class that wraps metric aggregation, layout scoring, and swap deltas. Keep auxiliary helpers adjacent to the logic they support and prefer extending this module over creating free-floating scripts. If you need fixtures (datasets, layouts, benchmark outputs), place them under a new `assets/` or `tests/data/` directory and document the format in-file.
+- Core logic lives in `keyboard_model.py`; extend this module to expose new metrics or layout utilities.
+- Hardware definitions sit in `hardware.py` and `keebs/`; each board module must export a `KEYBOARD` instance.
+- Frequency data and corpora are under `corpus/` and `freqdist.py`; keep large datasets in `assets/` if added later.
+- Add fixtures or regression data to `tests/data/`, and mirror layout examples in `layouts/` when documenting.
 
 ## Build, Test, and Development Commands
-- `python -m venv .venv && source .venv/bin/activate`: create an isolated environment; required before installing dependencies.
-- `python -m pip install numpy pytest`: install runtime and testing requirements; pin exact versions in `requirements.txt` when finalized.
-- `python -m pytest`: run all automated tests (add the `-k` or `-m` flags to focus on targeted suites).
-- `python -m pip install -e .`: once a `pyproject.toml` or `setup.cfg` is added, use editable installs for downstream experiments.
+- `python -m venv .venv && source .venv/bin/activate` — create and enter the project virtual environment.
+- `python -m pip install numpy pytest` — install runtime and baseline testing dependencies; pin in `requirements.txt` once stable.
+- `python -m pytest` — execute the automated suite; use `-k` for targeted cases and `--cov=keyboard_model --cov-report=term-missing` to inspect coverage gaps.
+- `python -m pip install -e .` — optional editable install after adding packaging metadata.
 
 ## Coding Style & Naming Conventions
-Use Python 3.11+ features, four-space indentation, and type hints on all public call signatures (`np.ndarray`, `Optional[int]`, etc.). Follow NumPy-style docstrings for new public functions and keep module-level documentation concise. Arrays and tensors should be named by domain (`F1`, `T2`, `V3_tot`) to mirror the existing notation; new helpers should use snake_case verbs (`transform_layout`, `validate_metrics`). Run `ruff` or `black` if adopted—record command invocations in this guide for consistency.
+- Target Python 3.11+ with four-space indentation and type hints on public call signatures (e.g., `def score(self, layout: np.ndarray) -> float:`).
+- Follow NumPy-style docstrings for exported functions and classes; keep module-level comments concise.
+- Use domain-aligned names (`F1`, `T2`, `swap_delta`) and snake_case helpers (`transform_layout`).
+- Prefer `black` and `ruff` for formatting/linting when available; document command invocations in this file when tooling changes.
 
 ## Testing Guidelines
-Adopt `pytest` with `tests/test_keyboard_model.py` as the starter suite. Mirror scenarios from the docstring: layout permutations, scoring correctness, and `delta_swap` invariants. Name tests `test_<behavior>` and include regression IDs in docstrings when referencing bugs. Target full branch coverage on swap logic and any new metrics, using `pytest --cov=keyboard_model --cov-report=term-missing` before submitting.
+- Tests live in `tests/`; begin with `tests/test_keyboard_model.py` and expand coverage alongside new features.
+- Name tests `test_<behavior>` and include regression IDs in docstrings when referencing bugs.
+- Aim for full branch coverage on swap logic and new metrics; run `pytest --cov=keyboard_model --cov-report=term-missing` before opening a PR.
+- Store fixtures in `tests/data/` with inline comments describing schema and provenance.
 
 ## Commit & Pull Request Guidelines
-Commits should be small, focused, and use imperative mood (`Add delta swap benchmark`) as in the existing history. Reference issue numbers in the footer when applicable (`Refs #12`). Pull requests must summarize the motivating problem, list key changes, and call out performance measurements or data dependencies. Attach screenshots or tables when presenting benchmark deltas. Ensure CI (tests + linters) is green before requesting review and note any follow-up tasks explicitly.
+- Write small, focused commits in imperative mood (e.g., `Add delta swap benchmark`), referencing issues in the footer (`Refs #12`) when relevant.
+- Ensure CI (tests + linters) is green before requesting review; mention any deliberate skips or TODOs in the PR description.
+- Summarize the motivating problem, list key changes, and attach metrics or screenshots for performance-affecting work.
+- Call out data dependencies, follow-up tasks, and testing evidence so reviewers can verify quickly.

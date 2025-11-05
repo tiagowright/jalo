@@ -44,10 +44,9 @@ class Finger(Enum):
     RR = 8
     RP = 9
 
+    @property
     def hand(self) -> Hand:
-        """
-        Return the hand of the finger.
-        """
+        """Return the hand that owns this finger."""
         return Hand(self.value // 5)
 
     def type(self) -> FingerType:
@@ -59,9 +58,6 @@ class Finger(Enum):
 
         return FingerType(9 - self.value)
     
-# ---------------------------------------------------------------------------
-# Position definition
-# ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
 class Position:
@@ -147,6 +143,7 @@ class KeyboardHardware:
         module = importlib.import_module('keebs.' + name)
         return module.KEYBOARD
 
+
     def str(self, show_finger_numbers: bool = False, show_finger_names: bool = False, show_stagger: bool = False) -> str:
         '''
         Show the keyboard layout in a human-readable format.
@@ -196,7 +193,7 @@ class KeyboardHardware:
             else:
                 if position.col != prev_position.col:
                     s += ' '
-                if show_stagger and position.finger.hand() != prev_position.finger.hand():
+                if show_stagger and position.finger.hand != prev_position.finger.hand:
                     s += '  '
             s += _str_position(position)
             prev_position = position
