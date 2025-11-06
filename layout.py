@@ -29,10 +29,11 @@ def _name_or_hardware(name_or_hardware: str | KeyboardHardware) -> KeyboardHardw
 
 
 class KeyboardLayout:
-    def __init__(self, keys: List[LayoutKey], hardware: KeyboardHardware):
+    def __init__(self, keys: List[LayoutKey], hardware: KeyboardHardware, name: str):
         self.keys = keys
         self.hardware = hardware
-
+        self.name = name
+        
         # validate that keys match hardware: every key points to a position and every position is pointed to by a key   
         position_set = set(key.position for key in keys)
         if len(position_set) != len(keys):
@@ -49,7 +50,7 @@ class KeyboardLayout:
             self.grid[key.row][key.col].append(key) 
 
     def __repr__(self) -> str:
-        return f"KeyboardLayout(keys={self.keys!r}, hardware='{self.hardware.name}')"
+        return f"KeyboardLayout(keys={self.keys!r}, hardware='{self.hardware.name}', name='{self.name}')"
     
     def __str__(self) -> str:
         return '\n'.join(
@@ -64,16 +65,15 @@ class KeyboardLayout:
         )
 
     @classmethod
-    def from_text_file(cls, text_file_name: str, hardware: str | KeyboardHardware = DEFAULT_HARDWARE) -> 'KeyboardLayout':
-        """Load a keyboard layout from a text file."""
-        # text_file_path is in the layouts directory    
-        text_file_path = os.path.join('layouts', f'{text_file_name}.kb')
+    def from_name(cls, name: str, hardware: str | KeyboardHardware = DEFAULT_HARDWARE) -> 'KeyboardLayout':
+        """Load a keyboard layout by name from ``layouts/``."""
+        text_file_path = os.path.join('layouts', f'{name}.kb')
         with open(text_file_path, 'r') as file:
             text_grid = file.read()
-        return cls.from_text(text_grid, hardware)
+        return cls.from_text(text_grid, hardware, name=name)
 
     @classmethod
-    def from_text(cls, text_grid: str, hardware: str | KeyboardHardware = DEFAULT_HARDWARE) -> 'KeyboardLayout':
+    def from_text(cls, text_grid: str, hardware: str | KeyboardHardware = DEFAULT_HARDWARE, name: str = '') -> 'KeyboardLayout':
         """Create a keyboard layout from a text grid."""
         hardware = _name_or_hardware(hardware)
         
@@ -92,11 +92,14 @@ class KeyboardLayout:
                     raise ValueError(f"Cannot find available positions ({row}, {col}) for character {char}. Occupied positions: {hardware.grid[row][col]!r}")
                 keys.append(LayoutKey(char, row, col, position.x, position.y, position.finger, position))
         
-        return cls(keys, hardware)
+        if not name:
+            name = ''.join(key.char for key in keys[:6])
+
+        return cls(keys, hardware, name)
 
 
 
 if __name__ == "__main__":
-    char_grid = KeyboardLayout.from_text_file('qwerty')
+    char_grid = KeyboardLayout.from_name('qwerty')
     print(repr(char_grid))
     print(str(char_grid))

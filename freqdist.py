@@ -45,12 +45,12 @@ class FreqDist:
 
 
     @classmethod
-    def from_ngram_file(cls, ngram_file_name: str) -> FreqDist:
-        """Load the n-gram frequency distribution for the requested ngram file.
+    def from_name(cls, name: str) -> FreqDist:
+        """Load the n-gram frequency distribution for the requested corpus name.
 
         Parameters
         ----------
-        ngram_file_name:
+        name:
             Name of the corpus file (without extension) to load from ``./corpus/ngrams``.
 
         Returns
@@ -66,9 +66,11 @@ class FreqDist:
             If the ngram file is malformed.
         """
 
-        corpus_path = Path(__file__).resolve().parent / "corpus" / "ngrams" / f"{ngram_file_name}.json"
+        corpus_path = (
+            Path(__file__).resolve().parent / "corpus" / "ngrams" / f"{name}.json"
+        )
         with corpus_path.open("r", encoding="utf-8") as fp:
-            return cls(ngram_file_name, freqdist=json.load(fp))
+            return cls(name, freqdist=json.load(fp))
 
     def select(self, char_set: set[str]) -> FreqDist:
         """Select a subset of the frequency distribution for the given list of characters."""
@@ -178,7 +180,7 @@ class FreqDist:
 
 # add a main function to test the freqdist
 if __name__ == "__main__":
-    freqdist = FreqDist.from_ngram_file("en")
+    freqdist = FreqDist.from_name("en")
 
     # print each ngram type and if the dictionary is longer than 40 entries, print just 40 entries and ... with a count
     for ngram_type in freqdist.freqdist:

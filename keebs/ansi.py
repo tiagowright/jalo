@@ -19,11 +19,36 @@ stagger_at_row = {
     2: 0.75
 }
 
-KEYBOARD = KeyboardHardware(name='ansi', positions=[
-    Position(row=row, col=col, x=col + stagger_at_row[row], y=row, finger=finger_at_col[col])
-    for row in range(3)
-    for col in range(10)
-])
+is_home = {
+    (1,0): True,
+    (1,1): True,
+    (1,2): True,
+    (1,3): True,
+    (1,6): True,
+    (1,7): True,
+    (1,8): True,
+    (1,9): True
+}
+
+def standard_hardware(name, stagger_at_row = stagger_at_row, stagger_at_col = {}):
+    '''Creates KeyboardHardware with a standard 30 key positions arranged in 3 rows of 10 columns
+    This is the typical setup for keyboard layout optimization.
+    '''
+    return KeyboardHardware(name=name, positions=[
+        Position(
+            row=row, 
+            col=col, 
+            x=col + stagger_at_row.get(row,0), 
+            y=row + stagger_at_col.get(col,0), 
+            finger=finger_at_col[col], 
+            is_home=is_home.get((row,col), False)
+        )
+        for row in range(3)
+        for col in range(10)
+    ])
+
+# export the standard ansi keyboard
+KEYBOARD = standard_hardware('ansi')
 
 if __name__ == "__main__":
     print(KEYBOARD.str(show_finger_numbers=True, show_stagger=True))

@@ -127,11 +127,11 @@ if __name__ == "__main__":
     if not args.metrics and not args.position_freqdist and not args.analyze_layout:
         args.metrics = True
 
-    freqdist = FreqDist.from_ngram_file("en")
+    freqdist = FreqDist.from_name("en")
     metrics = METRICS
     hardware = KeyboardHardware.from_name(args.hardware)
     model = KeyboardModel(hardware, metrics, freqdist)
-    layout = KeyboardLayout.from_text_file(args.layout, hardware)
+    layout = KeyboardLayout.from_name(args.layout, hardware)
 
     if args.metrics:
         for metric in model.M:
