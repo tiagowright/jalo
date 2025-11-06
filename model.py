@@ -2,7 +2,7 @@ from hardware import KeyboardHardware
 from layout import KeyboardLayout
 from typing import List, Tuple, Optional
 from freqdist import FreqDist, NgramType
-from metrics import Metric
+from metrics import Metric, ObjectiveFunction
 import numpy as np
 
 class KeyboardModel:
@@ -14,14 +14,20 @@ class KeyboardModel:
         self,
         hardware: KeyboardHardware,
         metrics: List[Metric],
+        objective: ObjectiveFunction,
         freqdist: FreqDist
     ):
         self.hardware = hardware
         self.freqdist = freqdist
         self.metrics = metrics
-        self.P: Optional[dict[NgramType, np.ndarray]] = None
+        self.objective = objective
 
+        for metric in self.objective.metrics:
+            if metric not in self.metrics:
+                self.metrics.append(metric)
+        
         self._metrics_for_all_position_ngrams()
+        self._preaggregate_objective()
 
     def _metrics_for_all_position_ngrams(self):
         '''
@@ -39,14 +45,14 @@ class KeyboardModel:
             if metric.order == 1:
                 self.M[metric] = np.array(
                     [
-                        metric.function(self.hardware.positions[i]) for i in range(len(self.hardware.positions))
+                        metric.function(self.hardware.positions[i]) for i in range(len(self.hardware.positions))  # pyright: ignore[reportCallIssue]
                     ], dtype=np.float64
                 )
             elif metric.order == 2:
                 self.M[metric] = np.array(
                     [
                         [
-                            metric.function(self.hardware.positions[i], self.hardware.positions[j])
+                            metric.function(self.hardware.positions[i], self.hardware.positions[j])  # pyright: ignore[reportCallIssue]
                             for j in range(len(self.hardware.positions))
                         ] for i in range(len(self.hardware.positions))
                     ], dtype=np.float64
@@ -56,12 +62,39 @@ class KeyboardModel:
                     [
                         [
                             [
-                                metric.function(self.hardware.positions[i], self.hardware.positions[j], self.hardware.positions[k]) 
+                                metric.function(self.hardware.positions[i], self.hardware.positions[j], self.hardware.positions[k])  # pyright: ignore[reportCallIssue]
                                 for k in range(len(self.hardware.positions))
                             ] for j in range(len(self.hardware.positions))
                         ] for i in range(len(self.hardware.positions))
                     ], dtype=np.float64
                 )
+
+    def _preaggregate_objective(self):
+        '''
+        Pre-aggregate all metrics into a single tensor for the objective function.
+
+        requires self.M to be computed first. Then we compute the linear combination
+        of each self.M[metric] for each ngramtype, into tensors of the shape that corresponds
+        to the ngramtype (order 1 will be (N,), order 2 will be (N,N), order 3 will be (N,N,N)).
+        
+        To compute the final score, when the char positions are known, we simply aggregate the
+        position frequency tensors * the pre-aggregated objective tensors, with appropriate weights.
+        '''
+        N = len(self.hardware.positions)
+
+        # shape is (N,N,N) for ngramtype.order == 3, (N,N) for ngramtype.order == 2, (N,) for ngramtype.order == 1
+        self.V = {
+            ngramType : np.zeros(
+                (N,N,N) if ngramType.order == 3 else 
+                (N,N) if ngramType.order == 2 else 
+                (N,), 
+                dtype=np.float64
+            ) for ngramType in NgramType if ngramType.order <= 3
+        }
+
+        for metric, weight in self.objective.metrics.items():
+            self.V[metric.ngramType] += weight * self.M[metric]
+        
 
     def position_freqdist(self, char_at_pos: np.ndarray) -> dict[NgramType, np.ndarray]:
         '''
@@ -92,6 +125,37 @@ class KeyboardModel:
         '''
         char_at_pos = self.char_at_positions_from_layout(layout)
         return self.analyze_chars_at_positions(char_at_pos)
+    
+    def score_chars_at_positions(self, char_at_pos: np.ndarray) -> float:
+        '''
+        Score the characters at positions specified by char_at_pos.
+        '''
+        P = self.position_freqdist(char_at_pos)
+        return sum(
+            float(np.sum(P[ngramtype] * self.V[ngramtype]))
+            for ngramtype in P 
+            if ngramtype in self.V
+        )
+
+    def score_layout(self, layout: KeyboardLayout) -> float:
+        '''
+        Score the layout specified by the KeyboardLayout.
+        '''
+        char_at_pos = self.char_at_positions_from_layout(layout)
+        return self.score_chars_at_positions(char_at_pos)
+
+    def score_contributions(self, layout: KeyboardLayout) -> dict[Metric, float]:
+        '''
+        Score the contributions of each metric to the total score.
+        '''
+        char_at_pos = self.char_at_positions_from_layout(layout)
+        P = self.position_freqdist(char_at_pos)
+        
+        return {
+            metric: float(np.sum(P[metric.ngramType] * self.objective.metrics[metric] * self.M[metric]))
+            if metric in self.objective.metrics and metric in self.M and metric.ngramType in P else 0.0
+            for metric in self.metrics
+        }
 
     def char_at_positions_from_layout(self, layout: KeyboardLayout) -> np.ndarray:
         # validate that layout uses the same hardware
@@ -119,18 +183,20 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--position-freqdist', action='store_true', help='Output position frequency distribution (P)')
     parser.add_argument('-a', '--analyze-layout', action='store_true', help='Analyze the layout')
     parser.add_argument('-l', '--layout', default='qwerty', help='Layout file to use for computing P (default: qwerty.kb)')
+    parser.add_argument('-o', '--objective', action='store_true', help='output the pre-aggregated objective function V')
     parser.add_argument('-hw', '--hardware', default='ortho', help='Hardware to use for computing P (default: ortho)')
     
     args = parser.parse_args()
     
     # If no flags provided, default to -m for backward compatibility
-    if not args.metrics and not args.position_freqdist and not args.analyze_layout:
+    if not args.metrics and not args.position_freqdist and not args.analyze_layout and not args.objective:
         args.metrics = True
 
     freqdist = FreqDist.from_name("en")
     metrics = METRICS
     hardware = KeyboardHardware.from_name(args.hardware)
-    model = KeyboardModel(hardware, metrics, freqdist)
+    objective = ObjectiveFunction({metrics[0]: 2.0, metrics[2]: 1.5, metrics[3]: 3.0, metrics[18]: 1.1})
+    model = KeyboardModel(hardware, metrics, objective, freqdist)
     layout = KeyboardLayout.from_name(args.layout, hardware)
 
     if args.metrics:
@@ -156,7 +222,6 @@ if __name__ == "__main__":
     if args.position_freqdist:
         # Compute P
         P = model.position_freqdist(model.char_at_positions_from_layout(layout))
-        model.P = P
         
         # Output P
         for ngramtype in P:
@@ -180,3 +245,23 @@ if __name__ == "__main__":
         for metric in analysis:
             print(f"{metric.name:13s}: {analysis[metric]*100:>8.4f}%")
         print()
+
+
+    if args.objective:
+        print(f"Objective function metrics: {model.objective.metrics}")
+        print("Objective function V:")
+        for ngramtype in model.V:
+            print(f"{ngramtype.name}:")
+            if ngramtype.order == 1:
+                print(model.V[ngramtype])
+            elif ngramtype.order == 2:
+                for i, row in enumerate(model.V[ngramtype]):
+                    print(f'{i:3d}: ', end='')
+                    print(' '.join(f'{x:.6f}' for x in row))
+            elif ngramtype.order == 3:
+                for j, plane in enumerate(model.V[ngramtype]):
+                    for i, row in enumerate(plane):
+                        print(f'{j:3d},{i:3d}: ', end='')
+                        print(' '.join(f'{x:.6f}' for x in row))
+                    print()
+            print()

@@ -49,6 +49,46 @@ class Metric:
         return self.ngramType.order
 
 
+class ObjectiveFunction:
+    '''
+    ObjectiveFunction is a linear combination of metrics. The primary purpose is to
+    be used as the objective function for the optimizer, summarizing the quality of a keyboard layout.
+    
+    The optimizer will MINIMIZE the objective function. So think of it as cost or effort function.
+
+    ObjectiveFunction allows other ObjectiveFunctions as input to the linear combination.
+    '''
+
+    def __init__(self, metrics: dict['Metric | ObjectiveFunction', float]):
+        
+        self.metrics = {}
+
+        for metric, weight in metrics.items():
+            if isinstance(metric, Metric):
+                self.metrics[metric] = weight
+            elif isinstance(metric, ObjectiveFunction):
+                for sub_metric, sub_weight in metric.metrics.items():
+                    if sub_metric in self.metrics:
+                        self.metrics[sub_metric] += sub_weight * weight
+                    else:
+                        self.metrics[sub_metric] = sub_weight * weight
+            else:
+                raise ValueError(f"Invalid metric: {metric}")
+
+    def __str__(self):
+        formatted_weights = {
+            metric: f"{weight:.2f}".strip("0").strip(".") for metric, weight in self.metrics.items()
+        }
+        
+        return " + ".join([f"{weight}{metric.name}" for metric, weight in formatted_weights.items()])
+  
+    def __hash__(self):
+        return hash((metric, round(weight, 2)) for metric, weight in self.metrics.items())
+
+    def __repr__(self):
+        return f"ObjectiveFunction({self})"
+
+
 # Helper functions
 def same_finger(a, b):
     return a.finger == b.finger

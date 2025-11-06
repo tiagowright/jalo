@@ -14,11 +14,12 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 from tabulate import tabulate
+from textwrap import dedent
 
 from layout import KeyboardLayout
 from model import KeyboardModel
 from freqdist import FreqDist
-from metrics import METRICS, Metric
+from metrics import METRICS, Metric, ObjectiveFunction
 from hardware import KeyboardHardware
 
 
@@ -74,57 +75,48 @@ class JaloShell(cmd.Cmd):
     prompt = "jalo> "
     intro = "Jalo REPL – type 'help' to list commands."
 
-    def __init__(self, settings: Optional[JaloSettings] = None, config_path: Optional[Path] = None) -> None:
+    def __init__(self, config_path: Optional[Path] = None) -> None:
         super().__init__()
         self.config_path = config_path or Path(__file__).resolve().with_name("config.toml")
-        self.settings = settings or _load_settings(self.config_path) or JaloSettings("ortho", "en")
-        
+        self._load_settings()
+
+    def _load_settings(self):
+        self.settings = _load_settings(self.config_path)
         self.freqdist = FreqDist.from_name(self.settings.corpus)
         self.metrics = METRICS
         self.hardware = KeyboardHardware.from_name(self.settings.hardware)
-        self.model = KeyboardModel(hardware=self.hardware, metrics=self.metrics, freqdist=self.freqdist)
+        self.objective = ObjectiveFunction({self.metrics[0]: 2.0, self.metrics[2]: 1.5, self.metrics[3]: 3.0, self.metrics[18]: 1.1})
+        self.model = KeyboardModel(hardware=self.hardware, metrics=self.metrics, objective=self.objective, freqdist=self.freqdist)
 
 
     # ----- core commands -------------------------------------------------
     def do_analyze(self, arg: str) -> None:
-        """
-        analyze <keyboard>
+        """analyze <keyboard> - Analyze the given keyboard layout."""
 
-        Analyze the given keyboard layout. Currently prints a placeholder.
-        """
-        keyboard = arg.strip()
-        if not keyboard:
+        layouts = self._parse_keyboard_names(arg)
+        if layouts is None:
             self._warn("usage: analyze <keyboard>")
             return
-        
-        try:
-            layout = KeyboardLayout.from_name(keyboard, self.hardware)
-        except FileNotFoundError as e:
-            self._warn(f"could not find layout in: {e.filename}")
+
+        self._info(self._tabulate_analysis(layouts))
+
+    def do_contributions(self, arg: str) -> None:
+        """contributions <keyboard> [<keyboard>...]"""
+        layouts = self._parse_keyboard_names(arg)
+        if layouts is None:
+            self._warn("usage: contributions <keyboard> [<keyboard>...]")
             return
 
-        analysis = self.model.analyze_layout(layout)
-        self._info(self._tabulate_analysis([layout], {layout: analysis}))
+        self._info(self._tabulate_analysis(layouts, show_contributions=True))
 
     def do_compare(self, arg: str) -> None:
-        """
-        compare <keyboard> [<keyboard>...]
-
-        Compare one or more keyboard layouts.
-        """
-        names = self._split_args(arg)
-        if len(names) < 1:
+        """compare <keyboard> [<keyboard>...]"""
+        layouts = self._parse_keyboard_names(arg)
+        if layouts is None:
             self._warn("usage: compare <keyboard> [<keyboard>...]")
             return
 
-        try:
-            layouts = [KeyboardLayout.from_name(name, self.hardware) for name in names]
-        except FileNotFoundError as e:
-            self._warn(f"could not find layout in: {e.filename}")
-            return
-
-        analysis = {layout: self.model.analyze_layout(layout) for layout in layouts}
-        self._info(self._tabulate_analysis(layouts, analysis))
+        self._info(self._tabulate_analysis(layouts))
         
     def do_generate(self, arg: str) -> None:
         """generate"""
@@ -135,18 +127,20 @@ class JaloShell(cmd.Cmd):
         self._info("[improve] placeholder layout improvement.")
 
     def do_reload(self, arg: str) -> None:
-        """reload"""
+        """Reload the settings from the config.toml file. Keeps generated layouts results in memory, but updates corpus, hardware, and objective function."""
         # should reload the settings from the config.toml file
-        self.settings = _load_settings(Path(__file__).resolve().with_name("config.toml"))
-        try:
-            rel_path = self.config_path.relative_to(Path.cwd())
-        except ValueError:
-            rel_path = self.config_path
+        self._load_settings()
+
         self._info(
-            f"[reload] loaded settings from {rel_path}: "
+            f"loaded settings from {self.config_path}:\n"
             f"hardware='{self.settings.hardware}' "
             f"corpus='{self.settings.corpus}'."
         )
+    
+    def do_objective(self, arg: str) -> None:
+        """shows the current objective function"""
+        self._info(f"Objective function: {self.objective}")
+
 
     # ----- shell controls ------------------------------------------------
     def do_help(self, arg: str) -> None:  # type: ignore[override]
@@ -178,14 +172,34 @@ class JaloShell(cmd.Cmd):
     @staticmethod
     def _warn(message: str) -> None:
         print(message, file=sys.stderr)
+    
+    def _parse_keyboard_names(self, arg: str) -> List[KeyboardLayout]:
+        names = self._split_args(arg)
+        if len(names) < 1:
+            self._warn("usage: compare <keyboard> [<keyboard>...]")
+            return None
+
+        try:
+            layouts = [KeyboardLayout.from_name(name, self.hardware) for name in names]
+        except FileNotFoundError as e:
+            self._warn(f"could not find layout in: {e.filename}")
+            return None
+        
+        return layouts
 
 
+    def _tabulate_analysis(self, layouts: List[KeyboardLayout], show_contributions: bool = False) -> str:
 
-    def _tabulate_analysis(self, layouts: List[KeyboardLayout], analysis: dict[KeyboardLayout, dict[Metric, float]]) -> str:
+        analysis = {layout: self.model.analyze_layout(layout) for layout in layouts}
+        scores = {layout: self.model.score_layout(layout) for layout in layouts}
+        contributions = {layout: self.model.score_contributions(layout) for layout in layouts}
+    
         break_before = ['alt','left_hand','finger_0','sfb_finger_0']
 
-        # sort metrics by name
-        header = ['metric'] + [item for layout in layouts for item in [layout.name, 'Δ']]
+        def col_sel(cols):
+            return cols[:2] if not show_contributions else cols
+
+        header = ['metric'] + [item for layout in layouts for item in col_sel([layout.name, 'Δ', 'ΔS'])]
         
         rows = []
         for metric in self.metrics:
@@ -209,29 +223,53 @@ class JaloShell(cmd.Cmd):
                 [
                     item 
                     for layout in layouts 
-                    for item in [
-                        analysis[layout][metric]*100 if metric in analysis[layout] else '', 
-                        delta_sign(analysis[layout][metric])
-                    ]
+                    for item in col_sel([
+                        analysis[layout][metric]*100 if metric in analysis[layout] else None, 
+                        delta_sign(analysis[layout][metric]),
+                        contributions[layout][metric]*100 if metric in contributions[layout] and abs(contributions[layout][metric]) > 0.01 else None
+                    ])
                 ]
             )
+
+        rows.append([None] * (len(layouts) * 2 + 1))
+        rows.append(['score'] + [
+            item 
+            for layout in layouts 
+            for item in (
+                col_sel([None, None, f"{scores[layout]*100:.3f}"]) if show_contributions else 
+                col_sel([f"{scores[layout]*100:.3f}", None, None])
+            )
+        ])
+        
         return tabulate(rows, headers=header, tablefmt="simple", floatfmt=".3f")
 
 
+
+
+DEFAULT_CONFIG = '''
+hardware = "ortho"
+corpus = "en"
+'''
+
 def _load_settings(config_path: Path) -> JaloSettings:
     if not config_path.exists():
-        return JaloSettings("ortho", "en")
+        print(f"warning: config file not found at {config_path}, creating default config", file=sys.stderr)
+        try:
+            config_path.write_text(DEFAULT_CONFIG, encoding="utf-8")
+        except Exception as exc:  # pragma: no cover - IO errors should not kill REPL
+            print(f"Fatal error: failed to create config {config_path}: {exc}", file=sys.stderr)
+            sys.exit(1)
 
     try:
         with config_path.open("rb") as fh:
             data = tomllib.load(fh)
     except Exception as exc:  # pragma: no cover - IO errors should not kill REPL
-        print(f"warning: failed to read config {config_path}: {exc}", file=sys.stderr)
-        return JaloSettings("ortho", "en")
-
+        print(f"Fatal error: failed to read config {config_path}: {exc}", file=sys.stderr)
+        sys.exit(1)
+    
     if not isinstance(data, dict):
-        print(f"warning: malformed config in {config_path}", file=sys.stderr)
-        return JaloSettings("ortho", "en")
+        print(f"Fatal error: malformed config in {config_path}", file=sys.stderr)
+        sys.exit(1)
 
     return JaloSettings.from_dict(data)
 
@@ -253,9 +291,8 @@ def main(argv: List[str] | None = None) -> int:
         _configure_readline()
 
     config_path = Path(__file__).resolve().with_name("config.toml")
-    settings = _load_settings(config_path)
+    shell = JaloShell(config_path=config_path)
 
-    shell = JaloShell(settings=settings, config_path=config_path)
     shell._info(
         f"Loaded config: hardware='{shell.settings.hardware}', "
         f"corpus='{shell.settings.corpus}'."
