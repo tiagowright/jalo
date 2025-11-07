@@ -152,19 +152,54 @@ def distance_squared(a, b):
 def distance_linear(a, b):
     return sqrt(distance_squared(a, b))
 
+def lsb(a, b):
+    '''
+    LSB is Lateral Stretch Bigram
+    From the "Keyboard layouts" doc:
+    Adjacent finger bigrams where the horizontal distance is 2U or greater.
+    Semi-adjacent finger bigrams where the horizontal distance is 3.5U or greater.
+    '''
+    if not same_hand(a,b):
+        return False
+
+    if a.finger.type == FingerType.THUMB or b.finger.type == FingerType.THUMB:
+        return False
+    
+    # adjacent fingers
+    if abs(a.finger.value - b.finger.value) == 1:
+        return abs(a.x - b.x) >= 2
+    
+    # semi-adjacent fingers
+    if abs(a.finger.value - b.finger.value) == 2:
+        return abs(a.x - b.x) >= 3.5
+    
+    return False
+
+
 # row skip
 def rowskip(a, b):
     return abs(a.row - b.row) > 1 and same_hand(a, b)
 
-# full scissor bigram (FSB)
-# from the Keyboard layouts doc
-# The index prefers being lower.
-# The middle prefers being higher.
-# The ring prefers being higher than index and pinky, but lower than the middle.
-# The pinky prefers being lower than middle and ring, but higher than index.
-def fsb(a, b):
+def scissors(a, b):
+    '''
+    full scissor bigram (FSB)
+    from the Keyboard layouts doc
+    The index prefers being lower.
+    The middle prefers being higher.
+    The ring prefers being higher than index and pinky, but lower than the middle.
+    The pinky prefers being lower than middle and ring, but higher than index.
+
+    oxeylyzer also considers FSB with 1 row difference when the fingers are ring and pinky
+    and the pinky is higher than the ring
+    '''
     if not rowskip(a, b):
+        if same_hand(a,b) and (
+            (a.finger.type == FingerType.PINKY and b.finger.type == FingerType.RING and a.row > b.row) or
+            (a.finger.type == FingerType.RING and b.finger.type == FingerType.PINKY and a.row < b.row)
+        ):
+            return True
         return False
+
 
     if a.row < b.row:
         a, b = b, a
@@ -174,9 +209,9 @@ def fsb(a, b):
     elif a.finger.type == FingerType.MIDDLE:
         return False
     elif a.finger.type == FingerType.RING:
-        return b.FingerType == FingerType.MIDDLE
+        return b.finger.type == FingerType.MIDDLE
     elif a.finger.type == FingerType.PINKY:
-        return (b.FingerType == FingerType.MIDDLE or b.FingerType == FingerType.RING)
+        return (b.finger.type == FingerType.MIDDLE or b.finger.type == FingerType.RING)
 
     return False
 
@@ -184,6 +219,15 @@ def fsb(a, b):
 def fsb_split_ortho(a, b):
     # TODO
     pass
+
+def pinky_ring(a,b):
+    return same_hand(a,b) and a.row != b.row and (
+        (a.finger.type == FingerType.PINKY and b.finger.type == FingerType.RING) or
+        (a.finger.type == FingerType.RING and b.finger.type == FingerType.PINKY)
+    )
+
+def pinky_off(a):
+    return a.finger.type == FingerType.PINKY and not a.is_home
 
 # Trigram metrics
 
@@ -216,9 +260,9 @@ def redirect(a, b, c):
 
 def redirect_bad(a, b, c):
     return redirect(a, b, c) and (
-        a.finger.type() != FingerType.INDEX and 
-        b.finger.type() != FingerType.INDEX and 
-        c.finger.type() != FingerType.INDEX
+        a.finger.type != FingerType.INDEX and 
+        b.finger.type != FingerType.INDEX and 
+        c.finger.type != FingerType.INDEX
     )
 
 # finger usage metrics
@@ -260,8 +304,11 @@ METRICS = [
     Metric(name="sft", description="single finger trigram", ngramType=NgramType.TRIGRAM, function=sft),
     Metric(name="dist", description="ecludean distance squared", ngramType=NgramType.BIGRAM, function=distance_squared),
     Metric(name="dist_linear", description="ecludean distance", ngramType=NgramType.BIGRAM, function=distance_linear),
+    Metric(name="lsb", description="lateral stretch bigram", ngramType=NgramType.BIGRAM, function=lsb),
     Metric(name="rowskip", description="row skip", ngramType=NgramType.BIGRAM, function=rowskip),
-    Metric(name="fsb", description="full scissor bigram", ngramType=NgramType.BIGRAM, function=fsb),
+    Metric(name="scissors", description="full scissor bigram", ngramType=NgramType.BIGRAM, function=scissors),
+    Metric(name="pinky_ring", description="pinky ring bigram", ngramType=NgramType.BIGRAM, function=pinky_ring),
+    Metric(name="pinky_off", description="pinky off", ngramType=NgramType.MONOGRAM, function=pinky_off),
     Metric(name="alt", description="alternates", ngramType=NgramType.TRIGRAM, function=alternate),
     Metric(name="alt_sfs", description="alternates with single finger skipgram", ngramType=NgramType.TRIGRAM, function=alternate_sfs),
     Metric(name="roll3", description="trigram roll", ngramType=NgramType.TRIGRAM, function=roll3),
@@ -279,6 +326,9 @@ METRICS = [
     Metric(name=f"sfb_finger_{i}", description=f"single finger bigram with finger {i}", ngramType=NgramType.BIGRAM, function=globals()[f"sfb_finger_{i}"]) 
     for i in range(10)
 ]
+
+# assert that the metric names are all unique
+assert len(METRICS) == len(set(metric.name for metric in METRICS)), "Metric names must be unique"
 
 if __name__ == "__main__":
     print(METRICS)

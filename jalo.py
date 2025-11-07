@@ -173,7 +173,7 @@ class JaloShell(cmd.Cmd):
     def _warn(message: str) -> None:
         print(message, file=sys.stderr)
     
-    def _parse_keyboard_names(self, arg: str) -> List[KeyboardLayout]:
+    def _parse_keyboard_names(self, arg: str) -> list[KeyboardLayout] | None:
         names = self._split_args(arg)
         if len(names) < 1:
             self._warn("usage: compare <keyboard> [<keyboard>...]")

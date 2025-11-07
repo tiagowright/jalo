@@ -49,6 +49,7 @@ class Finger(Enum):
         """Return the hand that owns this finger."""
         return Hand(self.value // 5)
 
+    @property
     def type(self) -> FingerType:
         """
         Return the type of the finger.
