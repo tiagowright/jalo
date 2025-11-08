@@ -1,4 +1,7 @@
-hardware = "ortho"
+hardware = "ansi"
 corpus = "en"
 
-
+# If True, use oxeylyzer's definition for all metrics that have an oxeylyzer equivalent.
+# Where the definitions differ, it is primarily because (i think) the new definition
+# more accurately captures the intent of the metric described in the Keyboard layouts doc.
+oxey_mode = true

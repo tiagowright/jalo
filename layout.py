@@ -79,9 +79,11 @@ class KeyboardLayout:
         
         occupied_positions = set()
         keys = []
-        for row, line in enumerate(text_grid.split('\n')):
-            if not line.strip():
+        row = 0
+        for line in text_grid.split('\n'):
+            if not line.strip() or line.strip().startswith('#'):
                 continue
+
             for col, char in enumerate(line.split()):
                 for position in hardware.grid[row][col]:
                     if position in occupied_positions:
@@ -91,7 +93,9 @@ class KeyboardLayout:
                 else:
                     raise ValueError(f"Cannot find available positions ({row}, {col}) for character {char}. Occupied positions: {hardware.grid[row][col]!r}")
                 keys.append(LayoutKey(char, row, col, position.x, position.y, position.finger, position))
-        
+            
+            row += 1
+
         if not name:
             name = ''.join(key.char for key in keys[:6])
 

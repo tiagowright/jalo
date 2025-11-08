@@ -22,6 +22,9 @@ class NgramType(Enum):
         return self.value
 
 class FreqDist:
+    # sentinel value for out of distribution characters
+    out_of_distribution = '__other__'
+
     def __init__(self, corpus_name: str, freqdist: dict[str | NgramType, dict[str, float]] | None = None):
         self.corpus_name = corpus_name
         self.freqdist = {t : {} for t in NgramType}
@@ -42,6 +45,7 @@ class FreqDist:
         
         # sort monograms by frequency descending
         self.char_seq = sorted(self.freqdist[NgramType.MONOGRAM].keys(), key=lambda x: self.freqdist[NgramType.MONOGRAM][x], reverse=True)
+        self.char_seq.append(FreqDist.out_of_distribution)
 
 
     @classmethod

@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Core logic lives in `keyboard_model.py`; extend this module to expose new metrics or layout utilities.
+- Core logic lives in `model.py`; extend this module to expose new metrics or layout utilities.
 - Hardware definitions sit in `hardware.py` and `keebs/`; each board module must export a `KEYBOARD` instance.
 - Frequency data and corpora are under `corpus/` and `freqdist.py`; keep large datasets in `assets/` if added later.
 - Add fixtures or regression data to `tests/data/`, and mirror layout examples in `layouts/` when documenting.

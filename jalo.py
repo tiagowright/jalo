@@ -19,7 +19,7 @@ from textwrap import dedent
 from layout import KeyboardLayout
 from model import KeyboardModel
 from freqdist import FreqDist
-from metrics import METRICS, Metric, ObjectiveFunction
+from metrics import METRICS, Metric, ObjectiveFunction, use_oxey_mode
 from hardware import KeyboardHardware
 
 
@@ -61,12 +61,13 @@ def _configure_readline() -> None:
 class JaloSettings:
     hardware: str
     corpus: str
-
+    oxey_mode: bool
     @classmethod
     def from_dict(cls, data: dict) -> "JaloSettings":
         hardware = data.get("hardware", "ortho")
         corpus = data.get("corpus", "en")
-        return cls(hardware=str(hardware), corpus=str(corpus))
+        oxey_mode = data.get("oxey_mode", False)
+        return cls(hardware=str(hardware), corpus=str(corpus), oxey_mode=bool(oxey_mode))
 
 
 class JaloShell(cmd.Cmd):
@@ -84,6 +85,7 @@ class JaloShell(cmd.Cmd):
         self.settings = _load_settings(self.config_path)
         self.freqdist = FreqDist.from_name(self.settings.corpus)
         self.metrics = METRICS
+        use_oxey_mode(self.settings.oxey_mode)
         self.hardware = KeyboardHardware.from_name(self.settings.hardware)
         self.objective = ObjectiveFunction({self.metrics[0]: 2.0, self.metrics[2]: 1.5, self.metrics[3]: 3.0, self.metrics[18]: 1.1})
         self.model = KeyboardModel(hardware=self.hardware, metrics=self.metrics, objective=self.objective, freqdist=self.freqdist)
@@ -184,17 +186,27 @@ class JaloShell(cmd.Cmd):
         except FileNotFoundError as e:
             self._warn(f"could not find layout in: {e.filename}")
             return None
+        except ValueError as e:
+            self._warn(f"could not parse layout: {e}")
+            return None
+        except Exception as e:
+            self._warn(f"could not parse layout: {e}")
+            return None
         
         return layouts
 
 
     def _tabulate_analysis(self, layouts: List[KeyboardLayout], show_contributions: bool = False) -> str:
 
-        analysis = {layout: self.model.analyze_layout(layout) for layout in layouts}
-        scores = {layout: self.model.score_layout(layout) for layout in layouts}
-        contributions = {layout: self.model.score_contributions(layout) for layout in layouts}
-    
-        break_before = ['alt','left_hand','finger_0','sfb_finger_0']
+        try:
+            analysis = {layout: self.model.analyze_layout(layout) for layout in layouts}
+            scores = {layout: self.model.score_layout(layout) for layout in layouts}
+            contributions = {layout: self.model.score_contributions(layout) for layout in layouts}
+        except Exception as e:
+            self._warn(f"Error: could not analyze layout: {e}")
+            return ''
+
+        break_before = ['same_hand','redirect','left_hand','finger_0','sfb_finger_0']
 
         def col_sel(cols):
             return cols[:2] if not show_contributions else cols

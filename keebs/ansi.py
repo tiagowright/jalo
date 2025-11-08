@@ -30,7 +30,7 @@ is_home = {
     (1,9): True
 }
 
-def standard_hardware(name, stagger_at_row = stagger_at_row, stagger_at_col = {}):
+def standard_hardware(name, stagger_at_row = stagger_at_row, stagger_at_col = {}, finger_at_col = finger_at_col, finger_at_row_col = {}):
     '''Creates KeyboardHardware with a standard 30 key positions arranged in 3 rows of 10 columns
     This is the typical setup for keyboard layout optimization.
     '''
@@ -40,7 +40,7 @@ def standard_hardware(name, stagger_at_row = stagger_at_row, stagger_at_col = {}
             col=col, 
             x=col + stagger_at_row.get(row,0), 
             y=row + stagger_at_col.get(col,0), 
-            finger=finger_at_col[col], 
+            finger=finger_at_row_col.get((row,col), finger_at_col[col]), 
             is_home=is_home.get((row,col), False)
         )
         for row in range(3)

@@ -165,7 +165,10 @@ class KeyboardModel:
         char_at_pos = np.zeros(len(self.hardware.positions), dtype=int)
         for pi, position in enumerate(self.hardware.positions):
             key = layout.key_at_position[position]
-            char_at_pos[pi] = self.freqdist.char_seq.index(key.char)
+            try:
+                char_at_pos[pi] = self.freqdist.char_seq.index(key.char)
+            except ValueError:
+                char_at_pos[pi] = self.freqdist.char_seq.index(FreqDist.out_of_distribution)
         return char_at_pos
 
 

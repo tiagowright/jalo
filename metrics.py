@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from typing import Callable, Any
 
 from hardware import FingerType, Position, Hand, Finger
-
 from freqdist import NgramType
 
 class Direction(Enum):
@@ -18,12 +17,12 @@ class Direction(Enum):
         if a.finger.hand != b.finger.hand:
             return Direction.ALTERNATE
         
-        if a == b:
+        if a.finger == b.finger:
             return Direction.REPEAT
         
-        if a.col < b.col and a.finger.hand == Hand.LEFT:
+        if a.finger.value < b.finger.value and a.finger.hand == Hand.LEFT:
             return Direction.INWARD
-        elif a.col > b.col and a.finger.hand == Hand.RIGHT:
+        elif a.finger.value > b.finger.value and a.finger.hand == Hand.RIGHT:
             return Direction.INWARD
 
         return Direction.OUTWARD
@@ -98,6 +97,13 @@ def same_hand(a, b, c=None):
         return a.finger.hand == b.finger.hand
     return a.finger.hand == b.finger.hand and a.finger.hand == c.finger.hand
 
+# If True, use oxeylyzer's definition for all metrics that have an oxeylyzer equivalent.
+# Where the definitions differ, it is primarily because (i think) the new definition
+# is more accurately capture the intent of the metric described in the Keyboard layouts doc.
+oxey_mode = False
+def use_oxey_mode(mode: bool):
+    global oxey_mode
+    oxey_mode = mode
 
 
 # Bigram metrics
@@ -201,7 +207,7 @@ def scissors(a, b):
         return False
 
 
-    if a.row < b.row:
+    if a.row > b.row:
         a, b = b, a
     
     if a.finger.type == FingerType.INDEX:
@@ -232,38 +238,77 @@ def pinky_off(a):
 # Trigram metrics
 
 def alternate(a, b, c):
-    return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand
+    return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand and (
+        a.finger != c.finger or a == c
+    )
 
 def alternate_sfs(a, b, c):
-    return alternate(a, b, c) and sfs(a, c)
+    return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand and (
+        a.finger == c.finger and a != c
+    )
 
 def roll3(a, b, c):
-    return same_hand(a, b, c) and Direction.which(a, b) == Direction.which(b, c)
-
-def roll(a, b, c):
-    return (a.finger.hand == b.finger.hand or b.finger.hand == c.finger.hand) and (a.finger.hand != c.finger.hand)
+    return (
+        same_hand(a, b, c) and 
+        Direction.which(a, b) == Direction.which(b, c) and
+        Direction.which(a, b) in (Direction.INWARD, Direction.OUTWARD)
+    )
 
 def in_roll(a, b, c):
     return (a.finger.hand != c.finger.hand) and (
-        (a.finger.hand == b.finger.hand and Direction.which(a, b) == Direction.INWARD) or 
-        (b.finger.hand == c.finger.hand and Direction.which(b, c) == Direction.INWARD)
+        Direction.which(a, b) == Direction.INWARD or 
+        Direction.which(b, c) == Direction.INWARD
     )
 
 def out_roll(a, b, c):
     return (a.finger.hand != c.finger.hand) and (
-        (a.finger.hand == b.finger.hand and Direction.which(a, b) == Direction.OUTWARD) or 
-        (b.finger.hand == c.finger.hand and Direction.which(b, c) == Direction.OUTWARD)
+        Direction.which(a, b) == Direction.OUTWARD or 
+        Direction.which(b, c) == Direction.OUTWARD
     )
 
-def redirect(a, b, c):
-    return same_hand(a, b, c) and Direction.which(a, b) != Direction.which(b, c)
+def roll(a, b, c):
+    return in_roll(a, b, c) or out_roll(a, b, c) or roll3(a, b, c)
 
-def redirect_bad(a, b, c):
-    return redirect(a, b, c) and (
+
+# redirect metrics
+def total_redirect(a, b, c):
+    return (
+        same_hand(a, b, c) and 
+        Direction.which(a, b) != Direction.which(b, c) and
+        Direction.which(a, b) in (Direction.INWARD, Direction.OUTWARD) and
+        Direction.which(b, c) in (Direction.INWARD, Direction.OUTWARD)
+    )
+
+def total_redirect_bad(a, b, c):
+    return total_redirect(a, b, c) and (
         a.finger.type != FingerType.INDEX and 
         b.finger.type != FingerType.INDEX and 
         c.finger.type != FingerType.INDEX
     )
+
+#
+# Note that oxeylyzer definition of redirect with sfs checks only that the fingers are the same,
+# so it counts a repetition as a redirect_sfs (e.g. "dad" is a redirect_sfs).
+#
+def total_redirect_sfs(a, b, c):
+    global oxey_mode
+    if oxey_mode:
+        return total_redirect(a, b, c) and a.finger == c.finger
+    return total_redirect(a, b, c) and sfs(a, c)
+
+def redirect_bad_sfs(a, b, c):
+    return total_redirect_bad(a, b, c) and total_redirect_sfs(a, b, c)
+
+def redirect_sfs(a, b, c):
+    return total_redirect(a, b, c) and total_redirect_sfs(a, b, c) and not redirect_bad_sfs(a, b, c)
+
+def redirect_bad(a, b, c):
+    return total_redirect_bad(a, b, c) and not total_redirect_sfs(a, b, c)
+
+def redirect(a, b, c):
+    return total_redirect(a, b, c) and not total_redirect_sfs(a, b, c) and not total_redirect_bad(a, b, c)
+
+
 
 # finger usage metrics
 def finger_usage(finger, a):
@@ -309,14 +354,18 @@ METRICS = [
     Metric(name="scissors", description="full scissor bigram", ngramType=NgramType.BIGRAM, function=scissors),
     Metric(name="pinky_ring", description="pinky ring bigram", ngramType=NgramType.BIGRAM, function=pinky_ring),
     Metric(name="pinky_off", description="pinky off", ngramType=NgramType.MONOGRAM, function=pinky_off),
+    Metric(name="same_hand", description="same hand trigram", ngramType=NgramType.TRIGRAM, function=same_hand),
     Metric(name="alt", description="alternates", ngramType=NgramType.TRIGRAM, function=alternate),
     Metric(name="alt_sfs", description="alternates with single finger skipgram", ngramType=NgramType.TRIGRAM, function=alternate_sfs),
-    Metric(name="roll3", description="trigram roll", ngramType=NgramType.TRIGRAM, function=roll3),
     Metric(name="roll", description="total rolls", ngramType=NgramType.TRIGRAM, function=roll),
     Metric(name="in_roll", description="inward rolls", ngramType=NgramType.TRIGRAM, function=in_roll),
     Metric(name="out_roll", description="outward rolls", ngramType=NgramType.TRIGRAM, function=out_roll),
+    Metric(name="roll3", description="trigram roll", ngramType=NgramType.TRIGRAM, function=roll3),
     Metric(name="redirect", description="redirect", ngramType=NgramType.TRIGRAM, function=redirect),
-    Metric(name="redirect_bad", description="redirect bad", ngramType=NgramType.TRIGRAM, function=redirect_bad),
+    Metric(name="redirect_sfs", description="redirect with single finger skipgram", ngramType=NgramType.TRIGRAM, function=redirect_sfs),
+    Metric(name="redirect_bad", description="redirect bad (does not use index finger)", ngramType=NgramType.TRIGRAM, function=redirect_bad),
+    Metric(name="redirect_bad_sfs", description="redirect bad with single finger skipgram", ngramType=NgramType.TRIGRAM, function=redirect_bad_sfs),
+    Metric(name="total_redirect", description="total redirect", ngramType=NgramType.TRIGRAM, function=total_redirect),
     Metric(name="left_hand", description="left hand usage", ngramType=NgramType.MONOGRAM, function=left_hand),
     Metric(name="right_hand", description="right hand usage", ngramType=NgramType.MONOGRAM, function=right_hand),
 ] + [
