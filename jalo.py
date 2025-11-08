@@ -75,6 +75,7 @@ class JaloShell(cmd.Cmd):
 
     prompt = "jalo> "
     intro = "Jalo REPL – type 'help' to list commands."
+    break_before_metrics = ['same_hand','roll','redirect','left_hand','finger_0','sfb_finger_0']
 
     def __init__(self, config_path: Optional[Path] = None) -> None:
         super().__init__()
@@ -143,6 +144,18 @@ class JaloShell(cmd.Cmd):
         """shows the current objective function"""
         self._info(f"Objective function: {self.objective}")
 
+    def do_metrics(self, arg: str) -> None:
+        """shows the current metrics"""
+        header = ['Metric', 'Description']
+
+        rows = []
+
+        for metric in self.metrics:
+            if metric.name in self.break_before_metrics:
+                rows.append([None] * 2) 
+            rows.append([metric.name, metric.description])
+
+        self._info(tabulate(rows, headers=header, tablefmt="simple"))
 
     # ----- shell controls ------------------------------------------------
     def do_help(self, arg: str) -> None:  # type: ignore[override]
@@ -206,7 +219,6 @@ class JaloShell(cmd.Cmd):
             self._warn(f"Error: could not analyze layout: {e}")
             return ''
 
-        break_before = ['same_hand','redirect','left_hand','finger_0','sfb_finger_0']
 
         def col_sel(cols):
             return cols[:2] if not show_contributions else cols
@@ -228,7 +240,7 @@ class JaloShell(cmd.Cmd):
                 )
             
 
-            if metric.name in break_before:
+            if metric.name in self.break_before_metrics:
                 rows.append([None] * (len(layouts) * 2 + 1))
             rows.append(
                 [metric.name] + 

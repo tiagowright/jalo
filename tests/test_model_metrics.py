@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from freqdist import FreqDist, NgramType
 from hardware import KeyboardHardware
 from layout import KeyboardLayout
-from metrics import METRICS, Metric, ObjectiveFunction
+from metrics import METRICS, Metric, ObjectiveFunction, use_oxey_mode
 from model import KeyboardModel
 
 METRIC_BY_NAME = {metric.name: metric for metric in METRICS}
@@ -25,6 +25,7 @@ class Scenario:
     layout: str
     text: str
     expectations: dict[str, float]
+    oxey_mode: bool = False
 
     @property
     def name(self) -> str:
@@ -59,6 +60,16 @@ def fqt(text: str) -> FreqDist:
 
     return FreqDist("test-suite", fq)
 
+def one_at_a_time(scenario: Scenario) -> list[Scenario]:
+    '''
+    helper function breaks one scenario into multiple
+    '''
+    return [
+        Scenario(scenario.hardware, scenario.layout, ngram, scenario.expectations, scenario.oxey_mode)
+        for ngram in scenario.text.split()
+    ]
+
+
 SCENARIOS = [
     Scenario('ansi', 'qwerty', 'de fr gt aq sw ju ki lo', {'sfb': 1.0, 'sfs': 1.0}),
     
@@ -83,23 +94,41 @@ SCENARIOS = [
     Scenario("ansi", "qwerty", "bb nn tt hh rr yy uu", {"sfs": 0.0}),
 
     # Trigrams
-    Scenario("ansi", "qwerty", "sad and our wer you", {"alt": 1/5, "roll": 2/5, "roll3": 1/5, "total_redirect": 2/5}),
+    Scenario("ansi", "qwerty", "sad and our wer you", {"alt": 1/5, "roll": 2/5, "roll3": 1/5, "redirect_total": 2/5}),
     Scenario("ansi", "graphite", "tha the thi", {"roll": 1.0}),
 
     # y o u q x  k d l w ,  
     # i a e n j  v h t s c
     #  " - r b z  f p m g .
-    Scenario("ansi_angle", "inrolly", "our", {"roll3": 1.0}),
-    Scenario("ansi_angle", "inrolly", "our rea", {"roll3": 1.0}),
     Scenario("ansi_angle", "inrolly", "you our ion rea", {"roll3": 1.0}),
-    Scenario("ansi_angle", "inrolly", "ear ain one are", {"total_redirect": 1.0}),
+    Scenario("ansi_angle", "inrolly", "ear ain one are", {"redirect_total": 1.0}),
+
+    # flavors for redirects
+    # bad sfs: was
+    # bad: eas
+    # sfs: far
+    # redirect: gas, gag
+    # note that oxylyzer considers gag an sfs
+    Scenario("ansi", "qwerty", "was eas far gas gag", {"redirect_total": 1.0, "redirect_bad_sfs": 1/5, "redirect_sfs": 1/5, "redirect_bad": 1/5, "redirect": 2/5}),
+    Scenario("ansi", "qwerty", "was eas far gas gag", {"redirect_total": 1.0, "redirect_bad_sfs": 1/5, "redirect_sfs": 2/5, "redirect_bad": 1/5, "redirect": 1/5}, oxey_mode=True),
+
+    # LSBs, using the Keyboard layouts doc definition
+    Scenario("ansi", "qwerty", "et te ge eg eb be wb sb yi", {"lsb": 1.0}),
+    Scenario("ansi", "qwerty", "dt td vd wr wf wv xv ni hi ui ou on ly yo", {"lsb": 0.0}),
+
+    # LSBs, using the Oxeylyzer definition
+    Scenario("ansi", "qwerty", "et eg eb dt dg ct cg cb iy ih ky kh kn nk n,", {"lsb": 1.0}, oxey_mode=True),
+    Scenario("ansi", "qwerty", "dv db ni wb sb", {"lsb": 0.0}, oxey_mode=True),
+
 ]
 
 ### skipping some tests today?
-SCENARIOS = SCENARIOS[13:]
+# SCENARIOS = SCENARIOS[17:]
+# SCENARIOS = one_at_a_time(Scenario("ansi", "qwerty", "ih in ky kh", {"lsb": 1.0}, oxey_mode=True))
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda sc: sc.name)
 def test_real_hardware_metric_checks(scenario: Scenario) -> None:
+    use_oxey_mode(scenario.oxey_mode)
     hardware = KeyboardHardware.from_name(scenario.hardware)
     layout = KeyboardLayout.from_name(scenario.layout, hardware)
     freqdist = fqt(scenario.text)

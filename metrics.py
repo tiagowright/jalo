@@ -105,8 +105,10 @@ def use_oxey_mode(mode: bool):
     global oxey_mode
     oxey_mode = mode
 
-
+#
 # Bigram metrics
+#
+
 # repetition
 def rep(a, b):
     return a == b
@@ -161,9 +163,16 @@ def distance_linear(a, b):
 def lsb(a, b):
     '''
     LSB is Lateral Stretch Bigram
-    From the "Keyboard layouts" doc:
+
+    From the Keyboard layouts doc:
     Adjacent finger bigrams where the horizontal distance is 2U or greater.
     Semi-adjacent finger bigrams where the horizontal distance is 3.5U or greater.
+
+    Oxeylyzer definition:
+    Middle and Index bigram, where Index is in the center column, with two exceptions:
+    - on the right hand when index is on the bottom and middle is on the top
+    - on the left hand when index is on the bottom and middle is on the home row
+    (e.g., on ansi keyboard, qwerty "ni" and "db" are not LSB)
     '''
     if not same_hand(a,b):
         return False
@@ -171,6 +180,22 @@ def lsb(a, b):
     if a.finger.type == FingerType.THUMB or b.finger.type == FingerType.THUMB:
         return False
     
+    if oxey_mode:
+        if a.finger.type == FingerType.INDEX and b.finger.type == FingerType.MIDDLE:
+            pass
+        elif a.finger.type == FingerType.MIDDLE and b.finger.type == FingerType.INDEX:
+            a, b = b, a
+        else:
+            return False
+        
+        if a.finger.hand == Hand.RIGHT and a.row - b.row >= 2:
+            return False
+        if a.finger.hand == Hand.LEFT and b.is_home and a.row == b.row + 1:
+            return False
+
+        return a.col == 4 or a.col == 5
+
+    # Keyboard layouts doc definition
     # adjacent fingers
     if abs(a.finger.value - b.finger.value) == 1:
         return abs(a.x - b.x) >= 2
@@ -235,14 +260,22 @@ def pinky_ring(a,b):
 def pinky_off(a):
     return a.finger.type == FingerType.PINKY and not a.is_home
 
+#
 # Trigram metrics
+#
+def alternate_total(a, b, c):
+    return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand
 
 def alternate(a, b, c):
-    return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand and (
-        a.finger != c.finger or a == c
-    )
+    return alternate_total(a, b, c) and not alternate_sfs(a, b, c)
 
 def alternate_sfs(a, b, c):
+    global oxey_mode
+    if oxey_mode:
+        return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand and (
+            a.finger == c.finger
+        )
+
     return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand and (
         a.finger == c.finger and a != c
     )
@@ -271,7 +304,7 @@ def roll(a, b, c):
 
 
 # redirect metrics
-def total_redirect(a, b, c):
+def redirect_total(a, b, c):
     return (
         same_hand(a, b, c) and 
         Direction.which(a, b) != Direction.which(b, c) and
@@ -279,8 +312,8 @@ def total_redirect(a, b, c):
         Direction.which(b, c) in (Direction.INWARD, Direction.OUTWARD)
     )
 
-def total_redirect_bad(a, b, c):
-    return total_redirect(a, b, c) and (
+def redirect_bad_total(a, b, c):
+    return redirect_total(a, b, c) and (
         a.finger.type != FingerType.INDEX and 
         b.finger.type != FingerType.INDEX and 
         c.finger.type != FingerType.INDEX
@@ -288,25 +321,25 @@ def total_redirect_bad(a, b, c):
 
 #
 # Note that oxeylyzer definition of redirect with sfs checks only that the fingers are the same,
-# so it counts a repetition as a redirect_sfs (e.g. "dad" is a redirect_sfs).
+# so it counts a repetition as a redirect_sfs (e.g. "dad" is a bad redirect sfs).
 #
-def total_redirect_sfs(a, b, c):
+def redirect_sfs_total(a, b, c):
     global oxey_mode
     if oxey_mode:
-        return total_redirect(a, b, c) and a.finger == c.finger
-    return total_redirect(a, b, c) and sfs(a, c)
+        return redirect_total(a, b, c) and a.finger == c.finger
+    return redirect_total(a, b, c) and sfs(a, c)
 
 def redirect_bad_sfs(a, b, c):
-    return total_redirect_bad(a, b, c) and total_redirect_sfs(a, b, c)
+    return redirect_bad_total(a, b, c) and redirect_sfs_total(a, b, c)
 
 def redirect_sfs(a, b, c):
-    return total_redirect(a, b, c) and total_redirect_sfs(a, b, c) and not redirect_bad_sfs(a, b, c)
+    return redirect_total(a, b, c) and redirect_sfs_total(a, b, c) and not redirect_bad_sfs(a, b, c)
 
 def redirect_bad(a, b, c):
-    return total_redirect_bad(a, b, c) and not total_redirect_sfs(a, b, c)
+    return redirect_bad_total(a, b, c) and not redirect_sfs_total(a, b, c)
 
 def redirect(a, b, c):
-    return total_redirect(a, b, c) and not total_redirect_sfs(a, b, c) and not total_redirect_bad(a, b, c)
+    return redirect_total(a, b, c) and not redirect_sfs_total(a, b, c) and not redirect_bad_total(a, b, c)
 
 
 
@@ -350,22 +383,23 @@ METRICS = [
     Metric(name="dist", description="ecludean distance squared", ngramType=NgramType.BIGRAM, function=distance_squared),
     Metric(name="dist_linear", description="ecludean distance", ngramType=NgramType.BIGRAM, function=distance_linear),
     Metric(name="lsb", description="lateral stretch bigram", ngramType=NgramType.BIGRAM, function=lsb),
-    Metric(name="rowskip", description="row skip", ngramType=NgramType.BIGRAM, function=rowskip),
+    Metric(name="rowskip", description="row skip where a bigram on the same hand is separated by more than 1 row", ngramType=NgramType.BIGRAM, function=rowskip),
     Metric(name="scissors", description="full scissor bigram", ngramType=NgramType.BIGRAM, function=scissors),
     Metric(name="pinky_ring", description="pinky ring bigram", ngramType=NgramType.BIGRAM, function=pinky_ring),
-    Metric(name="pinky_off", description="pinky off", ngramType=NgramType.MONOGRAM, function=pinky_off),
+    Metric(name="pinky_off", description="pinky is not home", ngramType=NgramType.MONOGRAM, function=pinky_off),
     Metric(name="same_hand", description="same hand trigram", ngramType=NgramType.TRIGRAM, function=same_hand),
     Metric(name="alt", description="alternates", ngramType=NgramType.TRIGRAM, function=alternate),
     Metric(name="alt_sfs", description="alternates with single finger skipgram", ngramType=NgramType.TRIGRAM, function=alternate_sfs),
+    Metric(name="alt_total", description="alternates total", ngramType=NgramType.TRIGRAM, function=alternate_total),
     Metric(name="roll", description="total rolls", ngramType=NgramType.TRIGRAM, function=roll),
     Metric(name="in_roll", description="inward rolls", ngramType=NgramType.TRIGRAM, function=in_roll),
     Metric(name="out_roll", description="outward rolls", ngramType=NgramType.TRIGRAM, function=out_roll),
     Metric(name="roll3", description="trigram roll", ngramType=NgramType.TRIGRAM, function=roll3),
-    Metric(name="redirect", description="redirect", ngramType=NgramType.TRIGRAM, function=redirect),
+    Metric(name="redirect", description="redirects that are not sfs or bad", ngramType=NgramType.TRIGRAM, function=redirect),
     Metric(name="redirect_sfs", description="redirect with single finger skipgram", ngramType=NgramType.TRIGRAM, function=redirect_sfs),
     Metric(name="redirect_bad", description="redirect bad (does not use index finger)", ngramType=NgramType.TRIGRAM, function=redirect_bad),
     Metric(name="redirect_bad_sfs", description="redirect bad with single finger skipgram", ngramType=NgramType.TRIGRAM, function=redirect_bad_sfs),
-    Metric(name="total_redirect", description="total redirect", ngramType=NgramType.TRIGRAM, function=total_redirect),
+    Metric(name="redirect_total", description="total redirect", ngramType=NgramType.TRIGRAM, function=redirect_total),
     Metric(name="left_hand", description="left hand usage", ngramType=NgramType.MONOGRAM, function=left_hand),
     Metric(name="right_hand", description="right hand usage", ngramType=NgramType.MONOGRAM, function=right_hand),
 ] + [
