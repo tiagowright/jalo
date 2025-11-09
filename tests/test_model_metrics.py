@@ -17,6 +17,10 @@ from model import KeyboardModel
 
 METRIC_BY_NAME = {metric.name: metric for metric in METRICS}
 
+ALL_CHARS = '''abcdefghijklmnopqrstuvwxyz'"-,./;:<>?'''
+ALL_BIGRAMS = [a+b for a in ALL_CHARS for b in ALL_CHARS]
+ALL_TRIGRAMS = [a+b+c for a in ALL_CHARS for b in ALL_CHARS for c in ALL_CHARS]
+
 @dataclass(slots=True, frozen=True)
 class Scenario:
     """Configuration for building a model with real hardware/layout data."""
@@ -26,18 +30,22 @@ class Scenario:
     text: str
     expectations: dict[str, float]
     oxey_mode: bool = False
+    negative: bool = False
 
     @property
     def name(self) -> str:
         return f"{self.hardware}_{self.layout}_{self.text.replace(' ', '_')}"
 
-def fqt(text: str) -> FreqDist:
+def fqt(text: str, negative: bool = False) -> FreqDist:
     '''
     takes a text string with space separated mono, bi, and trigrams and creates a freqdist (Counter)
+
+    negative reverses the distribution, so that every ommitted ngram is added, and every given ngram is removed
+    (but only for ngram types that are present in the text)
     '''
     fq: dict[str | NgramType, dict[str, float]] = {ngramtype: {} for ngramtype in NgramType}
 
-    for char in '''abcdefghijklmnopqrstuvwxyz'"-,./;:<>?''':
+    for char in ALL_CHARS:
         fq[NgramType.MONOGRAM][char] = 0
 
     for ngram, count in Counter(text.split()).items():
@@ -50,6 +58,21 @@ def fqt(text: str) -> FreqDist:
             fq[NgramType.TRIGRAM][ngram] = count
         else:
             raise ValueError(f"Invalid ngram: {ngram}")
+    
+
+    if negative:
+        # monograms are intialized to zeros
+        if sum(fq[NgramType.MONOGRAM].values()) > 0:
+            fq[NgramType.MONOGRAM] = {key: 1 if count == 0 else 0 for key, value in fq[NgramType.MONOGRAM].items()}
+
+        if sum(fq[NgramType.BIGRAM].values()) > 0:
+            fq[NgramType.BIGRAM] = {key: 1 for key in ALL_BIGRAMS if key not in fq[NgramType.BIGRAM] and key[::-1] not in fq[NgramType.BIGRAM]}
+
+        if sum(fq[NgramType.SKIPGRAM].values()) > 0:
+            fq[NgramType.SKIPGRAM] = {key: 1 for key in ALL_BIGRAMS if key not in fq[NgramType.SKIPGRAM] and key[::-1] not in fq[NgramType.SKIPGRAM]}
+
+        if sum(fq[NgramType.TRIGRAM].values()) > 0:
+            fq[NgramType.TRIGRAM] = {key: 1 for key in ALL_TRIGRAMS if key not in fq[NgramType.TRIGRAM]}
         
     # normalize the counts
     for ngramtype in fq:
@@ -64,9 +87,19 @@ def one_at_a_time(scenario: Scenario) -> list[Scenario]:
     '''
     helper function breaks one scenario into multiple
     '''
+    if not scenario.negative:
+        return [
+            Scenario(scenario.hardware, scenario.layout, ngram, scenario.expectations, scenario.oxey_mode)
+            for ngram in scenario.text.split()
+        ]
+
+    freqdist = fqt(scenario.text, scenario.negative)
+
     return [
         Scenario(scenario.hardware, scenario.layout, ngram, scenario.expectations, scenario.oxey_mode)
-        for ngram in scenario.text.split()
+        for ngramtype in freqdist.freqdist
+        for ngram in freqdist.freqdist[ngramtype]
+        if freqdist.freqdist[ngramtype][ngram] > 0           
     ]
 
 
@@ -88,6 +121,13 @@ SCENARIOS = [
     Scenario("ansi", "qwerty", "wz ex o/ i.", {"scissors": 0.0, "rowskip": 1.0}),
     Scenario("ansi", "qwerty", "qs pl", {"scissors": 0.0, "rowskip": 0.0}),
     Scenario("ansi", "qwerty", "aw zs ;o /l", {"scissors": 1.0, "rowskip": 0.0}),
+
+    # oxeylyzer scissors
+    Scenario("ansi", "qwerty", "qx wc u, i. o/ wz ex rc o, p. qs pl ax ;. eb ct y,", {"scissors": 1.0}, oxey_mode=True),
+    Scenario("ansi", "qwerty", "wd in on pn p, /i", {"scissors": 0.0}, oxey_mode=True),
+
+    # my ortho scissors
+    Scenario("ortho", "qwerty", "qs qx ax zw pl p. ;. /o wc ex ,o .i ok l, sc wd cr ct ,u ,y in db eg ih kn be dt cg h, yk", {"scissors_ortho": 1.0}),
 
     # SFS
     Scenario("ansi", "qwerty", "br un tg hu rf hn yu", {"sfs": 1.0}),
@@ -123,15 +163,17 @@ SCENARIOS = [
 ]
 
 ### skipping some tests today?
-# SCENARIOS = SCENARIOS[17:]
-# SCENARIOS = one_at_a_time(Scenario("ansi", "qwerty", "ih in ky kh", {"lsb": 1.0}, oxey_mode=True))
+# SCENARIOS = SCENARIOS[11:13]
+# SCENARIOS = one_at_a_time(Scenario("ansi", "qwerty", "wd in on pn p, /i", {"scissors": 0.0}, oxey_mode=True))
+# SCENARIOS = one_at_a_time(Scenario("ortho", "qwerty", "qs qx ax zw pl p. ;. /o wc ex ,o .i ok l, sc wd cr ct ,u ,y in db eg ih kn", {"scissors_ortho": 0.0}, negative=True))
+SCENARIOS = [Scenario("ortho", "qwerty", "qs qx ax zw pl p. ;. /o wc ex ,o .i ok l, sc wd cr ct ,u ,y in db eg ih kn be dt cg h, yk", {"scissors_ortho": 1.0})]
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda sc: sc.name)
 def test_real_hardware_metric_checks(scenario: Scenario) -> None:
     use_oxey_mode(scenario.oxey_mode)
     hardware = KeyboardHardware.from_name(scenario.hardware)
     layout = KeyboardLayout.from_name(scenario.layout, hardware)
-    freqdist = fqt(scenario.text)
+    freqdist = fqt(scenario.text, scenario.negative)
     model = KeyboardModel(hardware, METRICS, ObjectiveFunction({metric: 1.0 for metric in METRICS}), freqdist)
     metric_scores = model.analyze_layout(layout)
 

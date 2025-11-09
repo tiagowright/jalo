@@ -6,6 +6,7 @@ from typing import Callable, Any
 from hardware import FingerType, Position, Hand, Finger
 from freqdist import NgramType
 
+
 class Direction(Enum):
     INWARD = 0
     OUTWARD = 1
@@ -211,6 +212,81 @@ def lsb(a, b):
 def rowskip(a, b):
     return abs(a.row - b.row) > 1 and same_hand(a, b)
 
+def scissors_oxey_mode(a, b):
+    '''
+    oxeylyzer definition of scissors is encoded as a list of finger positions,
+    and includes some single row stretches when pinky is higher than ring.
+
+    instead of listing position locations, in this implementation we are 
+    inferring the rules from the positions and rewriting as statements so that
+    it can be more flexible to different hardware setups.
+    '''
+    if not rowskip(a, b):
+        if same_hand(a,b) and (
+            (a.finger.type == FingerType.PINKY and b.finger.type == FingerType.RING and a.row < b.row) or
+            (a.finger.type == FingerType.RING and b.finger.type == FingerType.PINKY and a.row > b.row)
+        ):
+            return True
+        return False
+
+    if a.finger.type.value > b.finger.type.value:
+        a, b = b, a
+    if a.finger.type == FingerType.PINKY and b.finger.type == FingerType.RING:
+        return True
+    if a.finger.type == FingerType.RING:
+        return b.finger.type == FingerType.MIDDLE
+    if a.finger.type == FingerType.MIDDLE:
+        return b.finger.type == FingerType.INDEX and (
+            (a.finger.hand == Hand.LEFT and abs(b.x - a.x) >= 2.0) or
+            a.row > b.row
+        )
+    return False
+
+def scissors_ortho(a,b):
+    '''
+    any time the pinky is in a different row than the ring, except when off by one with pinky lower
+    any time the ring and middle are in a skip row, or the middle is lower than the ring
+    
+    any skip row where the middle is lower than the index
+    any skip row where the index is in the center column, with the middle
+    the index in the center column and lower than the middle (even a single row)
+
+    scissors:
+    qs qx ax zw pl p. ;. /o
+    wc ex ,o .i ok l, sc wd
+    cr ct ,u ,y in ev db eg ih kn
+    be dt cg h, yk
+    '''
+    
+    if not same_hand(a, b):
+        return False
+
+    if a.finger.type.value > b.finger.type.value:
+        a, b = b, a
+
+    if a.finger.type == FingerType.PINKY:
+        return (
+            b.finger.type == FingerType.RING and 
+            a.row != b.row and 
+            not (abs(a.row - b.row) == 1 and a.row > b.row)
+        )
+
+    elif a.finger.type == FingerType.RING:
+        return b.finger.type == FingerType.MIDDLE and (
+            rowskip(a, b) or 
+            a.row < b.row
+        )
+
+    elif a.finger.type == FingerType.MIDDLE:
+        return b.finger.type == FingerType.INDEX and (
+            (a.row != b.row and abs(a.x - b.x) >= 2.0) or
+            (rowskip(a, b) and a.row > b.row)
+        )
+
+
+    return False
+
+
 def scissors(a, b):
     '''
     full scissor bigram (FSB)
@@ -219,10 +295,12 @@ def scissors(a, b):
     The middle prefers being higher.
     The ring prefers being higher than index and pinky, but lower than the middle.
     The pinky prefers being lower than middle and ring, but higher than index.
-
-    oxeylyzer also considers FSB with 1 row difference when the fingers are ring and pinky
-    and the pinky is higher than the ring
     '''
+
+    if oxey_mode:
+        return scissors_oxey_mode(a, b)
+
+        
     if not rowskip(a, b):
         if same_hand(a,b) and (
             (a.finger.type == FingerType.PINKY and b.finger.type == FingerType.RING and a.row > b.row) or
@@ -230,7 +308,6 @@ def scissors(a, b):
         ):
             return True
         return False
-
 
     if a.row > b.row:
         a, b = b, a
@@ -385,6 +462,7 @@ METRICS = [
     Metric(name="lsb", description="lateral stretch bigram", ngramType=NgramType.BIGRAM, function=lsb),
     Metric(name="rowskip", description="row skip where a bigram on the same hand is separated by more than 1 row", ngramType=NgramType.BIGRAM, function=rowskip),
     Metric(name="scissors", description="full scissor bigram", ngramType=NgramType.BIGRAM, function=scissors),
+    Metric(name="scissors_ortho", description="ortho scissor bigram", ngramType=NgramType.BIGRAM, function=scissors_ortho),
     Metric(name="pinky_ring", description="pinky ring bigram", ngramType=NgramType.BIGRAM, function=pinky_ring),
     Metric(name="pinky_off", description="pinky is not home", ngramType=NgramType.MONOGRAM, function=pinky_off),
     Metric(name="same_hand", description="same hand trigram", ngramType=NgramType.TRIGRAM, function=same_hand),
