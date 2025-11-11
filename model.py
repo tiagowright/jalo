@@ -229,6 +229,8 @@ def _calculate_swap_delta(
     A negative delta means the new layout is better (lower score).
     
     This is an O(n^2) operation, much faster than a full O(n^3) rescore.
+
+    This version of the function is optimized for JIT compilation with Numba, to accelerate the calculation of the swap delta.
     """
     if i == j:
         return 0.0

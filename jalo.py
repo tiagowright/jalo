@@ -22,7 +22,7 @@ from model import KeyboardModel
 from freqdist import FreqDist
 from metrics import METRICS, Metric, ObjectiveFunction, use_oxey_mode
 from hardware import KeyboardHardware
-from optim import Optimizer, BoundedHeap
+from optim import Optimizer, Population
 
 
 
@@ -149,25 +149,18 @@ class JaloShell(cmd.Cmd):
         
         optimizer = Optimizer(self.model, population_size=10)
         char_at_pos = optimizer.optimize(char_at_pos, score_tolerance=0.01*original_score)
-
-        self.layouts_memory = []
-        scores_memory = {}
-                
-        improved_layout = self.model.layout_from_char_at_positions(char_at_pos, original_layout=layout)
         
+        self.layouts_memory = []
         for new_char_at_pos in optimizer.population.sorted()[:10]:
             new_layout = self.model.layout_from_char_at_positions(new_char_at_pos, original_layout=layout)
             self.layouts_memory.append(new_layout)
-            scores_memory[new_layout] = self.model.score_chars_at_positions(new_char_at_pos)
 
         self._info(f'')
+        self._info(self._layout_memory_to_str(original_score=original_score))
 
-        for li,layout in enumerate(self.layouts_memory[:10]):
-            delta = scores_memory[layout] - original_score
-            self._info(f"layout {li} {scores_memory[layout]*100:.3f} {delta*100:.3f}")
-            self._info(f'{layout}')
-            self._info(f'')
-
+    def do_memory(self, arg: str) -> None:
+        """memory: shows the top 10 layouts in memory"""
+        self._info(self._layout_memory_to_str(top_n=10))
 
 
     def do_reload(self, arg: str) -> None:
@@ -294,6 +287,19 @@ class JaloShell(cmd.Cmd):
                     return None
 
         return layouts
+
+    def _layout_memory_to_str(self, original_score: float | None = None, top_n: int = 10) -> str:
+        res = []
+        for li,layout in enumerate(self.layouts_memory[:top_n]):
+            score = self.model.score_layout(layout)
+            if original_score is None:
+                original_score = score
+            delta = score - original_score
+            layout_str = f"layout {li} {score*100:.3f} {delta*100:.3f}\n"
+            layout_str += f'{layout}\n'
+            res.append(layout_str)
+        
+        return '\n'.join(res)
 
 
     def _tabulate_analysis(self, layouts: List[KeyboardLayout], show_contributions: bool = False) -> str:
