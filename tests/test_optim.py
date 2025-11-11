@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 SCENARIOS = [
     # 3sfb + 1.5sfs + 1sft
     Scenario("ansi", "qwerty", "en", ObjectiveFunction({METRIC_BY_NAME["sfb"]: 2.0, METRIC_BY_NAME["sfs"]: 1.5, METRIC_BY_NAME["sft"]: 1.0}), 10.9),
+    Scenario("ansi", "sturdy", "en", ObjectiveFunction({METRIC_BY_NAME["sfb"]: 2.0, METRIC_BY_NAME["sfs"]: 1.5, METRIC_BY_NAME["sft"]: 1.0}), 11.1),
 ]
 
 

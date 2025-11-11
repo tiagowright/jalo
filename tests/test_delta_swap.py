@@ -55,6 +55,20 @@ SCENARIOS = [
         ObjectiveFunction({METRIC_BY_NAME["sfb"]: 1.0, METRIC_BY_NAME["redirect_bad"]: 1.0, METRIC_BY_NAME["pinky_off"]: 1.0, METRIC_BY_NAME["sfs"]: 1.0}), 
         [tuple[int,int](random.sample(range(30), 2)) for _ in range(100)]
     ), # random swaps
+    Scenario(
+        "ortho",
+        "qwerty",
+        "en",
+        ObjectiveFunction(
+            {
+                METRIC_BY_NAME["pinky_off"]: 0.5,
+                METRIC_BY_NAME["sfb"]: 1.0,
+                METRIC_BY_NAME["sfs"]: 0.8,
+                METRIC_BY_NAME["sft"]: 1.2,
+            }
+        ),
+        [(0, 5), (12, 18)],
+    ),
 ]
 
 

@@ -56,8 +56,6 @@ class Optimizer:
         self.population = BoundedHeap(max_size=population_size)
 
     def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.1) -> np.ndarray:
-        total_delta = 0
-
         while True:
             delta = self.position_swapping(char_at_pos)
             delta += self.column_swapping(char_at_pos)
