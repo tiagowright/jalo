@@ -1,5 +1,5 @@
 from hardware import KeyboardHardware
-from layout import KeyboardLayout
+from layout import KeyboardLayout, LayoutKey
 from typing import List, Tuple, Optional
 from freqdist import FreqDist, NgramType
 from metrics import Metric, ObjectiveFunction
@@ -171,7 +171,271 @@ class KeyboardModel:
                 char_at_pos[pi] = self.freqdist.char_seq.index(FreqDist.out_of_distribution)
         return char_at_pos
 
+    def layout_from_char_at_positions(self, char_at_pos: np.ndarray, original_layout: KeyboardLayout | None = None) -> KeyboardLayout:
+        '''
+        Convert the character at positions specified by char_at_pos into a KeyboardLayout.
+        '''
+        assert len(char_at_pos) == len(self.hardware.positions)
+        assert original_layout is None or original_layout.hardware == self.hardware
 
+        name = ''
+        keys = []
+        for pi, ci in enumerate(char_at_pos):
+            char = self.freqdist.char_seq[ci]
+            if char == FreqDist.out_of_distribution:
+                if original_layout:
+                    char = original_layout.char_at_position[self.hardware.positions[pi]]
+                else:
+                    char = ''
+            if self.hardware.positions[pi].is_home:
+                name += char
+            keys.append(LayoutKey.from_position(self.hardware.positions[pi], char))
+        return KeyboardLayout(keys, self.hardware, name if not original_layout else original_layout.name)
+
+    def calculate_swap_delta(self, char_at_pos: np.ndarray, i: int, j: int) -> float:
+            """
+            Calculates the change in score from swapping char_at_pos[i] and char_at_pos[j].
+            A negative delta means the new layout is better (lower score).
+            
+            This is an O(n^2) operation, much faster than a full O(n^3) rescore.
+            """
+            if i == j:
+                return 0.0
+
+            C = char_at_pos
+            N = len(C)
+            
+            # Character indices at positions i and j
+            c_i = C[i]
+            c_j = C[j]
+
+            # The 'new' layout, C_prime, is implied:
+            # C_prime[i] = c_j
+            # C_prime[j] = c_i
+            # C_prime[k] = C[k] for k != i, j
+
+            # We will calculate delta_E = new_score - old_score
+            # For all terms that are affected by the swap.
+            delta_E = 0.0
+
+            F = self.freqdist.to_numpy()
+
+            for ngramtype in self.V:
+                if ngramtype not in F:
+                    continue
+
+                # ---
+                # 1. Unigram (Order 1) Delta - O(1)
+                # ---
+                if ngramtype.order == 1:
+                    F1 = F[ngramtype]
+                    V1 = self.V[ngramtype]
+                    
+                    # Old score contribution from i and j
+                    old_score_1 = (F1[c_i] * V1[i]) + (F1[c_j] * V1[j])
+                    new_score_1 = (F1[c_j] * V1[i]) + (F1[c_i] * V1[j])
+                    delta_E += (new_score_1 - old_score_1)
+
+                # ---
+                # 2. Bigram ans Skipgram (Order 2) Delta - O(n)
+                # ---
+                if ngramtype.order == 2:
+                    F2 = F[ngramtype]
+                    V2 = self.V[ngramtype]
+                    
+                    old_score_2 = 0.0
+                    new_score_2 = 0.0
+
+                    for k in range(N):
+                        c_k = C[k]
+                        
+                        # Get the character that will be at position k in the new layout
+                        if k == i:
+                            c_prime_k = c_j
+                        elif k == j:
+                            c_prime_k = c_i
+                        else:
+                            c_prime_k = c_k
+
+                        # Terms (i, k) and (k, i)
+                        old_score_2 += (F2[c_i, c_k] * V2[i, k]) + (F2[c_k, c_i] * V2[k, i])
+                        new_score_2 += (F2[c_j, c_prime_k] * V2[i, k]) + (F2[c_prime_k, c_j] * V2[k, i])
+                        
+                        # Terms (j, k) and (k, j)
+                        old_score_2 += (F2[c_j, c_k] * V2[j, k]) + (F2[c_k, c_j] * V2[k, j])
+                        new_score_2 += (F2[c_i, c_prime_k] * V2[j, k]) + (F2[c_prime_k, c_i] * V2[k, j])
+
+                    # The loop double-counts (i,i), (i,j), (j,i), (j,j). We must subtract them once.
+                    old_score_2 -= (F2[c_i, c_i] * V2[i, i]) + (F2[c_i, c_j] * V2[i, j]) + \
+                                (F2[c_j, c_i] * V2[j, i]) + (F2[c_j, c_j] * V2[j, j])
+                    
+                    new_score_2 -= (F2[c_j, c_j] * V2[i, i]) + (F2[c_j, c_i] * V2[i, j]) + \
+                                (F2[c_i, c_j] * V2[j, i]) + (F2[c_i, c_i] * V2[j, j])
+
+                    delta_E += (new_score_2 - old_score_2)
+
+                # ---
+                # 3. Trigram (Order 3) Delta - O(n^2)
+                # ---
+                if ngramtype.order == 3:
+                    F3 = F[ngramtype]
+                    V3 = self.V[ngramtype]
+                    
+                    # This is a bit complex. We partition the O(n^3) total terms 
+                    # into disjoint sets of affected terms.
+                    # We must sum over all (p1, p2, p3) where i or j is in {p1, p2, p3}.
+                    
+                    C_prime = C.copy()
+                    C_prime[i] = c_j
+                    C_prime[j] = c_i
+
+                    for k in range(N):
+                        for l in range(N):
+                            # We compute the delta for 6 planes:
+                            # (i, k, l), (k, i, l), (k, l, i)
+                            # (j, k, l), (k, j, l), (k, l, j)
+                            
+                            # C_prime[k] and C_prime[l] are only different from C[k]/C[l]
+                            # if k or l is i or j. We build an array C_prime to handle this.
+                            
+                            c_k, c_l = C[k], C[l]
+                            c_prime_k, c_prime_l = C_prime[k], C_prime[l]
+
+                            # --- Terms involving i ---
+                            # (i, k, l)
+                            old_term = F3[c_i, c_k, c_l] * V3[i, k, l]
+                            new_term = F3[c_j, c_prime_k, c_prime_l] * V3[i, k, l]
+                            delta_E += new_term - old_term
+                            
+                            # (k, i, l)
+                            old_term = F3[c_k, c_i, c_l] * V3[k, i, l]
+                            new_term = F3[c_prime_k, c_j, c_prime_l] * V3[k, i, l]
+                            delta_E += new_term - old_term
+                            
+                            # (k, l, i)
+                            old_term = F3[c_k, c_l, c_i] * V3[k, l, i]
+                            new_term = F3[c_prime_k, c_prime_l, c_j] * V3[k, l, i]
+                            delta_E += new_term - old_term
+
+                            # --- Terms involving j ---
+                            # (j, k, l)
+                            old_term = F3[c_j, c_k, c_l] * V3[j, k, l]
+                            new_term = F3[c_i, c_prime_k, c_prime_l] * V3[j, k, l]
+                            delta_E += new_term - old_term
+                            
+                            # (k, j, l)
+                            old_term = F3[c_k, c_j, c_l] * V3[k, j, l]
+                            new_term = F3[c_prime_k, c_i, c_prime_l] * V3[k, j, l]
+                            delta_E += new_term - old_term
+                            
+                            # (k, l, j)
+                            old_term = F3[c_k, c_l, c_j] * V3[k, l, j]
+                            new_term = F3[c_prime_k, c_prime_l, c_i] * V3[k, l, j]
+                            delta_E += new_term - old_term
+
+                    # --- Correction for double/triple counting ---
+                    # The loops above summed over 6 planes of size n^2.
+                    # This has double-counted the lines (e.g., (i, j, k))
+                    # and triple-counted the points (e.g., (i, j, i)).
+                    # We must correct for this by subtracting the extra counts.
+                    
+                    for k in range(N):
+                        c_k = C[k]
+                        c_prime_k = C_prime[k]
+                        
+                        # Intersections of two 'i' planes, e.g., (i, i, k)
+                        old_term = F3[c_i, c_i, c_k] * V3[i, i, k]
+                        new_term = F3[c_j, c_j, c_prime_k] * V3[i, i, k]
+                        delta_E -= (new_term - old_term) # Subtract one extra count
+                        
+                        old_term = F3[c_i, c_k, c_i] * V3[i, k, i]
+                        new_term = F3[c_j, c_prime_k, c_j] * V3[i, k, i]
+                        delta_E -= (new_term - old_term) 
+                        
+                        old_term = F3[c_k, c_i, c_i] * V3[k, i, i]
+                        new_term = F3[c_prime_k, c_j, c_j] * V3[k, i, i]
+                        delta_E -= (new_term - old_term)
+                        
+                        # Intersections of two 'j' planes, e.g., (j, j, k)
+                        old_term = F3[c_j, c_j, c_k] * V3[j, j, k]
+                        new_term = F3[c_i, c_i, c_prime_k] * V3[j, j, k]
+                        delta_E -= (new_term - old_term)
+                        
+                        old_term = F3[c_j, c_k, c_j] * V3[j, k, j]
+                        new_term = F3[c_i, c_prime_k, c_i] * V3[j, k, j]
+                        delta_E -= (new_term - old_term)
+                        
+                        old_term = F3[c_k, c_j, c_j] * V3[k, j, j]
+                        new_term = F3[c_prime_k, c_i, c_i] * V3[k, j, j]
+                        delta_E -= (new_term - old_term)
+                        
+                        # Intersections of 'i' and 'j' planes, e.g., (i, j, k)
+                        old_term = F3[c_i, c_j, c_k] * V3[i, j, k]
+                        new_term = F3[c_j, c_i, c_prime_k] * V3[i, j, k]
+                        delta_E -= (new_term - old_term)
+                        
+                        old_term = F3[c_i, c_k, c_j] * V3[i, k, j]
+                        new_term = F3[c_j, c_prime_k, c_i] * V3[i, k, j]
+                        delta_E -= (new_term - old_term)
+                        
+                        old_term = F3[c_j, c_i, c_k] * V3[j, i, k]
+                        new_term = F3[c_i, c_j, c_prime_k] * V3[j, i, k]
+                        delta_E -= (new_term - old_term)
+                        
+                        old_term = F3[c_j, c_k, c_i] * V3[j, k, i]
+                        new_term = F3[c_i, c_prime_k, c_j] * V3[j, k, i]
+                        delta_E -= (new_term - old_term)
+                        
+                        old_term = F3[c_k, c_i, c_j] * V3[k, i, j]
+                        new_term = F3[c_prime_k, c_j, c_i] * V3[k, i, j]
+                        delta_E -= (new_term - old_term)
+                        
+                        old_term = F3[c_k, c_j, c_i] * V3[k, j, i]
+                        new_term = F3[c_prime_k, c_i, c_j] * V3[k, j, i]
+                        delta_E -= (new_term - old_term)
+
+                    # Now correct for the triple-counted points (e.g., (i,i,i), (i,i,j), etc.)
+                    # These were added 3x (e.g., (i,i,j) in (i,k,l), (k,i,l), (k,l,j))
+                    # and subtracted 3x (e.g., in (i,i,k), (i,k,j), (k,i,j)).
+                    # So they are currently at net zero. We need to add them back in once.
+                    
+                    # (i, i, i)
+                    old_term = F3[c_i, c_i, c_i] * V3[i, i, i]
+                    new_term = F3[c_j, c_j, c_j] * V3[i, i, i]
+                    delta_E += (new_term - old_term) # Add back
+                    
+                    # (j, j, j)
+                    old_term = F3[c_j, c_j, c_j] * V3[j, j, j]
+                    new_term = F3[c_i, c_i, c_i] * V3[j, j, j]
+                    delta_E += (new_term - old_term) # Add back
+                    
+                    # (i, i, j) and its permutations
+                    old_term = F3[c_i, c_i, c_j] * V3[i, i, j]
+                    new_term = F3[c_j, c_j, c_i] * V3[i, i, j]
+                    delta_E += (new_term - old_term)
+                    
+                    old_term = F3[c_i, c_j, c_i] * V3[i, j, i]
+                    new_term = F3[c_j, c_i, c_j] * V3[i, j, i]
+                    delta_E += (new_term - old_term)
+                    
+                    old_term = F3[c_j, c_i, c_i] * V3[j, i, i]
+                    new_term = F3[c_i, c_j, c_j] * V3[j, i, i]
+                    delta_E += (new_term - old_term)
+                    
+                    # (j, j, i) and its permutations
+                    old_term = F3[c_j, c_j, c_i] * V3[j, j, i]
+                    new_term = F3[c_i, c_i, c_j] * V3[j, j, i]
+                    delta_E += (new_term - old_term)
+                    
+                    old_term = F3[c_j, c_i, c_j] * V3[j, i, j]
+                    new_term = F3[c_i, c_j, c_i] * V3[j, i, j]
+                    delta_E += (new_term - old_term)
+                    
+                    old_term = F3[c_i, c_j, c_j] * V3[i, j, j]
+                    new_term = F3[c_j, c_i, c_i] * V3[i, j, j]
+                    delta_E += (new_term - old_term)
+
+            return delta_E
 
 
 if __name__ == "__main__":

@@ -166,7 +166,7 @@ SCENARIOS = [
 # SCENARIOS = SCENARIOS[11:13]
 # SCENARIOS = one_at_a_time(Scenario("ansi", "qwerty", "wd in on pn p, /i", {"scissors": 0.0}, oxey_mode=True))
 # SCENARIOS = one_at_a_time(Scenario("ortho", "qwerty", "qs qx ax zw pl p. ;. /o wc ex ,o .i ok l, sc wd cr ct ,u ,y in db eg ih kn", {"scissors_ortho": 0.0}, negative=True))
-SCENARIOS = [Scenario("ortho", "qwerty", "qs qx ax zw pl p. ;. /o wc ex ,o .i ok l, sc wd cr ct ,u ,y in db eg ih kn be dt cg h, yk", {"scissors_ortho": 1.0})]
+# SCENARIOS = [Scenario("ortho", "qwerty", "qs qx ax zw pl p. ;. /o wc ex ,o .i ok l, sc wd cr ct ,u ,y in db eg ih kn be dt cg h, yk", {"scissors_ortho": 1.0})]
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda sc: sc.name)
 def test_real_hardware_metric_checks(scenario: Scenario) -> None:

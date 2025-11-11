@@ -11,6 +11,7 @@ import cmd
 import dataclasses
 import shlex
 import sys
+import os
 from pathlib import Path
 from typing import List, Optional
 from tabulate import tabulate
@@ -21,6 +22,7 @@ from model import KeyboardModel
 from freqdist import FreqDist
 from metrics import METRICS, Metric, ObjectiveFunction, use_oxey_mode
 from hardware import KeyboardHardware
+from optim import Optimizer, BoundedHeap
 
 
 
@@ -62,12 +64,15 @@ class JaloSettings:
     hardware: str
     corpus: str
     oxey_mode: bool
+    layouts_memory_size: int
+    
     @classmethod
     def from_dict(cls, data: dict) -> "JaloSettings":
         hardware = data.get("hardware", "ortho")
         corpus = data.get("corpus", "en")
         oxey_mode = data.get("oxey_mode", False)
-        return cls(hardware=str(hardware), corpus=str(corpus), oxey_mode=bool(oxey_mode))
+        layouts_memory_size = data.get("layouts_memory_size", 100)
+        return cls(hardware=str(hardware), corpus=str(corpus), oxey_mode=bool(oxey_mode), layouts_memory_size=int(layouts_memory_size))
 
 
 class JaloShell(cmd.Cmd):
@@ -82,13 +87,16 @@ class JaloShell(cmd.Cmd):
         self.config_path = config_path or Path(__file__).resolve().with_name("config.toml")
         self._load_settings()
 
+        # keep a sorted list of the top generated layouts by score
+        self.layouts_memory = []
+
     def _load_settings(self):
         self.settings = _load_settings(self.config_path)
         self.freqdist = FreqDist.from_name(self.settings.corpus)
         self.metrics = METRICS
         use_oxey_mode(self.settings.oxey_mode)
         self.hardware = KeyboardHardware.from_name(self.settings.hardware)
-        self.objective = ObjectiveFunction({self.metrics[0]: 2.0, self.metrics[2]: 1.5, self.metrics[3]: 3.0, self.metrics[18]: 1.1})
+        self.objective = ObjectiveFunction({self.metrics[1]: 3.0, self.metrics[2]: 1.5, self.metrics[3]: 1.0})
         self.model = KeyboardModel(hardware=self.hardware, metrics=self.metrics, objective=self.objective, freqdist=self.freqdist)
 
 
@@ -126,8 +134,41 @@ class JaloShell(cmd.Cmd):
         self._info("[generate] placeholder layout generation.")
 
     def do_improve(self, arg: str) -> None:
-        """improve"""
-        self._info("[improve] placeholder layout improvement.")
+        """improve <keyboard>: tries to improve the score of the named layout by swapping positions and columns"""
+        layouts = self._parse_keyboard_names(arg)
+        if layouts is None or len(layouts) != 1:
+            self._warn("usage: improve <keyboard>")
+            return
+        
+        layout = layouts[0]
+        original_char_at_pos = self.model.char_at_positions_from_layout(layout)
+        char_at_pos = original_char_at_pos.copy()
+        original_score = self.model.score_chars_at_positions(char_at_pos)
+
+        self._info(f"improving {layout.name} {original_score*100:.3f}...")
+        
+        optimizer = Optimizer(self.model, population_size=10)
+        char_at_pos = optimizer.optimize(char_at_pos, score_tolerance=0.01*original_score)
+
+        self.layouts_memory = []
+        scores_memory = {}
+                
+        improved_layout = self.model.layout_from_char_at_positions(char_at_pos, original_layout=layout)
+        
+        for new_char_at_pos in optimizer.population.sorted()[:10]:
+            new_layout = self.model.layout_from_char_at_positions(new_char_at_pos, original_layout=layout)
+            self.layouts_memory.append(new_layout)
+            scores_memory[new_layout] = self.model.score_chars_at_positions(new_char_at_pos)
+
+        self._info(f'')
+
+        for li,layout in enumerate(self.layouts_memory[:10]):
+            delta = scores_memory[layout] - original_score
+            self._info(f"layout {li} {scores_memory[layout]*100:.3f} {delta*100:.3f}")
+            self._info(f'{layout}')
+            self._info(f'')
+
+
 
     def do_reload(self, arg: str) -> None:
         """Reload the settings from the config.toml file. Keeps generated layouts results in memory, but updates corpus, hardware, and objective function."""
@@ -156,6 +197,37 @@ class JaloShell(cmd.Cmd):
             rows.append([metric.name, metric.description])
 
         self._info(tabulate(rows, headers=header, tablefmt="simple"))
+
+    def do_save(self, arg: str) -> None:
+        """save <keyboard> [<name>] - save the named layout to the ./layouts/ directory"""
+        args = self._split_args(arg)
+        layouts = self._parse_keyboard_names(arg[0])
+        if layouts is None or len(layouts) != 1:
+            self._warn("usage: save <keyboard> [<name>]")
+            return
+        
+        layout = layouts[0]
+
+        if len(args) > 1:
+            name_candidate = args[1]
+        # elif layout.name:
+        #     name_candidate = layout.name
+        else:
+            # otherwise, use the home key characters
+            name_candidate = ''.join(key.char for key in layout.keys if key.position.is_home)
+
+        filename = f"{name_candidate}.kb"
+        filepath = os.path.join('layouts', filename)
+
+        if os.path.exists(filepath):
+            self._warn(f"layout file already exists: {filepath}, not overwriting. Specify a name: save <keyboard> <name>")
+            return
+
+        with open(filepath, 'w') as f:
+            f.write(str(layout))
+
+        self._info(f"saved layout to {filepath}")
+
 
     # ----- shell controls ------------------------------------------------
     def do_help(self, arg: str) -> None:  # type: ignore[override]
@@ -194,18 +266,33 @@ class JaloShell(cmd.Cmd):
             self._warn("usage: compare <keyboard> [<keyboard>...]")
             return None
 
-        try:
-            layouts = [KeyboardLayout.from_name(name, self.hardware) for name in names]
-        except FileNotFoundError as e:
-            self._warn(f"could not find layout in: {e.filename}")
-            return None
-        except ValueError as e:
-            self._warn(f"could not parse layout: {e}")
-            return None
-        except Exception as e:
-            self._warn(f"could not parse layout: {e}")
-            return None
-        
+        layouts = []
+        for name in names:
+            # Try to interpret as an int index into self.layout_memory
+            try:
+                idx = int(name)
+                if not self.layouts_memory:
+                    self._warn(f"No layouts in memory, so cannot retrieve '{name}'. Use 'generate', 'improve', or retrieve by name from ./layouts/.")
+                    return None
+                if 0 <= idx < len(self.layouts_memory):
+                    layouts.append(self.layouts_memory[idx])
+                else:
+                    self._warn(f"No layout found with index {idx} in memory of {len(self.layouts_memory)} layouts")
+                    return None
+            except ValueError:
+                # Not an int, try loading by name as before
+                try:
+                    layouts.append(KeyboardLayout.from_name(name, self.hardware))
+                except FileNotFoundError as e:
+                    self._warn(f"could not find layout in: {e.filename}")
+                    return None
+                except ValueError as e:
+                    self._warn(f"could not parse layout: {e}")
+                    return None
+                except Exception as e:
+                    self._warn(f"could not parse layout: {e}")
+                    return None
+
         return layouts
 
 

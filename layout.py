@@ -20,6 +20,10 @@ class LayoutKey:
     finger: Finger
     position: Position
 
+    @classmethod
+    def from_position(cls, position: Position, char: str) -> 'LayoutKey':
+        return cls(char, position.row, position.col, position.x, position.y, position.finger, position)
+
 
 def _name_or_hardware(name_or_hardware: str | KeyboardHardware) -> KeyboardHardware:
     """Convert a hardware name string or KeyboardHardware instance to KeyboardHardware."""
