@@ -102,7 +102,7 @@ class JaloShell(cmd.Cmd):
 
     # ----- core commands -------------------------------------------------
     def do_analyze(self, arg: str) -> None:
-        """analyze <keyboard> - Analyze the given keyboard layout."""
+        """analyze <keyboard>: Analyze the given keyboard layout."""
 
         layouts = self._parse_keyboard_names(arg)
         if layouts is None:
@@ -112,7 +112,7 @@ class JaloShell(cmd.Cmd):
         self._info(self._tabulate_analysis(layouts))
 
     def do_contributions(self, arg: str) -> None:
-        """contributions <keyboard> [<keyboard>...]"""
+        """contributions <keyboard> [<keyboard>...]: tabulates the contributions of each metric to the score of the each layout"""
         layouts = self._parse_keyboard_names(arg)
         if layouts is None:
             self._warn("usage: contributions <keyboard> [<keyboard>...]")
@@ -130,8 +130,39 @@ class JaloShell(cmd.Cmd):
         self._info(self._tabulate_analysis(layouts))
         
     def do_generate(self, arg: str) -> None:
-        """generate"""
-        self._info("[generate] placeholder layout generation.")
+        """generate [iterations=100] [optimizer_iterations=20]: generates new layouts from scratch"""
+        args = self._split_args(arg)
+
+        iterations = 100
+        optimizer_iterations = 20
+
+        if len(args) > 0:
+            try:
+                iterations = int(args[0])
+            except ValueError:
+                self._warn("iterations must be an integer: generate [iterations=100] [optimizer_iterations=20]")
+                return
+
+        if len(args) > 1:
+            try:
+                optimizer_iterations = int(args[1])
+            except ValueError:
+                self._warn("optimizer_iterations must be an integer: generate [iterations=100] [optimizer_iterations=20]")
+                return
+        
+        self._info(f"generating {iterations} iterations X {optimizer_iterations} optimizer iterations each.")
+
+        N = len(self.model.hardware.positions)
+        char_seq = self.freqdist.char_seq[:N]
+
+        optimizer = Optimizer(self.model, population_size=100)
+        optimizer.generate(char_seq=char_seq, iterations=iterations, optimizer_iterations=optimizer_iterations)
+        
+        self._layout_memory_from_optimizer(optimizer)
+
+        self._info(f'')
+        self._info(self._layout_memory_to_str())
+
 
     def do_improve(self, arg: str) -> None:
         """improve <keyboard> [iterations=10]: tries to improve the score of the named layout by swapping positions and columns"""
@@ -160,11 +191,12 @@ class JaloShell(cmd.Cmd):
         
         optimizer = Optimizer(self.model, population_size=10)
         optimizer.optimize(char_at_pos, iterations=iterations)
-        
-        self.layouts_memory = []
-        for new_char_at_pos in optimizer.population.sorted()[:10]:
-            new_layout = self.model.layout_from_char_at_positions(new_char_at_pos, original_layout=layout)
-            self.layouts_memory.append(new_layout)
+
+        if len(optimizer.population) == 0:
+            self._warn("no improvement found, no layouts added to memory")
+            return
+
+        self._layout_memory_from_optimizer(optimizer, original_layout=layout)
 
         self._info(f'')
         self._info(self._layout_memory_to_str(original_score=original_score))
@@ -311,6 +343,12 @@ class JaloShell(cmd.Cmd):
             res.append(layout_str)
         
         return '\n'.join(res)
+
+    def _layout_memory_from_optimizer(self, optimizer: Optimizer, original_layout: KeyboardLayout | None = None):
+        self.layouts_memory = []
+        for new_char_at_pos in optimizer.population.sorted()[:10]:
+            new_layout = self.model.layout_from_char_at_positions(new_char_at_pos, original_layout=original_layout)
+            self.layouts_memory.append(new_layout)
 
 
     def _tabulate_analysis(self, layouts: List[KeyboardLayout], show_contributions: bool = False) -> str:

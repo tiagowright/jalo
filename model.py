@@ -98,7 +98,7 @@ class KeyboardModel:
             self.V[metric.ngramType] += weight * self.M[metric]
         
 
-    def position_freqdist(self, char_at_pos: np.ndarray) -> dict[NgramType, np.ndarray]:
+    def position_freqdist(self, char_at_pos: np.ndarray | tuple[int, ...]) -> dict[NgramType, np.ndarray]:
         '''
         Convert character ngram frequencies into position ngram frequencies for the layout specified by char_at_pos.
         '''

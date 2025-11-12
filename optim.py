@@ -1,4 +1,5 @@
 from model import KeyboardModel, NgramType, _calculate_swap_delta
+from freqdist import FreqDist
 from layout import KeyboardLayout
 from itertools import combinations
 from typing import List, Tuple, Optional, Any, Iterable
@@ -101,7 +102,27 @@ class Optimizer:
 
         self.population = Population(max_size=population_size)
 
-    def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.01, iterations:int = 10):
+    def generate(self, char_seq: list[str], iterations:int = 100, optimizer_iterations:int = 20):
+        assert len(char_seq) == len(self.model.hardware.positions)
+
+        char_at_pos = np.zeros(len(self.model.hardware.positions), dtype=int)
+        for pi, position in enumerate(self.model.hardware.positions):
+            char = char_seq[pi]
+            try:
+                char_at_pos[pi] = self.model.freqdist.char_seq.index(char)
+            except ValueError:
+                char_at_pos[pi] = self.model.freqdist.char_seq.index(FreqDist.out_of_distribution)
+
+        initial_positions = [
+            np.random.permutation(char_at_pos)
+            for _ in range(iterations)
+        ]
+
+        for current_char_at_position in initial_positions:
+            self.optimize(current_char_at_position, iterations=optimizer_iterations)
+
+
+    def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.01, iterations:int = 20):
         F = self.model.freqdist.to_numpy()
         V = self.model.V
 
