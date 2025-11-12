@@ -134,11 +134,22 @@ class JaloShell(cmd.Cmd):
         self._info("[generate] placeholder layout generation.")
 
     def do_improve(self, arg: str) -> None:
-        """improve <keyboard>: tries to improve the score of the named layout by swapping positions and columns"""
-        layouts = self._parse_keyboard_names(arg)
+        """improve <keyboard> [iterations=10]: tries to improve the score of the named layout by swapping positions and columns"""
+        args = self._split_args(arg)
+
+        layouts = self._parse_keyboard_names(args[0])
         if layouts is None or len(layouts) != 1:
             self._warn("usage: improve <keyboard>")
             return
+
+        if len(args) > 1:
+            try:
+                iterations = int(args[1])
+            except ValueError:
+                self._warn("iterations must be an integer: improve <keyboard> [iterations=10]")
+                return
+        else:
+            iterations = 10
         
         layout = layouts[0]
         original_char_at_pos = self.model.char_at_positions_from_layout(layout)
@@ -148,7 +159,7 @@ class JaloShell(cmd.Cmd):
         self._info(f"improving {layout.name} {original_score*100:.3f}...")
         
         optimizer = Optimizer(self.model, population_size=10)
-        char_at_pos = optimizer.optimize(char_at_pos, score_tolerance=0.01*original_score)
+        optimizer.optimize(char_at_pos, iterations=iterations)
         
         self.layouts_memory = []
         for new_char_at_pos in optimizer.population.sorted()[:10]:
@@ -158,7 +169,7 @@ class JaloShell(cmd.Cmd):
         self._info(f'')
         self._info(self._layout_memory_to_str(original_score=original_score))
 
-    def do_memory(self, arg: str) -> None:
+    def do_memory(self, arg: str) -> None: # pyright: ignore[reportArgumentType, reportUnusedParameter]
         """memory: shows the top 10 layouts in memory"""
         self._info(self._layout_memory_to_str(top_n=10))
 

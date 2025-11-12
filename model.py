@@ -128,7 +128,7 @@ class KeyboardModel:
         char_at_pos = self.char_at_positions_from_layout(layout)
         return self.analyze_chars_at_positions(char_at_pos)
     
-    def score_chars_at_positions(self, char_at_pos: np.ndarray) -> float:
+    def score_chars_at_positions(self, char_at_pos: np.ndarray | tuple[int, ...]) -> float:
         '''
         Score the characters at positions specified by char_at_pos.
         '''
@@ -173,7 +173,7 @@ class KeyboardModel:
                 char_at_pos[pi] = self.freqdist.char_seq.index(FreqDist.out_of_distribution)
         return char_at_pos
 
-    def layout_from_char_at_positions(self, char_at_pos: np.ndarray, original_layout: KeyboardLayout | None = None) -> KeyboardLayout:
+    def layout_from_char_at_positions(self, char_at_pos: np.ndarray | tuple[int, ...], original_layout: KeyboardLayout | None = None) -> KeyboardLayout:
         '''
         Convert the character at positions specified by char_at_pos into a KeyboardLayout.
         '''
@@ -197,32 +197,40 @@ class KeyboardModel:
     def calculate_swap_delta(self, char_at_pos: np.ndarray, i: int, j: int) -> float:
         F = self.freqdist.to_numpy()
 
-        order_1 = numba.typed.List([  # pyright: ignore[reportCallIssue]
+        order_1 = tuple([
             (F[ngramtype], self.V[ngramtype])
             for ngramtype in NgramType 
             if ngramtype.order == 1 and ngramtype in F and ngramtype in self.V
         ])
-        order_2 = numba.typed.List([  # pyright: ignore[reportCallIssue]
+        order_2 = tuple([
             (F[ngramtype], self.V[ngramtype]) 
             for ngramtype in NgramType 
             if ngramtype.order == 2 and ngramtype in F and ngramtype in self.V
         ])
-        order_3 = numba.typed.List([  # pyright: ignore[reportCallIssue]
+        order_3 = tuple([
             (F[ngramtype], self.V[ngramtype]) 
             for ngramtype in NgramType 
             if ngramtype.order == 3 and ngramtype in F and ngramtype in self.V
         ])
 
-        return _calculate_swap_delta(order_1, order_2, order_3, numba.typed.List(char_at_pos), i, j)  # pyright: ignore[reportCallIssue]
+        new_char_at_pos = tuple(
+            char_at_pos[j] if k == i else
+            char_at_pos[i] if k == j else
+            char_at_pos[k]
+            for k in range(len(char_at_pos))
+        )
+
+        return _calculate_swap_delta(order_1, order_2, order_3, tuple(char_at_pos), i, j, new_char_at_pos)  # pyright: ignore[reportArgumentType]
 
 @jit
 def _calculate_swap_delta(
-    order_1: numba.typed.List[tuple[np.ndarray, np.ndarray]],  # pyright: ignore[reportCallIssue, reportGeneralTypeIssues]
-    order_2: numba.typed.List[tuple[np.ndarray, np.ndarray]],  # pyright: ignore[reportCallIssue, reportGeneralTypeIssues]
-    order_3: numba.typed.List[tuple[np.ndarray, np.ndarray]],  # pyright: ignore[reportCallIssue, reportGeneralTypeIssues]
-    char_at_pos: numba.typed.List[int],  # pyright: ignore[reportCallIssue, reportGeneralTypeIssues]
+    order_1: tuple[tuple[np.ndarray, np.ndarray]],  
+    order_2: tuple[tuple[np.ndarray, np.ndarray]],  
+    order_3: tuple[tuple[np.ndarray, np.ndarray]],  
+    char_at_pos: tuple[int],  
     i: int,
     j: int,
+    new_char_at_pos: tuple[int]
 ) -> float:
     """
     Calculates the change in score from swapping char_at_pos[i] and char_at_pos[j].
@@ -243,9 +251,9 @@ def _calculate_swap_delta(
     c_j = C[j]
 
     # The 'new' layout, C_prime, is implied:
-    C_prime = C.copy()
-    C_prime[i] = c_j
-    C_prime[j] = c_i
+    # C_prime[i] = c_j
+    # C_prime[j] = c_i
+    C_prime = new_char_at_pos
 
     # We will calculate delta_E = new_score - old_score
     # For all terms that are affected by the swap.

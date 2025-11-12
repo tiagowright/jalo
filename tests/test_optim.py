@@ -61,7 +61,8 @@ def test_real_hardware_metric_checks(scenario: Scenario) -> None:
     base_score = model.score_chars_at_positions(char_at_pos)
 
     optimizer = Optimizer(model, population_size=100)
-    char_at_pos = optimizer.optimize(char_at_pos, score_tolerance=0.01*base_score)
+    optimizer.optimize(char_at_pos, iterations=100)
+    char_at_pos = optimizer.population.top()
     optimized_score = model.score_chars_at_positions(char_at_pos)
     assert optimized_score < base_score, f"Optimized score {optimized_score} >= base {base_score}"
     assert optimized_score <= scenario.target_score, f"Optimized score {optimized_score} > target {scenario.target_score}"
