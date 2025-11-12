@@ -4,7 +4,8 @@ from typing import List
 from numba import jit
 import numba.typed
 from freqdist import FreqDist, NgramType
-from metrics import Metric, ObjectiveFunction
+from metrics import Metric
+from objective import ObjectiveFunction
 import numpy as np
 
 class KeyboardModel:

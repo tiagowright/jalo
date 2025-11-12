@@ -10,7 +10,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from hardware import Finger, KeyboardHardware, Position
 from layout import KeyboardLayout, LayoutKey
-from metrics import Metric, ObjectiveFunction
+from metrics import Metric
+from objective import ObjectiveFunction
 from freqdist import FreqDist, NgramType
 from model import KeyboardModel
 

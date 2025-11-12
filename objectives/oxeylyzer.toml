@@ -1,0 +1,24 @@
+[weights]
+heatmap = 1.70
+fspeed = 28.0
+lateral_penalty = 1.0
+dsfb_ratio = 0.4 # 0.40
+scissors = 2.5
+lsbs = 2.0
+pinky_ring_bigrams = 6.0 # 0.2
+inrolls = 3.5 # 2.5
+outrolls = 2.4
+onehands = 0.9
+alternates = 0.4
+alternates_sfs = 0.6
+redirects = 5.4
+redirects_sfs = 7.2
+bad_redirects = 6.9
+bad_redirects_sfs = 9.5
+
+[weights.max_finger_use]
+penalty = 2.5
+pinky = 9.0
+ring = 14.0
+middle = 20.0
+index = 20.0

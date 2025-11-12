@@ -20,7 +20,8 @@ from textwrap import dedent
 from layout import KeyboardLayout
 from model import KeyboardModel
 from freqdist import FreqDist
-from metrics import METRICS, Metric, ObjectiveFunction, use_oxey_mode
+from metrics import METRICS, Metric, use_oxey_mode
+from objective import ObjectiveFunction
 from hardware import KeyboardHardware
 from optim import Optimizer, Population
 
@@ -216,10 +217,21 @@ class JaloShell(cmd.Cmd):
             f"hardware='{self.settings.hardware}' "
             f"corpus='{self.settings.corpus}'."
         )
-    
+        
     def do_objective(self, arg: str) -> None:
-        """shows the current objective function"""
-        self._info(f"Objective function: {self.objective}")
+        """objective [<formula>]: shows the current objective function, or sets the objective function from a formula string"""
+        
+        if not arg:
+            self._info(f"Objective function: {self.objective}")
+            return
+            
+        try:
+            self.objective = ObjectiveFunction.from_formula(arg)
+        except ValueError as e:
+            self._warn(f"error parsing objective function: {e}")
+            return
+            
+        self._info(f"set objective function to {self.objective}")
 
     def do_metrics(self, arg: str) -> None:
         """shows the current metrics"""
@@ -263,6 +275,7 @@ class JaloShell(cmd.Cmd):
             f.write(str(layout))
 
         self._info(f"saved layout to {filepath}")
+
 
 
     # ----- shell controls ------------------------------------------------
