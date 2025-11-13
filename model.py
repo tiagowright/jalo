@@ -174,14 +174,21 @@ class KeyboardModel:
                 char_at_pos[pi] = self.freqdist.char_seq.index(FreqDist.out_of_distribution)
         return char_at_pos
 
-    def layout_from_char_at_positions(self, char_at_pos: np.ndarray | tuple[int, ...], original_layout: KeyboardLayout | None = None) -> KeyboardLayout:
+    def pinned_positions_from_layout(self, layout: KeyboardLayout, pinned_chars: list[str]) -> tuple[int, ...]:
+        return tuple(
+            pi 
+            for pi, position in enumerate(self.hardware.positions) 
+            if layout.char_at_position[position] in pinned_chars
+        )
+
+    def layout_from_char_at_positions(self, char_at_pos: np.ndarray | tuple[int, ...], original_layout: KeyboardLayout | None = None, name: str = '') -> KeyboardLayout:
         '''
         Convert the character at positions specified by char_at_pos into a KeyboardLayout.
         '''
         assert len(char_at_pos) == len(self.hardware.positions)
         assert original_layout is None or original_layout.hardware == self.hardware
 
-        name = ''
+        home_row_name = ''
         keys = []
         for pi, ci in enumerate(char_at_pos):
             char = self.freqdist.char_seq[ci]
@@ -191,9 +198,9 @@ class KeyboardModel:
                 else:
                     char = ''
             if self.hardware.positions[pi].is_home:
-                name += char
+                home_row_name += char
             keys.append(LayoutKey.from_position(self.hardware.positions[pi], char))
-        return KeyboardLayout(keys, self.hardware, name if not original_layout else original_layout.name)
+        return KeyboardLayout(keys, self.hardware, name if name else home_row_name)
 
     def calculate_swap_delta(self, char_at_pos: np.ndarray, i: int, j: int) -> float:
         F = self.freqdist.to_numpy()

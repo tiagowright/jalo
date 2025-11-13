@@ -66,14 +66,16 @@ class JaloSettings:
     corpus: str
     oxey_mode: bool
     layouts_memory_size: int
-    
+    objective: str
+
     @classmethod
     def from_dict(cls, data: dict) -> "JaloSettings":
         hardware = data.get("hardware", "ortho")
         corpus = data.get("corpus", "en")
         oxey_mode = data.get("oxey_mode", False)
+        objective = data.get("objective", "default")
         layouts_memory_size = data.get("layouts_memory_size", 100)
-        return cls(hardware=str(hardware), corpus=str(corpus), oxey_mode=bool(oxey_mode), layouts_memory_size=int(layouts_memory_size))
+        return cls(hardware=str(hardware), corpus=str(corpus), oxey_mode=bool(oxey_mode), layouts_memory_size=int(layouts_memory_size), objective=str(objective))
 
 
 class JaloShell(cmd.Cmd):
@@ -97,7 +99,13 @@ class JaloShell(cmd.Cmd):
         self.metrics = METRICS
         use_oxey_mode(self.settings.oxey_mode)
         self.hardware = KeyboardHardware.from_name(self.settings.hardware)
-        self.objective = ObjectiveFunction({self.metrics[1]: 3.0, self.metrics[2]: 1.5, self.metrics[3]: 1.0})
+        self.objective = ObjectiveFunction.from_name(self.settings.objective)
+
+        self._load_objective(self.objective)
+        self.pinned_chars = []
+
+    def _load_objective(self, objective: ObjectiveFunction):
+        self.objective = objective
         self.model = KeyboardModel(hardware=self.hardware, metrics=self.metrics, objective=self.objective, freqdist=self.freqdist)
 
 
@@ -185,13 +193,14 @@ class JaloShell(cmd.Cmd):
         
         layout = layouts[0]
         original_char_at_pos = self.model.char_at_positions_from_layout(layout)
+        pinned_positions = self.model.pinned_positions_from_layout(layout, self.pinned_chars)
         char_at_pos = original_char_at_pos.copy()
         original_score = self.model.score_chars_at_positions(char_at_pos)
 
         self._info(f"improving {layout.name} {original_score*100:.3f}...")
         
         optimizer = Optimizer(self.model, population_size=10)
-        optimizer.optimize(char_at_pos, iterations=iterations)
+        optimizer.optimize(char_at_pos, iterations=iterations, pinned_positions=pinned_positions)
 
         if len(optimizer.population) == 0:
             self._warn("no improvement found, no layouts added to memory")
@@ -201,6 +210,32 @@ class JaloShell(cmd.Cmd):
 
         self._info(f'')
         self._info(self._layout_memory_to_str(original_score=original_score))
+
+    def do_pin(self, arg: str) -> None:
+        """pin [nothing|<char> [<char>...]]: pins the given characters to their current positions, shows pins if no argument given, and clears pins with `pin nothing`"""
+        args = self._split_args(arg)
+        
+        if not args:
+            pass
+
+        elif args[0].lower() in ('nothing', 'clear'):
+            self.pinned_chars = []
+
+        else:
+            invalid_chars = [char for char in args if char not in self.model.freqdist.char_seq]
+            if invalid_chars:
+                str_invalid_chars = ' '.join(invalid_chars)
+                self._warn(f"Warning: {len(invalid_chars)} character(s) are not in the corpus: {invalid_chars}")
+
+            self.pinned_chars.extend(args)
+
+        # display pinned characters
+        if not self.pinned_chars:
+            self._info("nothing pinned.")
+        else:
+            str_pinned_chars = ' '.join(self.pinned_chars)
+            self._info(f"pinned: {str_pinned_chars}")
+
 
     def do_memory(self, arg: str) -> None: # pyright: ignore[reportArgumentType, reportUnusedParameter]
         """memory: shows the top 10 layouts in memory"""
@@ -218,6 +253,7 @@ class JaloShell(cmd.Cmd):
             f"corpus='{self.settings.corpus}'."
         )
         
+
     def do_objective(self, arg: str) -> None:
         """objective [<formula>]: shows the current objective function, or sets the objective function from a formula string"""
         
@@ -226,12 +262,14 @@ class JaloShell(cmd.Cmd):
             return
             
         try:
-            self.objective = ObjectiveFunction.from_formula(arg)
+            new_objective = ObjectiveFunction.from_formula(arg)
         except ValueError as e:
             self._warn(f"error parsing objective function: {e}")
             return
-            
+
+        self._load_objective(new_objective)
         self._info(f"set objective function to {self.objective}")
+
 
     def do_metrics(self, arg: str) -> None:
         """shows the current metrics"""
@@ -329,7 +367,7 @@ class JaloShell(cmd.Cmd):
                     self._warn(f"No layout found with index {idx} in memory of {len(self.layouts_memory)} layouts")
                     return None
             except ValueError:
-                # Not an int, try loading by name as before
+                # Not an int, try loading by name 
                 try:
                     layouts.append(KeyboardLayout.from_name(name, self.hardware))
                 except FileNotFoundError as e:
@@ -359,8 +397,8 @@ class JaloShell(cmd.Cmd):
 
     def _layout_memory_from_optimizer(self, optimizer: Optimizer, original_layout: KeyboardLayout | None = None):
         self.layouts_memory = []
-        for new_char_at_pos in optimizer.population.sorted()[:10]:
-            new_layout = self.model.layout_from_char_at_positions(new_char_at_pos, original_layout=original_layout)
+        for i, new_char_at_pos in enumerate(optimizer.population.sorted()[:10]):
+            new_layout = self.model.layout_from_char_at_positions(new_char_at_pos, original_layout=original_layout, name = f'{i}')
             self.layouts_memory.append(new_layout)
 
 
@@ -470,7 +508,11 @@ def main(argv: List[str] | None = None) -> int:
         _configure_readline()
 
     config_path = Path(__file__).resolve().with_name("config.toml")
-    shell = JaloShell(config_path=config_path)
+    try:
+        shell = JaloShell(config_path=config_path)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
     shell._info(
         f"Loaded config: hardware='{shell.settings.hardware}', "

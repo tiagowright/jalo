@@ -122,7 +122,7 @@ class Optimizer:
             self.optimize(current_char_at_position, iterations=optimizer_iterations)
 
 
-    def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.01, iterations:int = 20):
+    def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.01, iterations:int = 20, pinned_positions: tuple[int, ...] = ()):
         F = self.model.freqdist.to_numpy()
         V = self.model.V
 
@@ -154,8 +154,8 @@ class Optimizer:
 
             while True:
                 score_at_start_of_step = current_score
-                current_score, current_char_at_pos = self.position_swapping(current_char_at_pos, current_score, tolerance, order_1, order_2, order_3)
-                current_score, current_char_at_pos = self.column_swapping(current_char_at_pos, current_score, tolerance, order_1, order_2, order_3)
+                current_score, current_char_at_pos = self.position_swapping(current_char_at_pos, current_score, tolerance, order_1, order_2, order_3, pinned_positions)
+                current_score, current_char_at_pos = self.column_swapping(current_char_at_pos, current_score, tolerance, order_1, order_2, order_3, pinned_positions)
 
                 # print(f"delta: {delta} vs tolerance: {tolerance}")
                 delta = current_score - score_at_start_of_step
@@ -170,7 +170,8 @@ class Optimizer:
         tolerance: float,
         order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
         order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
-        order_3: tuple[tuple[np.ndarray, np.ndarray], ...]
+        order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
+        pinned_positions: tuple[int, ...]
     ) -> tuple[float, tuple[int, ...]]:
         '''
         simple hill climbing, checks every possible swap, and immediately
@@ -184,6 +185,9 @@ class Optimizer:
         random.shuffle(swap_position_pairs)
 
         for i, j in swap_position_pairs:
+            if i in pinned_positions or j in pinned_positions:
+                continue
+
             swapped_char_at_pos = swap_char_at_pos(char_at_pos, i, j)
             if swapped_char_at_pos in self.population:
                 swapped_score = self.population[swapped_char_at_pos]
@@ -207,7 +211,8 @@ class Optimizer:
         tolerance: float,
         order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
         order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
-        order_3: tuple[tuple[np.ndarray, np.ndarray], ...]
+        order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
+        pinned_positions: tuple[int, ...]
     ) -> tuple[float, tuple[int, ...]]:
 
         '''
@@ -224,6 +229,10 @@ class Optimizer:
             col_swapped_char_at_pos = char_at_pos
             delta = 0
             for pi1, pi2 in zip(self.positions_at_column[col1], self.positions_at_column[col2]):
+                if pi1 in pinned_positions or pi2 in pinned_positions:
+                    delta = 0
+                    break
+
                 next_swap_char_at_pos = swap_char_at_pos(col_swapped_char_at_pos, pi1, pi2)
                 delta += _calculate_swap_delta(order_1, order_2, order_3, col_swapped_char_at_pos, pi1, pi2, next_swap_char_at_pos)  # pyright: ignore[reportArgumentType]
                 col_swapped_char_at_pos = next_swap_char_at_pos

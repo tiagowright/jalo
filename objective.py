@@ -1,4 +1,6 @@
 import re
+import os
+import tomllib
 from enum import Enum
 from typing import Any
 
@@ -32,13 +34,16 @@ class ObjectiveFunction:
                 raise ValueError(f"Invalid metric: {metric}")
 
     def __str__(self):
+        first_metric = next(iter(self.metrics))
+
         formatted_weights = {
             metric: f"{weight:.2f}".strip("0").strip(".").strip("+").strip("-") for metric, weight in self.metrics.items()
         }
-        formatted_signs = {metric: '-' if weight < 0 else '+' for metric, weight in self.metrics.items()}
+        formatted_signs = {metric: '- ' if weight < 0 else '+ ' if weight > 0 else '' for metric, weight in self.metrics.items()}
+        formatted_signs[first_metric] = '-' if self.metrics[first_metric] < 0 else ''
 
         return ' '.join([
-            f"{formatted_signs[metric]} {weight}{metric.name}" for metric, weight in formatted_weights.items()
+            f"{formatted_signs[metric]}{weight}{metric.name}" for metric, weight in formatted_weights.items()
         ])
           
     def __hash__(self):
@@ -46,6 +51,50 @@ class ObjectiveFunction:
 
     def __repr__(self):
         return f"ObjectiveFunction({self})"
+
+    @classmethod
+    def from_name(cls, name: str) -> 'ObjectiveFunction':
+        '''
+        Create an ObjectiveFunction from a nammed toml file in ./objectives/ directory.
+
+        The file must define a key 'formula', that can be either a string with a formula,
+        or a toml table, where each key is a metric name and the value is a weight.
+
+        Example 1:
+        formula = "3sfb + 1.5sfs + 100sft"
+        
+        Example 2:
+        [formula]
+        sfb = 3.0
+        sfs = 1.5
+        sft = 100.0
+        '''
+
+        # check if the file exists
+        file_path = os.path.join('objectives', f'{name}.toml')
+        if not os.path.exists(file_path):
+            raise ValueError(f"Objective function file not found: {file_path}")
+
+        # load the file
+        with open(file_path, 'rb') as file:
+            data = tomllib.load(file)
+
+        try:
+            formula = data['formula']
+        except KeyError:
+            raise ValueError(f"Objective function file must define a 'formula' key: {file_path}")
+
+
+        if isinstance(formula, str):
+            return cls.from_formula(formula)
+        elif isinstance(formula, dict):
+            metrics_by_name = {metric.name: metric for metric in METRICS}
+            invalid_metric_names = [metric_name for metric_name in formula.keys() if metric_name not in metrics_by_name]
+            if invalid_metric_names:
+                raise ValueError(f"Invalid metric names in formula file: {file_path}: {invalid_metric_names}")
+            return cls({metrics_by_name[metric_name]: weight for metric_name, weight in formula.items()})
+        else:
+            raise ValueError(f"Invalid formula: {formula}")
 
     @classmethod
     def from_formula(cls, formula: str) -> 'ObjectiveFunction':
