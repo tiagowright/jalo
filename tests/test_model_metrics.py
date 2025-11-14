@@ -163,12 +163,15 @@ SCENARIOS = [
     Scenario("ansi", "qwerty", "et eg eb dt dg ct cg cb iy ih ky kh kn nk n,", {"lsb": 1.0}, oxey_mode=True),
     Scenario("ansi", "qwerty", "dv db ni wb sb", {"lsb": 0.0}, oxey_mode=True),
 
+    # effort map
+    Scenario("ansi", "qwerty", "a s d f g h j k l ;", {"effort": 1.42}),
 ]
 
 ### skipping some tests today?
 # SCENARIOS = SCENARIOS[11:13]
 # SCENARIOS = one_at_a_time(Scenario("ansi", "qwerty", "wd in on pn p, /i", {"scissors": 0.0}, oxey_mode=True))
 # SCENARIOS = one_at_a_time(Scenario("ortho", "qwerty", "qs qx ax zw pl p. ;. /o wc ex ,o .i ok l, sc wd cr ct ,u ,y in db eg ih kn", {"scissors_ortho": 0.0}, negative=True))
+
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda sc: sc.name)
 def test_real_hardware_metric_checks(scenario: Scenario) -> None:
