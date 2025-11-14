@@ -1,3 +1,4 @@
+from numba.core.ir import Print
 from model import KeyboardModel, NgramType, _calculate_swap_delta
 from freqdist import FreqDist
 from layout import KeyboardLayout
@@ -22,8 +23,6 @@ class Population:
         '''
         adds the new char_at_pos to the population
         '''
-        # char_at_pos = tuple(char_at_pos)
-
         if char_at_pos in self.scores:
             # already in the population, no action
             return
@@ -31,7 +30,7 @@ class Population:
         self.scores[char_at_pos] = score
 
         # add salt to delta to avoid ties in the heap
-        score += score * 0.001 * random.random()
+        # score += score * 0.001 * random.random()
 
         if len(self.heap) < self.max_size:
             heapq.heappush(self.heap, (-score, char_at_pos))
@@ -88,6 +87,13 @@ def swap_char_at_pos(char_at_pos: tuple[int, ...], i: int, j: int) -> tuple[int,
         for k in range(len(char_at_pos))
     )
 
+# for debugging scores
+def assert_scores(char_at_pos, score, model):
+    actual_score = model.score_chars_at_positions(char_at_pos)
+    if abs(actual_score - score) > abs(0.001 * score):
+        raise ValueError(f"score mismatch: {score:.2f} != {actual_score:.2f}")
+
+
 class Optimizer:
     def __init__(self, model: KeyboardModel, population_size: int = 1000):
         self.model = model
@@ -120,7 +126,7 @@ class Optimizer:
 
         for current_char_at_position in initial_positions:
             self.optimize(current_char_at_position, iterations=optimizer_iterations)
-
+                        
 
     def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.01, iterations:int = 20, pinned_positions: tuple[int, ...] = ()):
         F = self.model.freqdist.to_numpy()
@@ -223,7 +229,6 @@ class Optimizer:
         best_swap = None
 
         for col1, col2 in combinations(list(self.positions_at_column.keys()), 2):
-            swap_len = min(len(self.positions_at_column[col1]), len(self.positions_at_column[col2]))
 
             # compute the score after swapping all positions in col1 and col2    
             col_swapped_char_at_pos = char_at_pos
@@ -246,6 +251,7 @@ class Optimizer:
             for pi1, pi2 in zip(self.positions_at_column[best_swap[0]], self.positions_at_column[best_swap[1]]):
                 char_at_pos = swap_char_at_pos(char_at_pos, pi1, pi2)
 
-            self.population.push(original_score + best_delta, char_at_pos)
+            self.population.push(original_score + best_delta, char_at_pos)        
+            return (original_score + best_delta, char_at_pos)
         
-        return (original_score + best_delta, char_at_pos)
+        return (original_score, char_at_pos)

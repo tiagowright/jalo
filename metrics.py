@@ -123,6 +123,17 @@ def distance_squared(a, b):
 def distance_linear(a, b):
     return sqrt(distance_squared(a, b))
 
+# sfb distances
+def sfb_distance(a, b):
+    return distance_squared(a, b) if sfb(a, b) else 0
+
+def sfs_distance(a, b):
+    return distance_squared(a, b) if sfs(a, b) else 0
+
+def sft_distance(a, b, c):
+    return distance_squared(a, b) + distance_squared(b, c) if sft(a, b, c) else 0
+
+
 def lsb(a, b):
     '''
     LSB is Lateral Stretch Bigram
@@ -413,14 +424,25 @@ def left_hand(a):
 def right_hand(a):
     return a.finger.hand == Hand.RIGHT
 
+def effort(a):
+    return a.effort
+
+def home(a):
+    return a.is_home
+
 
 METRICS = [
     Metric(name="rep", description="single finger repetition", ngramType=NgramType.BIGRAM, function=rep),
     Metric(name="sfb", description="single finger bigram", ngramType=NgramType.BIGRAM, function=sfb),
     Metric(name="sfs", description="single finger skipgram", ngramType=NgramType.SKIPGRAM, function=sfs),
     Metric(name="sft", description="single finger trigram", ngramType=NgramType.TRIGRAM, function=sft),
+    Metric(name="home", description="home position", ngramType=NgramType.MONOGRAM, function=home),
     Metric(name="dist", description="ecludean distance squared", ngramType=NgramType.BIGRAM, function=distance_squared),
     Metric(name="dist_linear", description="ecludean distance", ngramType=NgramType.BIGRAM, function=distance_linear),
+    Metric(name="sfb_dist", description="single finger bigram distance squared", ngramType=NgramType.BIGRAM, function=sfb_distance),
+    Metric(name="sfs_dist", description="single finger skipgram distance squared", ngramType=NgramType.SKIPGRAM, function=sfs_distance),
+    Metric(name="sft_dist", description="single finger trigram distance squared", ngramType=NgramType.TRIGRAM, function=sft_distance),
+    Metric(name="effort", description="effort of a key press", ngramType=NgramType.MONOGRAM, function=effort),
     Metric(name="lsb", description="lateral stretch bigram", ngramType=NgramType.BIGRAM, function=lsb),
     Metric(name="rowskip", description="row skip where a bigram on the same hand is separated by more than 1 row", ngramType=NgramType.BIGRAM, function=rowskip),
     Metric(name="scissors", description="full scissor bigram", ngramType=NgramType.BIGRAM, function=scissors),

@@ -83,7 +83,7 @@ class JaloShell(cmd.Cmd):
 
     prompt = "jalo> "
     intro = "Jalo REPL – type 'help' to list commands."
-    break_before_metrics = ['same_hand','roll','redirect','left_hand','finger_0','sfb_finger_0']
+    break_before_metrics = ['home','effort','lsb','same_hand','roll','redirect','left_hand','finger_0','sfb_finger_0']
 
     def __init__(self, config_path: Optional[Path] = None) -> None:
         super().__init__()
@@ -412,11 +412,17 @@ class JaloShell(cmd.Cmd):
             self._warn(f"Error: could not analyze layout: {e}")
             return ''
 
+        weights = {}
 
         def col_sel(cols):
             return cols[:2] if not show_contributions else cols
 
-        header = ['metric'] + [item for layout in layouts for item in col_sel([layout.name, 'Δ', 'ΔS'])]
+        if show_contributions:
+            header = ['metric', 'w']
+        else:
+            header = ['metric']
+
+        header.extend([item for layout in layouts for item in col_sel([layout.name, 'Δ', 'ΔS'])])
         
         rows = []
         for metric in self.metrics:
@@ -436,7 +442,7 @@ class JaloShell(cmd.Cmd):
             if metric.name in self.break_before_metrics:
                 rows.append([None] * (len(layouts) * 2 + 1))
             rows.append(
-                [metric.name] + 
+                ([metric.name, self.model.objective.metrics.get(metric, None)] if show_contributions else [metric.name]) + 
                 [
                     item 
                     for layout in layouts 
@@ -449,7 +455,7 @@ class JaloShell(cmd.Cmd):
             )
 
         rows.append([None] * (len(layouts) * 2 + 1))
-        rows.append(['score'] + [
+        rows.append((['score', None] if show_contributions else ['score']) + [
             item 
             for layout in layouts 
             for item in (

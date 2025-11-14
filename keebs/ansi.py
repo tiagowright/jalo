@@ -30,6 +30,15 @@ is_home = {
     (1,9): True
 }
 
+# effort map obtained from a linear regression on the speed of a key press using a key logger
+# note that this does not account for the distances and the effects of the horizontal stagger
+# which should be incorporated into your optimization using the distance metrics
+effort_map = [
+    [3.0, 1.6, 1.4, 1.2, 2.4,  2.4, 1.2, 1.4, 1.6, 3.0],
+    [1.6, 1.4, 1.3, 1.0, 1.8,  1.8, 1.0, 1.3, 1.4, 1.6],
+    [2.2, 1.8, 1.6, 1.3, 2.4,  2.4, 1.3, 1.6, 1.8, 2.2],
+]
+
 def standard_hardware(name, stagger_at_row = stagger_at_row, stagger_at_col = {}, finger_at_col = finger_at_col, finger_at_row_col = {}):
     '''Creates KeyboardHardware with a standard 30 key positions arranged in 3 rows of 10 columns
     This is the typical setup for keyboard layout optimization.
@@ -41,7 +50,8 @@ def standard_hardware(name, stagger_at_row = stagger_at_row, stagger_at_col = {}
             x=col + stagger_at_row.get(row,0), 
             y=row + stagger_at_col.get(col,0), 
             finger=finger_at_row_col.get((row,col), finger_at_col[col]), 
-            is_home=is_home.get((row,col), False)
+            is_home=is_home.get((row,col), False),
+            effort=effort_map[row][col]
         )
         for row in range(3)
         for col in range(10)

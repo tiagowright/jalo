@@ -1,0 +1,9 @@
+# this is one of the objective functions that seems to put graphite in a local optima, 
+# at least `improve` doesn't find any better alternatives
+formula = """
+    28sfb + 11.2sfs + 2.5scissors + 2lsb + 12pinky_ring 
+    - 3.5in_roll - 2.4out_roll - 0.9roll3
+    - 0.4alt + 6alt_sfs 
+    + 5.4redirect + 7.2redirect_sfs + 6.9redirect_bad + 9.5redirect_bad_sfs 
+    + 7finger_0 + 3finger_1 + 7finger_9 + 3finger_8 + 2finger_3 + 2finger_6
+    """
