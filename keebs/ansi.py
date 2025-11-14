@@ -1,3 +1,13 @@
+r'''
+Standard ANSI hardware, with 30 keys in 3 rows of 10 columns, with a row stagger.
+This is the typical setup for keyboard layout optimization.
+
+This file also defines a function that can be used to create similar layouts
+with different stagger patterns, finger assignments, home keys, effort maps, 
+and additional positions.
+'''
+
+
 from hardware import Finger, KeyboardHardware, Position
 
 finger_at_col = {
@@ -39,9 +49,44 @@ effort_map = [
     [2.2, 1.8, 1.6, 1.3, 2.4,  2.4, 1.3, 1.6, 1.8, 2.2],
 ]
 
-def standard_hardware(name, stagger_at_row = stagger_at_row, stagger_at_col = {}, finger_at_col = finger_at_col, finger_at_row_col = {}):
+def standard_hardware(
+    name, 
+    stagger_at_row = stagger_at_row, 
+    stagger_at_col = {}, 
+    finger_at_col = finger_at_col, 
+    finger_at_row_col = {},
+    is_home = is_home,
+    effort_map = effort_map,
+    additional_positions = []
+):
     '''Creates KeyboardHardware with a standard 30 key positions arranged in 3 rows of 10 columns
+    
     This is the typical setup for keyboard layout optimization.
+
+    Parameters
+    ----------
+    name : str
+        The name of the keyboard hardware (typically the filename in ./keebs/)
+    stagger_at_row : dict {int: float}
+        The amount of x-axis stagger at each row, in U units (1U = 19.05mm).
+        Defaults to the ANSI standard stagger.
+    stagger_at_col : dict {int: float}
+        The amount of y-axis stagger at each col, in U units (1U = 19.05mm).
+        Defaults to no stagger.
+    finger_at_col : dict {int: Finger}
+        The finger at each column, if finger_at_row_col is not provided.
+        Defaults to the ANSI standard finger assignment.
+    finger_at_row_col : dict {(int, int): Finger}
+        The finger assigned at each row and column. If not provided, finger_at_col is used.
+    is_home : dict {(int, int): bool}
+        Whether the key at the given row and column is a home key for that finger.
+        Defaults to the ANSI standard home keys.
+    effort_map : list[list[float]]
+        The effort map for each key, used to calculate the `effort` metric.
+        A rasonable default is provided, based on a linear regression of a user's key press speed.
+    additional_positions : list[Position]
+        Additional Positions to add to the keyboard hardware, for simple modifications,
+        such as adding a thumb key or extra pinky keys (e.g. in Hands Down layouts)
     '''
     return KeyboardHardware(name=name, positions=[
         Position(
@@ -55,10 +100,12 @@ def standard_hardware(name, stagger_at_row = stagger_at_row, stagger_at_col = {}
         )
         for row in range(3)
         for col in range(10)
-    ])
+    ] + additional_positions)
 
 # export the standard ansi keyboard
 KEYBOARD = standard_hardware('ansi')
 
+# run as a module for imports to work
+# python3 -m keebs.ansi
 if __name__ == "__main__":
     print(KEYBOARD.str(show_finger_numbers=True, show_stagger=True))

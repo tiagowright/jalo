@@ -1,3 +1,16 @@
+r'''
+Standard ANSI hardware, with 30 keys in 3 rows of 10 columns, where the user is applying
+an `angle mod`: the bottom row of the left hand is typed with the middle finger, ring 
+finger, and index finger, respectively. 
+
+In qwerty, z is typed with the middle finger, x with the ring finger, and c with the index finger.
+
+Some layouts are specifically designed to take advantage of angle mod, where the left pinky
+has only 2 positions, and the left index has 7 instead of 6.
+
+Example: `./layouts/inrolly.kb``
+'''
+
 from hardware import Finger, KeyboardHardware, Position
 from keebs.ansi import standard_hardware
 
