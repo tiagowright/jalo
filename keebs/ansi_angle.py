@@ -9,6 +9,11 @@ Some layouts are specifically designed to take advantage of angle mod, where the
 has only 2 positions, and the left index has 7 instead of 6.
 
 Example: `./layouts/inrolly.kb``
+
+ansi_angle:
+ 0 1 2 3 3   6 6 7 8 9
+  0 1 2 3 3   6 6 7 8 9
+   1 2 3 3 3   6 6 7 8 9
 '''
 
 from hardware import Finger, KeyboardHardware, Position

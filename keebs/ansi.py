@@ -5,6 +5,11 @@ This is the typical setup for keyboard layout optimization.
 This file also defines a function that can be used to create similar layouts
 with different stagger patterns, finger assignments, home keys, effort maps, 
 and additional positions.
+
+ansi:
+ 0 1 2 3 3   6 6 7 8 9
+  0 1 2 3 3   6 6 7 8 9
+   0 1 2 3 3   6 6 7 8 9
 '''
 
 

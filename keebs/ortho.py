@@ -9,6 +9,11 @@ are based on ANSI hardware with row stagger, which means for example that qwerty
 scissors, but `eb` often is. In an ortho hardware, these are mirrored images of each other,
 and if you consider `eb` as scissors, then `in` should be too. My recommendation is to use a different 
 definition of scissors that is fully symmetric, such as the included `scissors_ortho`.
+
+ortho:
+ 0 1 2 3 3   6 6 7 8 9
+ 0 1 2 3 3   6 6 7 8 9
+ 0 1 2 3 3   6 6 7 8 9
 '''
 
 

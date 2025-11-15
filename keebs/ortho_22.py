@@ -1,3 +1,11 @@
+'''
+ortho_22:
+   1 2 3       6 7 8  
+ 0 1 2 3       6 7 8 9
+ 0 1 2 3       6 7 8 9
+'''
+
+
 from hardware import Finger, KeyboardHardware, Position
 
 finger_at_col = {

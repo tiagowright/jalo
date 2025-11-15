@@ -2,10 +2,12 @@ import numpy as np
 from collections import defaultdict
 from typing import List
 import os
+import re
+
 from hardware import Finger, KeyboardHardware, Position
 from dataclasses import dataclass
 
-DEFAULT_HARDWARE = 'ortho'
+DEFAULT_HARDWARE = 'ansi'
 
 @dataclass(frozen=True)
 class LayoutKey:
@@ -57,6 +59,9 @@ class KeyboardLayout:
         return f"KeyboardLayout(keys={self.keys!r}, hardware='{self.hardware.name}', name='{self.name}')"
     
     def __str__(self) -> str:
+        '''
+        Show the keyboard layout in a human-readable format. Prints a neat grid of the layout.
+        '''
         COL_SEP = ' '
         HAND_SEP = ' '
         BLANK_KEY = ' '
@@ -95,18 +100,56 @@ class KeyboardLayout:
 
 
     @classmethod
-    def from_name(cls, name: str, hardware: str | KeyboardHardware = DEFAULT_HARDWARE) -> 'KeyboardLayout':
-        """Load a keyboard layout by name from ``layouts/``."""
+    def from_name(
+        cls, 
+        name: str, 
+        hardware: KeyboardHardware | None = None, 
+        default_hardware: KeyboardHardware | None = None
+    ) -> 'KeyboardLayout':
+        """
+        Load a keyboard layout by name from ``layouts/``.
+        
+        hardware: specify the hardware that this layout must map to
+        default_hardware: use the layout's specified hardware, but if none are specified by the layout, then use this default
+
+        layouts are specified as a comment with a `use:` hint, e.g.
+        # use: ansi
+        """
         text_file_path = os.path.join('layouts', f'{name}.kb')
         with open(text_file_path, 'r') as file:
             text_grid = file.read()
-        return cls.from_text(text_grid, hardware, name=name)
+        return cls.from_text(text_grid, name, hardware, default_hardware)
+
 
     @classmethod
-    def from_text(cls, text_grid: str, hardware: str | KeyboardHardware = DEFAULT_HARDWARE, name: str = '') -> 'KeyboardLayout':
+    def _hardware_hint_in_text(cls, text_grid: str):
+        hint_re = re.compile(r'\s*#\s*use:\s*([a-z][a-z0-9_]*)')
+        for line in text_grid.split('\n'):
+            match = hint_re.match(line)
+            if match:
+                return match.group(1)
+        return None
+
+
+    @classmethod
+    def from_text(
+        cls, 
+        text_grid: str, 
+        name: str,
+        hardware: KeyboardHardware | None = None, 
+        default_hardware: KeyboardHardware | None = None
+    ) -> 'KeyboardLayout':
         """Create a keyboard layout from a text grid."""
-        hardware = _name_or_hardware(hardware)
-        
+
+        if hardware is None:
+            hardware_hint = cls._hardware_hint_in_text(text_grid)
+            if hardware_hint:
+                hardware = KeyboardHardware.from_name(hardware_hint)
+            elif default_hardware is not None:
+                hardware = default_hardware
+            else:
+                raise ValueError(f"No hardware specified for layout {name}")
+
         occupied_positions = set()
         keys = []
         hardware_rows = iter(sorted(hardware.grid.keys()))
@@ -162,26 +205,8 @@ class KeyboardLayout:
 
 if __name__ == "__main__":
 
-    hw = KeyboardHardware.from_name('ansi_32')
-    layout = KeyboardLayout.from_name('hdneu', hw)
-    print(layout.name)
-    print(str(layout))
-    print()
-
-    hw = KeyboardHardware.from_name('ansi_angle')
-    layout = KeyboardLayout.from_name('inrolly', hw)
-    print(layout.name)
-    print(str(layout))
-    print()
-
     hw = KeyboardHardware.from_name('ansi')
     layout = KeyboardLayout.from_name('qwerty', hw)
-    print(layout.name)
-    print(str(layout))
-    print()
-
-    hw = KeyboardHardware.from_name('ortho_thumb')
-    layout = KeyboardLayout.from_name('hdgold', hw)
     print(layout.name)
     print(str(layout))
     print()
@@ -189,5 +214,21 @@ if __name__ == "__main__":
     hw = KeyboardHardware.from_name('ortho')
     layout = KeyboardLayout.from_name('qwerty', hw)
     print(layout.name)
+    print(str(layout))
+    print()
+
+    ## try using hints
+    layout = KeyboardLayout.from_name('hdneu')
+    print(f"{layout.name} on {layout.hardware.name}")
+    print(str(layout))
+    print()
+
+    layout = KeyboardLayout.from_name('inrolly')
+    print(f"{layout.name} on {layout.hardware.name}")
+    print(str(layout))
+    print()
+
+    layout = KeyboardLayout.from_name('hdgold')
+    print(f"{layout.name} on {layout.hardware.name}")
     print(str(layout))
     print()

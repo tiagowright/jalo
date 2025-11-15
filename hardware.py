@@ -4,6 +4,7 @@ These classes define the physical attributes of keyboard hardware
 
 from dataclasses import dataclass
 from enum import Enum, unique
+from re import I
 from typing import List
 from collections import defaultdict
 import os
@@ -148,19 +149,32 @@ class KeyboardHardware:
 
 
     def str(self, show_finger_numbers: bool = False, show_finger_names: bool = False, show_stagger: bool = False) -> str:
-        '''
-        Show the keyboard layout in a human-readable format.
+        COL_SEP = ' '
+        HAND_SEP = ' '
+        BLANK_KEY = ' '
+        
+        min_row = min(self.rows)
+        max_row = max(self.rows)
+        min_col = min(self.cols)
+        max_col = max(self.cols)
 
-        Parameters
-        ----------
-        show_finger_numbers : bool
-            Show the finger numbers.
-        show_finger_names : bool
-            Show the finger names.
-        show_stagger : bool
-            Show the stagger. [TODO: implement]
-        '''
+        first_col_at_row = {
+            row: min(col for col in self.grid[row].keys())
+            for row in self.grid.keys()
+        }
 
+        stagger_at_row = {
+            row: int((self.grid[row][first_col_at_row[row]][0].x - self.grid[row][first_col_at_row[row]][0].col)*100)
+            for row in self.grid.keys()
+        }
+
+        list_staggers = sorted(set(stagger_at_row.values()))
+        
+        stagger_strs = {
+            row: ' ' * list_staggers.index(stagger_at_row[row])
+            for row in self.grid.keys()
+        }
+        
         def _str_position(position: Position) -> str:
             s = ''
             if show_finger_numbers:
@@ -171,44 +185,53 @@ class KeyboardHardware:
                 s = '.'
             return s
 
-        sorted_positions = sorted(self.positions, key=lambda x: (x.row, x.col))
+        position_strs = {
+            row: {
+                col: ''.join(_str_position(position) for position in self.grid[row][col])
+                for col in self.grid[row].keys()
+            }
+            for row in self.grid.keys()
+        }
 
-        if not sorted_positions:
-            return ''
-        
-        prev_position = sorted_positions[0]
-        prev_row_x = prev_position.x
-        row_stagger = ''
-        s = _str_position(prev_position)
+        position_len = max(len(position_strs[row][col]) for row in position_strs.keys() for col in position_strs[row].keys())
+        format_str = f'{{:<{position_len}}}'
 
-        for position in sorted_positions[1:]:
-            if position.row != prev_position.row:
-                s += '\n'
-                if show_stagger:
-                    if position.x > prev_row_x:
-                        row_stagger += ' '
-                    elif position.x < prev_row_x and len(row_stagger) > 0:
-                        row_stagger = row_stagger[:-1]
-                    s += row_stagger
-                    prev_row_x = position.x
+        text_grid_lines = []
+        for row in range(min_row, max_row + 1):
+            row_str = []
 
+            if show_stagger:
+                row_str.append(stagger_strs[row])
 
-            else:
-                if position.col != prev_position.col:
-                    s += ' '
-                if show_stagger and position.finger.hand != prev_position.finger.hand:
-                    s += '  '
-            s += _str_position(position)
-            prev_position = position
-        
-        return s
+            prev_hand = None
+            hand = None
+            for col in range(min_col, max_col + 1):
+
+                if row in self.grid and col in self.grid[row]:
+                    hand = self.grid[row][col][0].finger.hand
+
+                if hand is not None and prev_hand is not None and hand != prev_hand:
+                    row_str.append(HAND_SEP)
+                
+                prev_hand = hand
+
+                if row in position_strs and col in position_strs[row]:
+                    row_str.append(format_str.format(position_strs[row][col]))
+                else:
+                    row_str.append(format_str.format(BLANK_KEY))
+
+            text_grid_lines.append(COL_SEP.join(row_str))
+
+        return '\n'.join(text_grid_lines)
+
 
 if __name__ == "__main__":
-    for name in ['ansi', 'ortho']:
-        keyboard = KeyboardHardware.from_name(name)
-        print(f'{name}:')
-        print(keyboard.str(show_finger_numbers=True, show_stagger=True))
-        print()
-        print(keyboard.str(show_finger_names=True, show_stagger=True))
-        print()
-        print()
+    # iterate through every file in ./keebs that ends in .py and create a keyboard hardware using the file name
+    for file in sorted(os.listdir('keebs')):
+        if file.endswith('.py'):
+            name = file[:-3]
+            keyboard = KeyboardHardware.from_name(name)
+            print(f'{name}:')
+            print(keyboard.str(show_finger_numbers=True, show_stagger=True))
+            print()
+            print()
