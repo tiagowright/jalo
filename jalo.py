@@ -92,6 +92,7 @@ class JaloShell(cmd.Cmd):
 
         # keep a sorted list of the top generated layouts by score
         self.layouts_memory = []
+        self.model_for_hardware = {}
 
     def _load_settings(self):
         self.settings = _load_settings(self.config_path)
@@ -108,16 +109,35 @@ class JaloShell(cmd.Cmd):
         self.objective = objective
         self.model = KeyboardModel(hardware=self.hardware, metrics=self.metrics, objective=self.objective, freqdist=self.freqdist)
 
+        # with the new objective, need to invalidate all the cached models
+        self.model_for_hardware = {
+            self.hardware: self.model
+        }
+
+    def _get_model(self, layout: KeyboardLayout) -> KeyboardModel:
+        if layout.hardware not in self.model_for_hardware:
+            self.model_for_hardware[layout.hardware] = KeyboardModel(hardware=layout.hardware, metrics=self.metrics, objective=self.objective, freqdist=self.freqdist)
+        return self.model_for_hardware[layout.hardware]
+
+    
 
     # ----- core commands -------------------------------------------------
     def do_analyze(self, arg: str) -> None:
         """analyze <keyboard>: Analyze the given keyboard layout."""
 
         layouts = self._parse_keyboard_names(arg)
-        if layouts is None:
+        if layouts is None or len(layouts)>1:
             self._warn("usage: analyze <keyboard>")
             return
 
+        header = [layouts[0].name, layouts[0].hardware.name]
+        rows = [
+            [str(layouts[0]), str(layouts[0].hardware.str(show_finger_numbers=True, show_stagger=True))]
+        ]
+
+        self._info('')
+        self._info(tabulate(rows, headers=header, tablefmt="simple"))
+        self._info('')
         self._info(self._tabulate_analysis(layouts))
 
     def do_contributions(self, arg: str) -> None:
@@ -192,14 +212,16 @@ class JaloShell(cmd.Cmd):
             iterations = 10
         
         layout = layouts[0]
-        original_char_at_pos = self.model.char_at_positions_from_layout(layout)
-        pinned_positions = self.model.pinned_positions_from_layout(layout, self.pinned_chars)
+        
+        model = self._get_model(layout)
+        original_char_at_pos = model.char_at_positions_from_layout(layout)
+        pinned_positions = model.pinned_positions_from_layout(layout, self.pinned_chars)
         char_at_pos = original_char_at_pos.copy()
-        original_score = self.model.score_chars_at_positions(char_at_pos)
+        original_score = model.score_chars_at_positions(char_at_pos)
 
         self._info(f"improving {layout.name} {original_score*100:.3f}...")
         
-        optimizer = Optimizer(self.model, population_size=10)
+        optimizer = Optimizer(model, population_size=10)
         optimizer.optimize(char_at_pos, iterations=iterations, pinned_positions=pinned_positions)
 
         if len(optimizer.population) == 0:
@@ -296,8 +318,6 @@ class JaloShell(cmd.Cmd):
 
         if len(args) > 1:
             name_candidate = args[1]
-        # elif layout.name:
-        #     name_candidate = layout.name
         else:
             # otherwise, use the home key characters
             name_candidate = ''.join(key.char for key in layout.keys if key.position.is_home)
@@ -354,7 +374,10 @@ class JaloShell(cmd.Cmd):
             return None
 
         layouts = []
+
         for name in names:
+            layout = None
+            
             # Try to interpret as an int index into self.layout_memory
             try:
                 idx = int(name)
@@ -366,16 +389,31 @@ class JaloShell(cmd.Cmd):
                 else:
                     self._warn(f"No layout found with index {idx} in memory of {len(self.layouts_memory)} layouts")
                     return None
+
             except ValueError:
-                # Not an int, try loading by name 
+                # Not an int, try loading by name
+
                 try:
-                    layouts.append(KeyboardLayout.from_name(name, self.hardware))
+                    # check if layout specifies the hardware
+                    hardware_name_hint = KeyboardLayout.hardware_hint(name)
+                
                 except FileNotFoundError as e:
                     self._warn(f"could not find layout in: {e.filename}")
                     return None
-                except ValueError as e:
-                    self._warn(f"could not parse layout: {e}")
-                    return None
+
+                if hardware_name_hint:
+                    for hardware in self.model_for_hardware:
+                        if hardware.name == hardware_name_hint:
+                            break
+                    else:
+                        hardware = None
+                else:
+                    # no hint found, try the default hardware
+                    hardware = self.model.hardware
+
+                try:
+                    layouts.append(KeyboardLayout.from_name(name, hardware))
+
                 except Exception as e:
                     self._warn(f"could not parse layout: {e}")
                     return None
@@ -385,7 +423,7 @@ class JaloShell(cmd.Cmd):
     def _layout_memory_to_str(self, original_score: float | None = None, top_n: int = 10) -> str:
         res = []
         for li,layout in enumerate(self.layouts_memory[:top_n]):
-            score = self.model.score_layout(layout)
+            score = self._get_model(layout).score_layout(layout)
             if original_score is None:
                 original_score = score
             delta = score - original_score
@@ -398,16 +436,18 @@ class JaloShell(cmd.Cmd):
     def _layout_memory_from_optimizer(self, optimizer: Optimizer, original_layout: KeyboardLayout | None = None):
         self.layouts_memory = []
         for i, new_char_at_pos in enumerate(optimizer.population.sorted()[:10]):
-            new_layout = self.model.layout_from_char_at_positions(new_char_at_pos, original_layout=original_layout, name = f'{i}')
+            new_layout = optimizer.model.layout_from_char_at_positions(new_char_at_pos, original_layout=original_layout, name = f'{i}')
             self.layouts_memory.append(new_layout)
 
 
     def _tabulate_analysis(self, layouts: List[KeyboardLayout], show_contributions: bool = False) -> str:
 
+        model_for_layout = {layout: self._get_model(layout) for layout in layouts}
+
         try:
-            analysis = {layout: self.model.analyze_layout(layout) for layout in layouts}
-            scores = {layout: self.model.score_layout(layout) for layout in layouts}
-            contributions = {layout: self.model.score_contributions(layout) for layout in layouts}
+            analysis = {layout: model_for_layout[layout].analyze_layout(layout) for layout in layouts}
+            scores = {layout: model_for_layout[layout].score_layout(layout) for layout in layouts}
+            contributions = {layout: model_for_layout[layout].score_contributions(layout) for layout in layouts}
         except Exception as e:
             self._warn(f"Error: could not analyze layout: {e}")
             return ''
@@ -415,14 +455,31 @@ class JaloShell(cmd.Cmd):
         weights = {}
 
         def col_sel(cols):
-            return cols[:2] if not show_contributions else cols
+            '''
+            cols are:
+            0: metric value
+            1: comparison indicator
+            2: contributions indicator
+            '''
+            is_compare = len(layouts)>1
+
+            res = [cols[0]]
+
+            if is_compare:
+                res.append(cols[1])
+            
+            if show_contributions:
+                res.append(cols[2])
+
+            return res
+
 
         if show_contributions:
             header = ['metric', 'w']
         else:
             header = ['metric']
 
-        header.extend([item for layout in layouts for item in col_sel([layout.name, 'Δ', 'ΔS'])])
+        header.extend([item for layout in layouts for item in col_sel([f"{layout.name}\n{layout.hardware.name}", 'Δ', 'ΔS'])])
         
         rows = []
         for metric in self.metrics:
@@ -470,6 +527,7 @@ class JaloShell(cmd.Cmd):
 
 
 DEFAULT_CONFIG = '''
+
 hardware = "ortho"
 corpus = "en"
 '''

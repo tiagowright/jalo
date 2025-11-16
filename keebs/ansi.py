@@ -12,6 +12,9 @@ ansi:
    0 1 2 3 3   6 6 7 8 9
 '''
 
+import sys
+import inspect
+import re
 
 from hardware import Finger, KeyboardHardware, Position
 
@@ -55,7 +58,7 @@ effort_map = [
 ]
 
 def standard_hardware(
-    name, 
+    name: str | None = None, 
     stagger_at_row = stagger_at_row, 
     stagger_at_col = {}, 
     finger_at_col = finger_at_col, 
@@ -71,7 +74,7 @@ def standard_hardware(
     Parameters
     ----------
     name : str
-        The name of the keyboard hardware (typically the filename in ./keebs/)
+        The name of the keyboard hardware (defaults to the filename in ./keebs/)
     stagger_at_row : dict {int: float}
         The amount of x-axis stagger at each row, in U units (1U = 19.05mm).
         Defaults to the ANSI standard stagger.
@@ -93,7 +96,14 @@ def standard_hardware(
         Additional Positions to add to the keyboard hardware, for simple modifications,
         such as adding a thumb key or extra pinky keys (e.g. in Hands Down layouts)
     '''
-    return KeyboardHardware(name=name, positions=[
+
+    if not name:
+        name = str(inspect.currentframe().f_back.f_globals.get('__name__', ''))  # pyright: ignore[reportOptionalMemberAccess]
+        # remove all prefixes and suffixes from the name
+        name = re.sub(r'^.*\.', '', name).strip()
+
+
+    return KeyboardHardware(name=str(name), positions=[
         Position(
             row=row, 
             col=col, 
@@ -108,7 +118,8 @@ def standard_hardware(
     ] + additional_positions)
 
 # export the standard ansi keyboard
-KEYBOARD = standard_hardware('ansi')
+# KEYBOARD = standard_hardware('ansi')
+KEYBOARD = standard_hardware()
 
 # run as a module for imports to work
 # python3 -m keebs.ansi

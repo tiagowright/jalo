@@ -26,11 +26,6 @@ class TestHardware(unittest.TestCase):
         layout = KeyboardLayout.from_name('qwerty', hw)
         self.assertIsNotNone(layout)
 
-    # def test_ortho_22(self):
-    #     hw = KeyboardHardware.from_name('ortho_22')
-    #     layout = KeyboardLayout.from_name('qwerty', hw)
-    #     self.assertIsNotNone(layout)
-
     def test_ortho_thumb(self):
         hw = KeyboardHardware.from_name('ortho_thumb')
         layout = KeyboardLayout.from_name('hdgold', hw)
@@ -40,6 +35,18 @@ class TestHardware(unittest.TestCase):
         hw = KeyboardHardware.from_name('ortho')
         layout = KeyboardLayout.from_name('qwerty', hw)
         self.assertIsNotNone(layout)
+
+    # use the hint
+    def test_ansi_32_hint(self):
+        layout = KeyboardLayout.from_name('hdneu')
+        self.assertIsNotNone(layout)
+        self.assertEqual(layout.hardware.name, 'ansi_32')
+
+    def test_ansi_angle_hint(self):
+        layout = KeyboardLayout.from_name('inrolly')
+        self.assertIsNotNone(layout)
+        self.assertEqual(layout.hardware.name, 'ansi_angle')
+
 
 if __name__ == '__main__':
     unittest.main()

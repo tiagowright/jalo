@@ -100,6 +100,11 @@ class KeyboardLayout:
 
 
     @classmethod
+    def hardware_hint(cls, name: str) -> str | None:
+        text_grid = cls._read_file(name)
+        return cls._hardware_hint_in_text(text_grid)
+
+    @classmethod
     def from_name(
         cls, 
         name: str, 
@@ -115,10 +120,16 @@ class KeyboardLayout:
         layouts are specified as a comment with a `use:` hint, e.g.
         # use: ansi
         """
+        text_grid = cls._read_file(name)
+        return cls.from_text(text_grid, name, hardware, default_hardware)
+
+
+    @classmethod
+    def _read_file(cls, name: str) -> str:
         text_file_path = os.path.join('layouts', f'{name}.kb')
         with open(text_file_path, 'r') as file:
             text_grid = file.read()
-        return cls.from_text(text_grid, name, hardware, default_hardware)
+        return text_grid
 
 
     @classmethod

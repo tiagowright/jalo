@@ -28,7 +28,7 @@ finger_at_row_col = {
     (2,2): Finger.LI,
 }
 
-KEYBOARD = standard_hardware('ansi_angle', finger_at_row_col=finger_at_row_col)
+KEYBOARD = standard_hardware(finger_at_row_col=finger_at_row_col)
 
 if __name__ == "__main__":
     print(KEYBOARD.str(show_finger_numbers=True, show_stagger=True))

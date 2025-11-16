@@ -231,7 +231,7 @@ if __name__ == "__main__":
         if file.endswith('.py'):
             name = file[:-3]
             keyboard = KeyboardHardware.from_name(name)
-            print(f'{name}:')
+            print(f'{keyboard.name}:')
             print(keyboard.str(show_finger_numbers=True, show_stagger=True))
             print()
             print()
