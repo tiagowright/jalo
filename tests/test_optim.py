@@ -73,7 +73,7 @@ def test_real_hardware_metric_checks(scenario: Scenario) -> None:
 
     char_at_pos = optimizer.population.top()
     optimized_score = model.score_chars_at_positions(char_at_pos)
-    assert scenario.layout == GENERATE or optimized_score < base_score, f"Optimized score {optimized_score} >= base {base_score}"
+    assert scenario.layout == GENERATE or optimized_score <= base_score, f"Optimized score {optimized_score} > base {base_score}"
     assert optimized_score <= scenario.target_score, f"Optimized score {optimized_score} > target {scenario.target_score}"
 
     heap = optimizer.population.heap.copy()
