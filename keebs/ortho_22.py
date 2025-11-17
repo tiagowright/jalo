@@ -27,8 +27,6 @@ cols_at_row = [
     [0, 1, 2, 3, 6, 7, 8, 9]
 ]
 
-## THIS DOESN'T WORK YET WITH layout.py
-
 KEYBOARD = KeyboardHardware(name='ortho_22', positions=[
     Position(row=row, col=col, x=col, y=row, finger=finger_at_col[col])
     for row, cols in enumerate(cols_at_row)

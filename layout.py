@@ -67,7 +67,7 @@ class KeyboardLayout:
         BLANK_KEY = ' '
         
         # identify the longest char in the layout
-        longest_char = max(len(key.char) for key in self.keys)
+        longest_char = max(sum(len(key.char) for key in self.grid[row][col]) for row in self.grid for col in self.grid[row])
         
         # format the layout with the longest char width
         format_str = f"{{:<{longest_char}}}"
@@ -161,7 +161,7 @@ class KeyboardLayout:
             else:
                 raise ValueError(f"No hardware specified for layout {name}")
 
-        occupied_positions = set()
+
         keys = []
         hardware_rows = iter(sorted(hardware.grid.keys()))
         text_grid_lines = text_grid.split('\n')
@@ -177,21 +177,17 @@ class KeyboardLayout:
 
             hardware_cols = iter(sorted(hardware.grid[row].keys()))
 
-            for char in line.split():
+            for col_chars in line.split():
                 try:
                     col = next(hardware_cols)
                 except StopIteration:
                     raise ValueError(f"Too many columns in text grid. Expected {len(hardware.grid[row])}, got {len(line.split())}")
 
-                for position in hardware.grid[row][col]:
-                    if position in occupied_positions:
-                        continue
-                    occupied_positions.add(position)
-                    break
-                else:
-                    raise ValueError(f"Cannot find available positions ({row}, {col}) for character {char}. Occupied positions: {hardware.grid[row][col]!r}")
-            
-                keys.append(LayoutKey(char, row, col, position.x, position.y, position.finger, position))
+                if len(col_chars) != len(hardware.grid[row][col]):
+                    raise ValueError(f"Could not assign all characters and positions for row {row} col {col}: {len(col_chars)} characters '{col_chars}' and {len(hardware.grid[row][col])} positions.")
+
+                for char, position in zip(col_chars, hardware.grid[row][col]):
+                    keys.append(LayoutKey(char, row, col, position.x, position.y, position.finger, position))
             
             try:
                 hardware_cols = next(hardware_cols)

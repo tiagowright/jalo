@@ -1,4 +1,5 @@
-* `generate` on multithread
 * keygen metrics
 * carpalx metrics
-* add a progress bar
+* numba for generate?
+* corpus
+* shift and delete

@@ -84,14 +84,15 @@ class Position:
     x: float
     y: float
     finger: Finger
+    layer: int = 0
     is_home: bool = False
     effort: float = 0.0
 
     def __eq__(self, other: 'Position') -> bool:
-        return self.row == other.row and self.col == other.col and self.finger == other.finger
+        return self.row == other.row and self.col == other.col and self.finger == other.finger and self.layer == other.layer
 
     def __hash__(self) -> int:
-        return hash((self.row, self.col, self.finger))
+        return hash((self.row, self.col, self.finger, self.layer))
 
 
 class KeyboardHardware:
@@ -223,6 +224,8 @@ class KeyboardHardware:
             text_grid_lines.append(COL_SEP.join(row_str))
 
         return '\n'.join(text_grid_lines)
+
+
 
 
 if __name__ == "__main__":
