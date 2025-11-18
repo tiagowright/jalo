@@ -5,6 +5,7 @@ These classes define the physical attributes of keyboard hardware
 from dataclasses import dataclass
 from enum import Enum, unique
 from re import I
+from functools import cache
 from typing import List
 from collections import defaultdict
 import os
@@ -45,12 +46,15 @@ class Finger(Enum):
     RR = 8
     RP = 9
 
-    @property
-    def hand(self) -> Hand:
-        """Return the hand that owns this finger."""
-        return Hand(self.value // 5)
 
     @property
+    @cache
+    def hand(self) -> Hand:
+        """Return the hand that owns this finger (cached per enum value)."""
+        return Hand(self.value // 5)
+        
+    @property
+    @cache
     def type(self) -> FingerType:
         """
         Return the type of the finger.

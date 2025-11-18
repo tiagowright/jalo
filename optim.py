@@ -1,4 +1,5 @@
 import os
+import math
 from re import T
 
 from itertools import combinations
@@ -137,27 +138,27 @@ class Optimizer:
 
         order_1, order_2, order_3 = self._get_FV()
 
+        tasks = [
+            (
+                initial_position,
+                initial_population[initial_position],
+                score_tolerance * initial_population[initial_position],
+                order_1,
+                order_2,
+                order_3,
+                (),
+                self.swap_position_pairs,
+                self.positions_at_column,
+                optimizer_iterations
+            )
+            for initial_position in initial_positions
+        ]
         with multiprocessing.Pool() as pool:
-
-            for result in tqdm(pool.imap(
-                _optimize_worker,  # pyright: ignore[reportArgumentType]
-                [  # pyright: ignore[reportArgumentType]
-                    (
-                        initial_position, 
-                        initial_population[initial_position], 
-                        score_tolerance * initial_population[initial_position], 
-                        order_1, 
-                        order_2, 
-                        order_3, 
-                        (), 
-                        self.swap_position_pairs, 
-                        self.positions_at_column, 
-                        iterations,
-                        False
-                    ) 
-                    for initial_position in initial_positions
-                ]
-            ), total=len(initial_positions), desc="Generating"):
+            # chunksize = math.ceil(len(tasks) / os.cpu_count())
+            chunksize = 30
+            results = pool.imap_unordered(_optimize_worker, tasks, chunksize=chunksize)
+            
+            for result in tqdm(results, total=len(tasks), desc="Generating"):
                 for new_char_at_pos, score in result.items():
                     self.population.push(score, new_char_at_pos)
 
@@ -180,8 +181,7 @@ class Optimizer:
             pinned_positions,
             self.swap_position_pairs,
             self.positions_at_column,
-            iterations,
-            True
+            iterations
         )
         
         for new_char_at_pos, score in new_population.items():
@@ -214,6 +214,28 @@ class Optimizer:
 def _optimize_worker(args):
     return _optimize(*args)
 
+def _optimize_batch_worker(args):
+    return _optimize_batch(*args)
+
+def _optimize_batch(
+    char_at_pos_list: list[tuple[int, ...]],
+    initial_score_list: list[float],
+    tolerance: float,
+    order_1: tuple[tuple[np.ndarray, np.ndarray], ...],
+    order_2: tuple[tuple[np.ndarray, np.ndarray], ...],
+    order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
+    pinned_positions: tuple[int, ...],
+    swap_position_pairs: tuple[tuple[int, int], ...],
+    positions_at_column: tuple[tuple[int, ...], ...],
+    iterations: int
+) -> list[dict[tuple[int, ...], float]]:
+    '''
+    optimize the layout using hill climbing
+    '''
+    return [
+        _optimize(char_at_pos, initial_score, tolerance, order_1, order_2, order_3, pinned_positions, swap_position_pairs, positions_at_column, iterations)
+        for char_at_pos, initial_score in zip(char_at_pos_list, initial_score_list)
+    ]
 
 def _optimize(
     char_at_pos: tuple[int, ...], 
@@ -225,8 +247,7 @@ def _optimize(
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
-    iterations: int,
-    report_progress: bool
+    iterations: int
 ) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using hill climbing
@@ -244,7 +265,7 @@ def _optimize(
     cached_scores = {char_at_pos: initial_score}
 
 
-    for i in tqdm(range(iterations), desc="Optimizing", disable=not report_progress):
+    for i in range(iterations):
         # print(f"iteration {i+1} of {iterations}")
         current_char_at_pos = char_at_pos
         current_score = initial_score

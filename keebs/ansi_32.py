@@ -1,5 +1,5 @@
 r'''
-Standard ANSI hardware, with 2 additional keys on the right pinky (qwerty `{` and `;`)
+Standard ANSI hardware, with 2 additional keys on the right pinky (qwerty `{` and `'`)
 
 Some layouts take advantage of the extra keys to move less used letters out, and put
 more common punctuation into the center, e.g. `./layouts/hdneu.kb`

@@ -1,7 +1,7 @@
-hardware = "ortho"
+hardware = "cr8"
 corpus = "en"
 layouts_memory_size = 100
-objective = "oxeylyzer"
+objective = "default"
 
 # If true, use oxeylyzer's definition for all metrics that have an oxeylyzer equivalent.
 # Where the definitions differ, it is primarily because (i think) the jalo definition
