@@ -8,6 +8,8 @@ import numpy as np
 import random
 import logging
 import heapq
+import queue
+import time
 
 import multiprocessing
 from numba import jit
@@ -136,30 +138,58 @@ class Optimizer:
             for initial_position in initial_positions
         }
 
+        tolerance = score_tolerance * sum(initial_population.values())/len(initial_positions)
         order_1, order_2, order_3 = self._get_FV()
+
+        batch_size = math.ceil(len(initial_positions) / (os.cpu_count() or 1))
+        batches = [initial_positions[i:i+batch_size] for i in range(0, len(initial_positions), batch_size)]
+
+        manager = multiprocessing.Manager()
+        progress_queue = manager.Queue()
+        total_jobs = len(initial_positions)
 
         tasks = [
             (
-                initial_position,
-                initial_population[initial_position],
-                score_tolerance * initial_population[initial_position],
+                initial_positions_batch,
+                tuple(initial_population[initial_position] for initial_position in initial_positions_batch),
+                tolerance,
                 order_1,
                 order_2,
                 order_3,
                 (),
                 self.swap_position_pairs,
                 self.positions_at_column,
-                optimizer_iterations
+                optimizer_iterations,
+                progress_queue
             )
-            for initial_position in initial_positions
+            for initial_positions_batch in batches
         ]
+
         with multiprocessing.Pool() as pool:
-            # chunksize = math.ceil(len(tasks) / os.cpu_count())
-            chunksize = 30
-            results = pool.imap_unordered(_optimize_worker, tasks, chunksize=chunksize)
+            results_async = pool.map_async(_optimize_batch_worker, tasks)
             
-            for result in tqdm(results, total=len(tasks), desc="Generating"):
-                for new_char_at_pos, score in result.items():
+            with tqdm(total=total_jobs, desc="Generating") as pbar:
+                while not results_async.ready():
+                    try:
+                        # Check for progress updates without blocking
+                        if pbar.n < total_jobs:
+                            progress_queue.get(timeout=0.1)
+                            pbar.update(1)
+                    except queue.Empty:
+                        # timeout on get, continue loop
+                        pass
+                
+                # update with any remaining items in the queue
+                while not progress_queue.empty():
+                    try:
+                        progress_queue.get_nowait()
+                        pbar.update(1)
+                    except queue.Empty:
+                        break
+
+            results = results_async.get()
+            for result_batch in results:
+                for new_char_at_pos, score in result_batch.items():
                     self.population.push(score, new_char_at_pos)
 
                         
@@ -227,15 +257,28 @@ def _optimize_batch(
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
-    iterations: int
-) -> list[dict[tuple[int, ...], float]]:
+    iterations: int,
+    progress_queue: Any
+) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using hill climbing
     '''
-    return [
-        _optimize(char_at_pos, initial_score, tolerance, order_1, order_2, order_3, pinned_positions, swap_position_pairs, positions_at_column, iterations)
-        for char_at_pos, initial_score in zip(char_at_pos_list, initial_score_list)
-    ]
+
+    population_size = 10
+    selected_population = {}
+
+    for char_at_pos, initial_score in zip(char_at_pos_list, initial_score_list):
+        population = _optimize(char_at_pos, initial_score, tolerance, order_1, order_2, order_3, pinned_positions, swap_position_pairs, positions_at_column, iterations)
+        # merge top N
+        selected_population.update(heapq.nlargest(population_size, population.items(), key=lambda x: -x[1]))
+        
+        # keep the top population_size items in selected_population
+        selected_population = dict(heapq.nlargest(population_size, selected_population.items(), key=lambda x: -x[1]))
+
+        progress_queue.put(1)
+
+    return selected_population
+
 
 def _optimize(
     char_at_pos: tuple[int, ...], 

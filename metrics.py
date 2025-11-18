@@ -7,6 +7,7 @@ from hardware import FingerType, Position, Hand, Finger
 from freqdist import NgramType
 
 import re
+from functools import cache
 
 class Direction(Enum):
     INWARD = 0
@@ -15,6 +16,7 @@ class Direction(Enum):
     ALTERNATE = 3
 
     @classmethod
+    @cache
     def which(cls, a: Position, b: Position) -> 'Direction':
         if a.finger.hand != b.finger.hand:
             return Direction.ALTERNATE
@@ -313,6 +315,9 @@ def pinky_off(a):
 #
 # Trigram metrics
 #
+# note that trigram metrics are the most expensive to compute, so a little bit of care
+# can save you a second or more when creating a model instance.
+#
 def alternate_total(a, b, c):
     return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand
 
@@ -355,11 +360,13 @@ def roll(a, b, c):
 
 # redirect metrics
 def redirect_total(a, b, c):
+    direction_a_b = Direction.which(a, b)
+    direction_b_c = Direction.which(b, c)
     return (
-        same_hand(a, b, c) and 
-        Direction.which(a, b) != Direction.which(b, c) and
-        Direction.which(a, b) in (Direction.INWARD, Direction.OUTWARD) and
-        Direction.which(b, c) in (Direction.INWARD, Direction.OUTWARD)
+        same_hand(a, b, c) and (
+            (direction_a_b == Direction.INWARD and direction_b_c == Direction.OUTWARD) or
+            (direction_a_b == Direction.OUTWARD and direction_b_c == Direction.INWARD)
+        )    
     )
 
 def redirect_bad_total(a, b, c):

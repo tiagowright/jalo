@@ -35,6 +35,9 @@ class KeyboardModel:
     def _metrics_for_all_position_ngrams(self):
         '''
         Pre-aggregate all metrics into position n-grams.
+
+        This is a O(n^3) operation where n is the number of positions on the keyboard, and an expensive computation.
+
         M[metric] = np_array(shape=(N,)) for order 1 metrics
           M[metric][i] = metric.function(self.hardware.positions[i])
         M[metric] = np_array(shape=(N,N)) for order 2 metrics

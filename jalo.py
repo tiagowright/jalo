@@ -42,6 +42,7 @@ def _configure_readline() -> None:
     except ImportError:  # pragma: no cover - Windows fallback when readline missing
         return
 
+    readline.set_history_length(5000)
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
 
@@ -90,11 +91,12 @@ class JaloShell(cmd.Cmd):
     def __init__(self, config_path: Optional[Path] = None) -> None:
         super().__init__()
         self.config_path = config_path or Path(__file__).resolve().with_name("config.toml")
-        self._load_settings()
 
         # keep a sorted list of the top generated layouts by score
         self.layouts_memory = []
         self.model_for_hardware = {}
+        
+        self._load_settings()
 
     def _load_settings(self):
         self.settings = _load_settings(self.config_path)
