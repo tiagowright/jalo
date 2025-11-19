@@ -14,7 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from freqdist import FreqDist
 from hardware import KeyboardHardware
 from layout import KeyboardLayout
-from metrics import METRICS, Metric, use_oxey_mode
+from metrics import METRICS, Metric, use_oxeylyzer_mode
 from objective import ObjectiveFunction
 from model import KeyboardModel
 from optim import Optimizer
@@ -35,7 +35,7 @@ class Scenario:
     objective: ObjectiveFunction
     target_score: float
 
-    oxey_mode: bool = False
+    oxeylyzer_mode: bool = False
 
     @property
     def name(self) -> str:

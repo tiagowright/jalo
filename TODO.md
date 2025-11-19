@@ -3,3 +3,6 @@
 * numba for generate?
 * corpus
 * shift and delete
+
+* README
+* LICENSE

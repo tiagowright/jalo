@@ -65,10 +65,10 @@ def same_hand(a, b, c=None):
 # If True, use oxeylyzer's definition for all metrics that have an oxeylyzer equivalent.
 # Where the definitions differ, it is primarily because (i think) the new definition
 # is more accurately capture the intent of the metric described in the Keyboard layouts doc.
-oxey_mode = False
-def use_oxey_mode(mode: bool):
-    global oxey_mode
-    oxey_mode = mode
+oxeylyzer_mode = False
+def use_oxeylyzer_mode(mode: bool):
+    global oxeylyzer_mode
+    oxeylyzer_mode = mode
 
 #
 # Bigram metrics
@@ -156,7 +156,7 @@ def lsb(a, b):
     if a.finger.type == FingerType.THUMB or b.finger.type == FingerType.THUMB:
         return False
     
-    if oxey_mode:
+    if oxeylyzer_mode:
         if a.finger.type == FingerType.INDEX and b.finger.type == FingerType.MIDDLE:
             pass
         elif a.finger.type == FingerType.MIDDLE and b.finger.type == FingerType.INDEX:
@@ -187,7 +187,7 @@ def lsb(a, b):
 def rowskip(a, b):
     return abs(a.row - b.row) > 1 and same_hand(a, b)
 
-def scissors_oxey_mode(a, b):
+def scissors_oxeylyzer_mode(a, b):
     '''
     oxeylyzer definition of scissors is encoded as a list of finger positions,
     and includes some single row stretches when pinky is higher than ring.
@@ -272,8 +272,8 @@ def scissors(a, b):
     The pinky prefers being lower than middle and ring, but higher than index.
     '''
 
-    if oxey_mode:
-        return scissors_oxey_mode(a, b)
+    if oxeylyzer_mode:
+        return scissors_oxeylyzer_mode(a, b)
 
         
     if not rowskip(a, b):
@@ -325,8 +325,8 @@ def alternate(a, b, c):
     return alternate_total(a, b, c) and not alternate_sfs(a, b, c)
 
 def alternate_sfs(a, b, c):
-    global oxey_mode
-    if oxey_mode:
+    global oxeylyzer_mode
+    if oxeylyzer_mode:
         return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand and (
             a.finger == c.finger
         )
@@ -381,8 +381,8 @@ def redirect_bad_total(a, b, c):
 # so it counts a repetition as a redirect_sfs (e.g. "dad" is a bad redirect sfs).
 #
 def redirect_sfs_total(a, b, c):
-    global oxey_mode
-    if oxey_mode:
+    global oxeylyzer_mode
+    if oxeylyzer_mode:
         return redirect_total(a, b, c) and a.finger == c.finger
     return redirect_total(a, b, c) and sfs(a, c)
 

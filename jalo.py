@@ -22,7 +22,7 @@ from tabulate import tabulate
 from layout import KeyboardLayout
 from model import KeyboardModel
 from freqdist import FreqDist
-from metrics import METRICS, Metric, use_oxey_mode
+from metrics import METRICS, Metric, use_oxeylyzer_mode
 from objective import ObjectiveFunction
 from hardware import KeyboardHardware
 from optim import Optimizer, Population
@@ -67,7 +67,7 @@ def _configure_readline() -> None:
 class JaloSettings:
     hardware: str
     corpus: str
-    oxey_mode: bool
+    oxeylyzer_mode: bool
     layouts_memory_size: int
     objective: str
 
@@ -75,10 +75,10 @@ class JaloSettings:
     def from_dict(cls, data: dict) -> "JaloSettings":
         hardware = data.get("hardware", "ortho")
         corpus = data.get("corpus", "en")
-        oxey_mode = data.get("oxey_mode", False)
+        oxeylyzer_mode = data.get("oxeylyzer_mode", False)
         objective = data.get("objective", "default")
         layouts_memory_size = data.get("layouts_memory_size", 100)
-        return cls(hardware=str(hardware), corpus=str(corpus), oxey_mode=bool(oxey_mode), layouts_memory_size=int(layouts_memory_size), objective=str(objective))
+        return cls(hardware=str(hardware), corpus=str(corpus), oxeylyzer_mode=bool(oxeylyzer_mode), layouts_memory_size=int(layouts_memory_size), objective=str(objective))
 
 
 class JaloShell(cmd.Cmd):
@@ -102,7 +102,7 @@ class JaloShell(cmd.Cmd):
         self.settings = _load_settings(self.config_path)
         self.freqdist = FreqDist.from_name(self.settings.corpus)
         self.metrics = METRICS
-        use_oxey_mode(self.settings.oxey_mode)
+        use_oxeylyzer_mode(self.settings.oxeylyzer_mode)
         self.hardware = KeyboardHardware.from_name(self.settings.hardware)
         self.objective = ObjectiveFunction.from_name(self.settings.objective)
 

@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from freqdist import FreqDist, NgramType
 from hardware import KeyboardHardware
 from layout import KeyboardLayout
-from metrics import METRICS, Metric, use_oxey_mode
+from metrics import METRICS, Metric, use_oxeylyzer_mode
 from objective import ObjectiveFunction
 from model import KeyboardModel
 
@@ -30,7 +30,7 @@ class Scenario:
     layout: str
     text: str
     expectations: dict[str, float]
-    oxey_mode: bool = False
+    oxeylyzer_mode: bool = False
     negative: bool = False
 
     @property
@@ -90,14 +90,14 @@ def one_at_a_time(scenario: Scenario) -> list[Scenario]:
     '''
     if not scenario.negative:
         return [
-            Scenario(scenario.hardware, scenario.layout, ngram, scenario.expectations, scenario.oxey_mode)
+            Scenario(scenario.hardware, scenario.layout, ngram, scenario.expectations, scenario.oxeylyzer_mode)
             for ngram in scenario.text.split()
         ]
 
     freqdist = fqt(scenario.text, scenario.negative)
 
     return [
-        Scenario(scenario.hardware, scenario.layout, ngram, scenario.expectations, scenario.oxey_mode)
+        Scenario(scenario.hardware, scenario.layout, ngram, scenario.expectations, scenario.oxeylyzer_mode)
         for ngramtype in freqdist.freqdist
         for ngram in freqdist.freqdist[ngramtype]
         if freqdist.freqdist[ngramtype][ngram] > 0           
@@ -124,8 +124,8 @@ SCENARIOS = [
     Scenario("ansi", "qwerty", "aw zs ;o /l", {"scissors": 1.0, "rowskip": 0.0}),
 
     # oxeylyzer scissors
-    Scenario("ansi", "qwerty", "qx wc u, i. o/ wz ex rc o, p. qs pl ax ;. eb ct y,", {"scissors": 1.0}, oxey_mode=True),
-    Scenario("ansi", "qwerty", "wd in on pn p, /i", {"scissors": 0.0}, oxey_mode=True),
+    Scenario("ansi", "qwerty", "qx wc u, i. o/ wz ex rc o, p. qs pl ax ;. eb ct y,", {"scissors": 1.0}, oxeylyzer_mode=True),
+    Scenario("ansi", "qwerty", "wd in on pn p, /i", {"scissors": 0.0}, oxeylyzer_mode=True),
 
     # my ortho scissors
     Scenario("ortho", "qwerty", "qs qx ax zw pl p. ;. /o wc ex ,o .i ok l, sc wd cr ct ,u ,y in db eg ih kn be dt cg h, yk", {"scissors_ortho": 1.0}),
@@ -153,15 +153,15 @@ SCENARIOS = [
     # redirect: gas, gag
     # note that oxylyzer considers gag an sfs
     Scenario("ansi", "qwerty", "was eas far gas gag", {"redirect_total": 1.0, "redirect_bad_sfs": 1/5, "redirect_sfs": 1/5, "redirect_bad": 1/5, "redirect": 2/5}),
-    Scenario("ansi", "qwerty", "was eas far gas gag", {"redirect_total": 1.0, "redirect_bad_sfs": 1/5, "redirect_sfs": 2/5, "redirect_bad": 1/5, "redirect": 1/5}, oxey_mode=True),
+    Scenario("ansi", "qwerty", "was eas far gas gag", {"redirect_total": 1.0, "redirect_bad_sfs": 1/5, "redirect_sfs": 2/5, "redirect_bad": 1/5, "redirect": 1/5}, oxeylyzer_mode=True),
 
     # LSBs, using the Keyboard layouts doc definition
     Scenario("ansi", "qwerty", "et te ge eg eb be wb sb yi", {"lsb": 1.0}),
     Scenario("ansi", "qwerty", "dt td vd wr wf wv xv ni hi ui ou on ly yo", {"lsb": 0.0}),
 
     # LSBs, using the Oxeylyzer definition
-    Scenario("ansi", "qwerty", "et eg eb dt dg ct cg cb iy ih ky kh kn nk n,", {"lsb": 1.0}, oxey_mode=True),
-    Scenario("ansi", "qwerty", "dv db ni wb sb", {"lsb": 0.0}, oxey_mode=True),
+    Scenario("ansi", "qwerty", "et eg eb dt dg ct cg cb iy ih ky kh kn nk n,", {"lsb": 1.0}, oxeylyzer_mode=True),
+    Scenario("ansi", "qwerty", "dv db ni wb sb", {"lsb": 0.0}, oxeylyzer_mode=True),
 
     # effort map
     Scenario("ansi", "qwerty", "a s d f g h j k l ;", {"effort": 1.42}),
@@ -169,13 +169,13 @@ SCENARIOS = [
 
 ### skipping some tests today?
 # SCENARIOS = SCENARIOS[11:13]
-# SCENARIOS = one_at_a_time(Scenario("ansi", "qwerty", "wd in on pn p, /i", {"scissors": 0.0}, oxey_mode=True))
+# SCENARIOS = one_at_a_time(Scenario("ansi", "qwerty", "wd in on pn p, /i", {"scissors": 0.0}, oxeylyzer_mode=True))
 # SCENARIOS = one_at_a_time(Scenario("ortho", "qwerty", "qs qx ax zw pl p. ;. /o wc ex ,o .i ok l, sc wd cr ct ,u ,y in db eg ih kn", {"scissors_ortho": 0.0}, negative=True))
 
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda sc: sc.name)
 def test_real_hardware_metric_checks(scenario: Scenario) -> None:
-    use_oxey_mode(scenario.oxey_mode)
+    use_oxeylyzer_mode(scenario.oxeylyzer_mode)
     hardware = KeyboardHardware.from_name(scenario.hardware)
     layout = KeyboardLayout.from_name(scenario.layout, hardware)
     freqdist = fqt(scenario.text, scenario.negative)

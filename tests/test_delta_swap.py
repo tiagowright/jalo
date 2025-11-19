@@ -14,7 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from freqdist import FreqDist, NgramType
 from hardware import KeyboardHardware
 from layout import KeyboardLayout
-from metrics import METRICS, Metric, use_oxey_mode
+from metrics import METRICS, Metric, use_oxeylyzer_mode
 from objective import ObjectiveFunction
 from model import KeyboardModel
 
@@ -32,7 +32,7 @@ class Scenario:
     objective: ObjectiveFunction
     swaps: list[tuple[int, int]]
 
-    oxey_mode: bool = False
+    oxeylyzer_mode: bool = False
 
     @property
     def name(self) -> str:

@@ -8,7 +8,7 @@
 # c) some metrics are slightly different definitions, such as scissors and lsb;
 # where possible, the oxeylyzer definition is available in the metrics.py file,
 # and it is simple to compare the definitions in there. To use the oxeylyzer definition,
-# set the oxey_mode flag to true in config.toml
+# set the oxeylyzer_mode flag to true in config.toml
 # d) missing is fspeed, which in oxeylyzer is a combination of sfb, sfs and single finger
 # skipgrams with more than one skipped letter. We approximate it with sfb and sfs as 
 # follows:

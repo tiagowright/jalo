@@ -1,4 +1,4 @@
-hardware = "cr8"
+hardware = "ortho"
 corpus = "en"
 layouts_memory_size = 100
 objective = "default"
@@ -6,4 +6,4 @@ objective = "default"
 # If true, use oxeylyzer's definition for all metrics that have an oxeylyzer equivalent.
 # Where the definitions differ, it is primarily because (i think) the jalo definition
 # more accurately captures the intent of the metric described in the Keyboard layouts doc.
-oxey_mode = false
+oxeylyzer_mode = false
