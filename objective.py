@@ -39,7 +39,7 @@ class ObjectiveFunction:
         formatted_weights = {
             metric: f"{weight:.2f}".strip("0").strip(".").strip("+").strip("-") for metric, weight in self.metrics.items()
         }
-        formatted_signs = {metric: '- ' if weight < 0 else '+ ' if weight > 0 else '' for metric, weight in self.metrics.items()}
+        formatted_signs = {metric: '- ' if weight < 0 else '+ ' for metric, weight in self.metrics.items()}
         formatted_signs[first_metric] = '-' if self.metrics[first_metric] < 0 else ''
 
         return ' '.join([

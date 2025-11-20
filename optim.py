@@ -9,7 +9,6 @@ import random
 import logging
 import heapq
 import queue
-import time
 
 import multiprocessing
 from numba import jit
@@ -309,7 +308,6 @@ def _optimize(
 
 
     for i in range(iterations):
-        # print(f"iteration {i+1} of {iterations}")
         current_char_at_pos = char_at_pos
         current_score = initial_score
 
@@ -347,7 +345,7 @@ def _optimize(
             if -tolerance < delta:
                 # this loop made no progress, so we are done on this branch
                 break
-
+        
     # print(f"end   pid={os.getpid()}\tcache={len(cached_scores)}", flush=True)
 
     return population
@@ -429,15 +427,22 @@ def _column_swapping(
     best_swap = None
 
     for col1, col2 in combinations(range(len(positions_at_column)), 2):
+        if len(positions_at_column[col1]) <= 2 or len(positions_at_column[col2]) <= 2:
+            continue
+
+        if any(pi in pinned_positions for pi in positions_at_column[col1]) or any(pi in pinned_positions for pi in positions_at_column[col2]):
+            continue
+
+        if len(positions_at_column[col1]) > len(positions_at_column[col2]):
+            col1, col2 = col2, col1
+        
+        # col1 is shorter than col2 or they are the same len
+        random_positions_at_col2 = random.sample(positions_at_column[col2], len(positions_at_column[col1]))
 
         # compute the score after swapping all positions in col1 and col2    
         col_swapped_char_at_pos = char_at_pos
         delta = 0
-        for pi1, pi2 in zip(positions_at_column[col1], positions_at_column[col2]):
-            if pi1 in pinned_positions or pi2 in pinned_positions:
-                delta = 0
-                break
-
+        for pi1, pi2 in zip(positions_at_column[col1], random_positions_at_col2):
             next_swap_char_at_pos = swap_char_at_pos(col_swapped_char_at_pos, pi1, pi2)
             if next_swap_char_at_pos in cached_scores:
                 delta = cached_scores[next_swap_char_at_pos] - original_score
@@ -450,13 +455,44 @@ def _column_swapping(
             
         if delta < best_delta:
             best_delta = delta
-            best_swap = (col1, col2)
+            best_swap = col_swapped_char_at_pos
     
     if best_swap is not None and best_delta < -tolerance:
-        # accept the swap
-        for pi1, pi2 in zip(positions_at_column[best_swap[0]], positions_at_column[best_swap[1]]):
-            char_at_pos = swap_char_at_pos(char_at_pos, pi1, pi2)
-
-        return (original_score + best_delta, char_at_pos)
+        return (original_score + best_delta, best_swap)
     
     return (original_score, char_at_pos)
+
+
+# def _random_position_swapping(
+#     char_at_pos: tuple[int, ...], 
+#     score: float, 
+#     k: int,
+#     order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
+#     order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
+#     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
+#     pinned_positions: tuple[int, ...],
+#     swap_position_pairs: tuple[tuple[int, int], ...],
+#     population: dict[tuple[int, ...], float],
+#     cached_scores: dict[tuple[int, ...], float]
+# ) -> tuple[float, tuple[int, ...]]:
+#     '''
+#     randomly swap k positions
+#     '''
+#     previous_swapped_char_at_pos = char_at_pos
+
+#     for i, j in random.sample(swap_position_pairs, len(swap_position_pairs)):
+#         if i in pinned_positions or j in pinned_positions:
+#             continue
+
+#         swapped_char_at_pos = swap_char_at_pos(previous_swapped_char_at_pos, i, j)
+
+#         if swapped_char_at_pos in cached_scores:
+#             score = cached_scores[swapped_char_at_pos]
+#         else:
+#             delta = _calculate_swap_delta(order_1, order_2, order_3, previous_swapped_char_at_pos, i, j, swapped_char_at_pos)  # pyright: ignore[reportArgumentType]
+#             score += delta
+#             cached_scores[swapped_char_at_pos] = score
+
+#         previous_swapped_char_at_pos = swapped_char_at_pos
+    
+#     return (score, swapped_char_at_pos)

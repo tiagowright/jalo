@@ -109,6 +109,15 @@ class JaloShell(cmd.Cmd):
         self._load_objective(self.objective)
         self.pinned_chars = []
 
+        self._info("\n".join([
+            f"loaded settings from {self.config_path}:",
+            f"hardware = '{self.hardware.name}'",
+            f"corpus = '{self.freqdist.corpus_name}'",
+            f"objective = '{self.objective}'",
+            ""
+        ]))
+
+
     def _load_objective(self, objective: ObjectiveFunction):
         self.objective = objective
         self.model = KeyboardModel(hardware=self.hardware, metrics=self.metrics, objective=self.objective, freqdist=self.freqdist)
@@ -259,7 +268,7 @@ class JaloShell(cmd.Cmd):
             invalid_chars = [char for char in args if char not in self.model.freqdist.char_seq]
             if invalid_chars:
                 str_invalid_chars = ' '.join(invalid_chars)
-                self._warn(f"Warning: {len(invalid_chars)} character(s) are not in the corpus: {invalid_chars}")
+                self._warn(f"Warning: {len(invalid_chars)} character(s) are not in the corpus: {str_invalid_chars}")
 
             self.pinned_chars.extend(args)
 
@@ -276,16 +285,11 @@ class JaloShell(cmd.Cmd):
         self._info(self._layout_memory_to_str(top_n=10))
 
 
-    def do_reload(self, arg: str) -> None:
+    def do_reload(self, arg: str) -> None: # pyright: ignore[reportArgumentType, reportUnusedParameter]
         """Reload the settings from the config.toml file. Keeps generated layouts results in memory, but updates corpus, hardware, and objective function."""
         # should reload the settings from the config.toml file
         self._load_settings()
 
-        self._info(
-            f"loaded settings from {self.config_path}:\n"
-            f"hardware='{self.settings.hardware}' "
-            f"corpus='{self.settings.corpus}'."
-        )
         
 
     def do_objective(self, arg: str) -> None:
@@ -305,7 +309,7 @@ class JaloShell(cmd.Cmd):
         self._info(f"set objective function to {self.objective}")
 
 
-    def do_metrics(self, arg: str) -> None:
+    def do_metrics(self, arg: str) -> None: # pyright: ignore[reportArgumentType, reportUnusedParameter]
         """shows the current metrics"""
         header = ['Metric', 'Description']
 
@@ -353,7 +357,7 @@ class JaloShell(cmd.Cmd):
         """help [command]"""
         super().do_help(arg)
 
-    def do_quit(self, arg: str) -> bool:
+    def do_quit(self, arg: str) -> bool: # pyright: ignore[reportArgumentType, reportUnusedParameter]
         """quit"""
         self._info("Exiting Jalo REPL.")
         return True
@@ -631,10 +635,10 @@ def main(argv: List[str] | None = None) -> int:
         elif args.command == "compare":
             shell.do_compare(" ".join(args.keyboards))
     else:
-        shell._info(
-            f"Loaded config: hardware='{shell.settings.hardware}', "
-            f"corpus='{shell.settings.corpus}'."
-        )
+        # shell._info(
+        #     f"Loaded config: hardware='{shell.settings.hardware}', "
+        #     f"corpus='{shell.settings.corpus}'."
+        # )
         try:
             shell.cmdloop()
         except KeyboardInterrupt:
