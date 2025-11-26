@@ -3,25 +3,22 @@ import math
 from re import T
 
 from itertools import combinations
-from typing import List, Tuple, Optional, Any, Iterable
+from typing import List, Tuple, Optional, Any, Iterable, Callable
 import numpy as np
 import random
-import logging
 import heapq
 import queue
+import time
+import csv
 
 import multiprocessing
-from numba import jit
-from numba import types
-from numba.typed import Dict
+from functools import partial
 from tqdm import tqdm
 
 from model import KeyboardModel, NgramType, _calculate_swap_delta
 from freqdist import FreqDist
 from layout import KeyboardLayout
 
-
-logger = logging.getLogger(__name__)
 
 
 class Population:
@@ -99,9 +96,113 @@ def assert_scores(char_at_pos, score, model):
         raise ValueError(f"score mismatch: {score:.2f} != {actual_score:.2f}")
 
 
+
+class OptimizerLogger:
+    def __init__(self, optimizer_name: str, batch_name: str, log_runs: bool = True, log_events: bool = True, log_population: bool = True):
+        self.optimizer_name = optimizer_name
+        self.batch_name = batch_name
+        self.log_runs = log_runs
+        self.log_events = log_events
+        self.log_population = log_population
+
+        self.events_filename = f"{self.optimizer_name}_events.csv"
+        self.runs_filename = f"{self.optimizer_name}_runs.csv"
+        self.population_filename = f"{self.optimizer_name}_population.csv"
+
+        self.events = []
+        self.runs = []
+        self.population = {}
+
+    def batch_start(self):
+        self.start_time = time.time()
+
+    def batch_end(self, population):
+        self.end_time = time.time()
+        self.duration = self.end_time - self.start_time
+
+        if self.log_population:
+            self.population = population
+
+    def event(self, seed_id: int, step: int, score: float) -> None:
+        if not self.log_events:
+            return
+        self.events.append((seed_id, step, score))
+
+    def run(self, seed_id: int, initial_score: float, final_score: float) -> None:
+        if not self.log_runs:
+            return
+        self.runs.append((seed_id, initial_score, final_score))
+
+    def save(self) -> None:
+        if not self.log_events and not self.log_runs and not self.log_population:
+            return
+
+        import fcntl
+        
+        # save events and runs to separate csv files in ./optimizers/logs directory (may need to create it)
+        logs_dir = os.path.join(os.path.dirname(__file__), "optimizers", "logs")
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir)
+        
+        for file_path, header, rows in (
+            (
+                os.path.join(logs_dir, self.events_filename),
+                ["optimizer_name", "batch_name", "seed_id", "step", "score"],
+                [(self.optimizer_name, self.batch_name, seed_id, step, score) for seed_id, step, score in self.events]
+            ),
+            (
+                os.path.join(logs_dir, self.runs_filename),
+                ["optimizer_name", "batch_name", "seed_id", "initial_score", "final_score"],
+                [(self.optimizer_name, self.batch_name, seed_id, initial_score, final_score) for seed_id, initial_score, final_score in self.runs]
+            ),
+            (
+                os.path.join(logs_dir, self.population_filename),
+                ["optimizer_name", "batch_name", "rank", "score"],
+                [
+                    (self.optimizer_name, self.batch_name, rank, score) 
+                    for rank, (char_at_pos, score) in enumerate(sorted(self.population.items(), key=lambda x: x[1]))
+                ]
+            )
+        ):
+            if not rows:
+                continue
+
+            file_exists = os.path.exists(file_path)
+            with open(file_path, "a+") as f:
+                # using a lock to make this code multiprocessor safe if writing to the same log file
+                fcntl.flock(f, fcntl.LOCK_EX)
+                writer = csv.writer(f, delimiter='\t')
+                if not file_exists:
+                    writer.writerow(header)
+                writer.writerows(rows)
+                fcntl.flock(f, fcntl.LOCK_UN)
+
+
+
 class Optimizer:
-    def __init__(self, model: KeyboardModel, population_size: int = 1000):
+    def __init__(
+        self, 
+        model: KeyboardModel, 
+        population_size: int = 1000, 
+        solver: str = "steepesthill", 
+        log_runs: bool = False, 
+        log_events: bool = False, 
+        log_population: bool = False
+    ):
         self.model = model
+        self.solver = solver
+        
+        # check solver exists
+        if not os.path.exists(os.path.join(os.path.dirname(__file__), "optimizers", solver + ".py")):
+            raise ValueError(f"Solver {solver} not found in ./optimizers directory")
+        
+        # Build wrapper function from solver module name
+        full_module_name = f"optimizers.{solver}"
+        self.optimizer_function = partial(_optimize_batch_worker_from_module, full_module_name)
+
+        self.log_runs = log_runs
+        self.log_events = log_events
+        self.log_population = log_population
 
         positions_at_column_map = {}
         for pi, position in enumerate(self.model.hardware.positions):
@@ -115,7 +216,7 @@ class Optimizer:
 
         self.population = Population(max_size=population_size)
 
-    def generate(self, char_seq: list[str], iterations:int = 100, optimizer_iterations:int = 20, score_tolerance:float = 0.01):
+    def generate(self, char_seq: list[str], iterations:int = 100, optimizer_iterations:int = 20, score_tolerance:float = 0.001):
         assert len(char_seq) == len(self.model.hardware.positions)
 
         char_at_pos = np.zeros(len(self.model.hardware.positions), dtype=int)
@@ -159,13 +260,15 @@ class Optimizer:
                 self.swap_position_pairs,
                 self.positions_at_column,
                 optimizer_iterations,
-                progress_queue
+                progress_queue,
+                self.population.max_size,
+                OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population)
             )
-            for initial_positions_batch in batches
+            for i, initial_positions_batch in enumerate(batches)
         ]
 
         with multiprocessing.Pool() as pool:
-            results_async = pool.map_async(_optimize_batch_worker, tasks)
+            results_async = pool.map_async(self.optimizer_function, tasks)
             
             with tqdm(total=total_jobs, desc="Generating") as pbar:
                 while not results_async.ready():
@@ -200,7 +303,12 @@ class Optimizer:
 
         order_1, order_2, order_3 = self._get_FV()
 
-        new_population = _optimize(
+        # Import and use the solver module's _optimize function
+        import importlib
+        full_module_name = f"optimizers.{self.solver}"
+        solver_module = importlib.import_module(full_module_name)
+        
+        new_population = solver_module._optimize(
             initial_char_at_pos,
             initial_score,
             tolerance,
@@ -240,259 +348,161 @@ class Optimizer:
         return order_1, order_2, order_3
 
 
-def _optimize_worker(args):
-    return _optimize(*args)
+def _optimize_batch_worker_from_module(module_name: str, args):
+    """
+    Top-level function that imports an optimizer module and calls its optimize_batch_worker.
+    This function is picklable for multiprocessing.
+    """
+    import importlib
+    mod = importlib.import_module(module_name)
+    return mod.optimize_batch_worker(args)
 
-def _optimize_batch_worker(args):
-    return _optimize_batch(*args)
 
-def _optimize_batch(
-    char_at_pos_list: list[tuple[int, ...]],
-    initial_score_list: list[float],
-    tolerance: float,
-    order_1: tuple[tuple[np.ndarray, np.ndarray], ...],
-    order_2: tuple[tuple[np.ndarray, np.ndarray], ...],
-    order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-    pinned_positions: tuple[int, ...],
-    swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
-    iterations: int,
-    progress_queue: Any
-) -> dict[tuple[int, ...], float]:
-    '''
-    optimize the layout using hill climbing
-    '''
 
-    population_size = 10
-    selected_population = {}
 
-    for char_at_pos, initial_score in zip(char_at_pos_list, initial_score_list):
-        population = _optimize(char_at_pos, initial_score, tolerance, order_1, order_2, order_3, pinned_positions, swap_position_pairs, positions_at_column, iterations)
-        # merge top N
-        selected_population.update(heapq.nlargest(population_size, population.items(), key=lambda x: -x[1]))
+if __name__ == "__main__":
+    # when called from the command line, run each optimizer in ./optimizers
+
+    import sys
+    import argparse
+    import importlib.util
+    import time
+    import csv
+    from dataclasses import dataclass
+    from hardware import KeyboardHardware
+    from objective import ObjectiveFunction
+    from freqdist import FreqDist
+    from model import KeyboardModel
+    from metrics import METRICS
+
+    @dataclass
+    class OptimizerResult:
+        optimizer_name: str
+        iterations: int
+        time_taken: float
+        best_score: float
+        mean_score: float
+        stdev_score: float
+        hardware_name: str
+        objective_name: str
+        corpus_name: str
+
+
+    # cli args: --iterations <iterations> --hardware <hardware> --objective <objective> --corpus <corpus>
+    # use argparse to parse the args
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--iterations", type=int, default=1000)
+    parser.add_argument("--hardware", type=str, default="ortho")
+    parser.add_argument("--objective", type=str, default="default")
+    parser.add_argument("--corpus", type=str, default="en")
+    parser.add_argument("--output", type=str, default="./optimizers/compare_optimizers.csv")
+    parser.add_argument("--optimizer", type=str, default=None, help="<optimizer1>[:iterations][,<optimizer2>[:iterations] ...]")
+    parser.add_argument("--log-runs", action="store_true")
+    parser.add_argument("--log-events", action="store_true")
+    parser.add_argument("--log-population", action="store_true")
+    args = parser.parse_args()
+
+    if args.optimizer is not None:
+        optimizers = {
+            tokens[0]: (int(tokens[1]) if len(tokens) > 1 else None) for tokens in (optimizer.split(':') for optimizer in args.optimizer.split(','))
+        }
+    else:
+        optimizers = {}
+
+    hardware = KeyboardHardware.from_name(args.hardware)
+    objective = ObjectiveFunction.from_name(args.objective)
+    freqdist = FreqDist.from_name(args.corpus)
+    model = KeyboardModel(hardware=hardware, metrics=METRICS, objective=objective, freqdist=freqdist)
+
+
+    N = len(hardware.positions)
+    char_seq = freqdist.char_seq[:N]
+
+    # for each .py in ./optimizers in turn, import optimize_batch_worker
+    results = []
+    all_top_scores = []
+
+    # Ensure the parent directory (containing optimizers/) is on sys.path
+    parent_dir = os.path.dirname(__file__)
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    optimizers_dir = os.path.join(parent_dir, "optimizers")
+    
+    if not optimizers:
+        optimizers = {
+            optimizer_file[:-3]: None
+            for optimizer_file in os.listdir(optimizers_dir) 
+            if optimizer_file.endswith(".py") and not optimizer_file.startswith("__")
+        }
+   
+
+    for module_name in random.sample(list(optimizers.keys()), len(optimizers)):
+        print(f"Running {module_name}")
+        module_path = os.path.join(optimizers_dir, module_name + ".py")
         
-        # keep the top population_size items in selected_population
-        selected_population = dict(heapq.nlargest(population_size, selected_population.items(), key=lambda x: -x[1]))
-
-        progress_queue.put(1)
-
-    return selected_population
-
-
-def _optimize(
-    char_at_pos: tuple[int, ...], 
-    initial_score: float,
-    tolerance: float,
-    order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-    pinned_positions: tuple[int, ...],
-    swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
-    iterations: int
-) -> dict[tuple[int, ...], float]:
-    '''
-    optimize the layout using hill climbing
-
-    this internal function is set up for multiprocessing, so all the inputs are considered immutable,
-    and the only outputs are returned to the caller.
-    '''
-
-    # print(f"start pid={os.getpid()}\tcache={len(cached_scores)}", flush=True)
-
-    population = {char_at_pos: initial_score}
-
-    # cached_scores = Dict.empty(types.UniTuple(types.int64, len(char_at_pos)), types.float64)
-    # cached_scores[char_at_pos] = initial_score
-    cached_scores = {char_at_pos: initial_score}
-
-
-    for i in range(iterations):
-        current_char_at_pos = char_at_pos
-        current_score = initial_score
-
-        while True:
-            score_at_start_of_step = current_score
-
-            current_score, current_char_at_pos = _position_swapping(
-                current_char_at_pos, 
-                current_score, 
-                tolerance, 
-                order_1, 
-                order_2, 
-                order_3, 
-                pinned_positions, 
-                swap_position_pairs, 
-                population,
-                cached_scores
-            )
-            
-            current_score, current_char_at_pos = _column_swapping(
-                current_char_at_pos, 
-                current_score, 
-                tolerance, 
-                order_1, 
-                order_2, 
-                order_3, 
-                pinned_positions, 
-                positions_at_column,
-                cached_scores
-            )
-            population[current_char_at_pos] = current_score
-
-            # print(f"delta: {delta} vs tolerance: {tolerance}")
-            delta = current_score - score_at_start_of_step
-            if -tolerance < delta:
-                # this loop made no progress, so we are done on this branch
-                break
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        if spec is None or spec.loader is None:
+            print(f"Warning: Could not load spec for {module_name}")
+            continue
         
-    # print(f"end   pid={os.getpid()}\tcache={len(cached_scores)}", flush=True)
-
-    return population
-
-
-def swap_char_at_pos(char_at_pos: tuple[int, ...], i: int, j: int) -> tuple[int, ...]:
-    return tuple(
-        char_at_pos[i] if k == j else
-        char_at_pos[j] if k == i else
-        char_at_pos[k]
-        for k in range(len(char_at_pos))
-    )
-
-
-def _position_swapping(
-    char_at_pos: tuple[int, ...], 
-    score: float, 
-    tolerance: float,
-    order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-    pinned_positions: tuple[int, ...],
-    swap_position_pairs: tuple[tuple[int, int], ...],
-    population: dict[tuple[int, ...], float],
-    cached_scores: dict[tuple[int, ...], float]
-) -> tuple[float, tuple[int, ...]]:
-    '''
-    simple hill climbing, checks every possible swap, and immediately
-    accepts any swap that improves the score
-
-    if N=len(char_at_pos), then there are N*(N-1)/2 swaps to try. We try all,
-    sort them by deltas, and apply all that are possible.
-
-    this internal function is meant to be called from _optimize in a multiprocessing context,
-    and the only mutable input is population, which is updated with new layouts and shared in a single 
-    worker process within _optimize loops.
-    '''
-    original_score = score
-
-    for i, j in random.sample(swap_position_pairs, len(swap_position_pairs)):
-        if i in pinned_positions or j in pinned_positions:
-            continue
-
-        swapped_char_at_pos = swap_char_at_pos(char_at_pos, i, j)
-
-        if swapped_char_at_pos in cached_scores:
-            swapped_score = cached_scores[swapped_char_at_pos]
-            delta = swapped_score - score
-        else:
-            delta = _calculate_swap_delta(order_1, order_2, order_3, char_at_pos, i, j, swapped_char_at_pos)  # pyright: ignore[reportArgumentType]
-            cached_scores[swapped_char_at_pos] = score + delta
-
-        # accept the swap if it improves the score
-        if delta < -tolerance:
-            char_at_pos = swapped_char_at_pos
-            score += delta
-            population[char_at_pos] = score
-    
-    return (score, char_at_pos)
-
-
-def _column_swapping(
-    char_at_pos: tuple[int, ...], 
-    score: float, 
-    tolerance: float,
-    order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-    pinned_positions: tuple[int, ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
-    cached_scores: dict[tuple[int, ...], float]
-) -> tuple[float, tuple[int, ...]]:
-
-    '''
-    simple hill climbing, swapping columns to improve the score the most
-    '''
-    original_score = score
-    best_delta = 0
-    best_swap = None
-
-    for col1, col2 in combinations(range(len(positions_at_column)), 2):
-        if len(positions_at_column[col1]) <= 2 or len(positions_at_column[col2]) <= 2:
-            continue
-
-        if any(pi in pinned_positions for pi in positions_at_column[col1]) or any(pi in pinned_positions for pi in positions_at_column[col2]):
-            continue
-
-        if len(positions_at_column[col1]) > len(positions_at_column[col2]):
-            col1, col2 = col2, col1
+        optimizer_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(optimizer_module)
         
-        # col1 is shorter than col2 or they are the same len
-        random_positions_at_col2 = random.sample(positions_at_column[col2], len(positions_at_column[col1]))
+        # Register the module in sys.modules so multiprocessing can pickle functions from it
+        # Set __name__ to match what pickle will look for
+        full_module_name = f"optimizers.{module_name}"
+        optimizer_module.__name__ = full_module_name
+        sys.modules[full_module_name] = optimizer_module
+        # Also register with the simple name for backwards compatibility
+        sys.modules[module_name] = optimizer_module
+        
+        optimizer = Optimizer(model, solver=module_name, log_runs=args.log_runs, log_events=args.log_events, log_population=args.log_population)
 
-        # compute the score after swapping all positions in col1 and col2    
-        col_swapped_char_at_pos = char_at_pos
-        delta = 0
-        for pi1, pi2 in zip(positions_at_column[col1], random_positions_at_col2):
-            next_swap_char_at_pos = swap_char_at_pos(col_swapped_char_at_pos, pi1, pi2)
-            if next_swap_char_at_pos in cached_scores:
-                delta = cached_scores[next_swap_char_at_pos] - original_score
+        # capture how long it takes to generate
+        start_time = time.time()
+        optimizer.generate(char_seq=char_seq, iterations=optimizers[module_name] or args.iterations)
+        end_time = time.time()
+        print(f"Time taken: {end_time - start_time:.1f} seconds")
 
-            else:
-                delta += _calculate_swap_delta(order_1, order_2, order_3, col_swapped_char_at_pos, pi1, pi2, next_swap_char_at_pos)  # pyright: ignore[reportArgumentType]
-                cached_scores[next_swap_char_at_pos] = original_score + delta
+        top_scores = [model.score_chars_at_positions(char_at_pos) for char_at_pos in optimizer.population.sorted()]
+        mean_score = float(np.mean(top_scores))
+        stdev_score = float(np.std(top_scores))
 
-            col_swapped_char_at_pos = next_swap_char_at_pos
-            
-        if delta < best_delta:
-            best_delta = delta
-            best_swap = col_swapped_char_at_pos
-    
-    if best_swap is not None and best_delta < -tolerance:
-        return (original_score + best_delta, best_swap)
-    
-    return (original_score, char_at_pos)
+        if args.log_population:
+            all_top_scores.append(top_scores)
+
+        # assert that top_scores match scores in population.score
+        assert all(abs(score - optimizer.population.scores[char_at_pos]) < 0.001*abs(score) for score, char_at_pos in zip(top_scores, optimizer.population.sorted()))
+
+        results.append(OptimizerResult(
+            hardware_name=hardware.name,
+            objective_name=str(objective),
+            corpus_name=freqdist.corpus_name,
+            optimizer_name=module_name,
+            iterations=optimizers[module_name] or args.iterations,
+            time_taken=end_time - start_time,
+            best_score=min(top_scores),
+            mean_score=mean_score,
+            stdev_score=stdev_score,
+        ))
 
 
-# def _random_position_swapping(
-#     char_at_pos: tuple[int, ...], 
-#     score: float, 
-#     k: int,
-#     order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
-#     order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
-#     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-#     pinned_positions: tuple[int, ...],
-#     swap_position_pairs: tuple[tuple[int, int], ...],
-#     population: dict[tuple[int, ...], float],
-#     cached_scores: dict[tuple[int, ...], float]
-# ) -> tuple[float, tuple[int, ...]]:
-#     '''
-#     randomly swap k positions
-#     '''
-#     previous_swapped_char_at_pos = char_at_pos
+    # write results to stdout as csv, \t separated
+    # append to the file if it already exists
+    if os.path.exists(args.output):
+        writer = csv.DictWriter(open(args.output, "a"), fieldnames=results[0].__dataclass_fields__.keys(), delimiter='\t')
+    else:
+        writer = csv.DictWriter(open(args.output, "w"), fieldnames=results[0].__dataclass_fields__.keys(), delimiter='\t')
+        writer.writeheader()
 
-#     for i, j in random.sample(swap_position_pairs, len(swap_position_pairs)):
-#         if i in pinned_positions or j in pinned_positions:
-#             continue
+    for result in results:
+        writer.writerow(result.__dict__)
 
-#         swapped_char_at_pos = swap_char_at_pos(previous_swapped_char_at_pos, i, j)
+    if args.log_population and all_top_scores:
+        import itertools
 
-#         if swapped_char_at_pos in cached_scores:
-#             score = cached_scores[swapped_char_at_pos]
-#         else:
-#             delta = _calculate_swap_delta(order_1, order_2, order_3, previous_swapped_char_at_pos, i, j, swapped_char_at_pos)  # pyright: ignore[reportArgumentType]
-#             score += delta
-#             cached_scores[swapped_char_at_pos] = score
-
-#         previous_swapped_char_at_pos = swapped_char_at_pos
-    
-#     return (score, swapped_char_at_pos)
+        with open(args.output.replace(".csv", "_populations.csv"), "w") as f:
+            writer = csv.writer(f, delimiter='\t')
+            writer.writerow([result.optimizer_name for result in results])
+            for row in itertools.zip_longest(*all_top_scores, fillvalue=''):
+                writer.writerow(row)
