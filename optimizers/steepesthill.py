@@ -25,10 +25,10 @@ def _optimize_batch(
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
-    iterations: int,
     progress_queue: Any,
     population_size: int,
-    logger: OptimizerLogger
+    logger: OptimizerLogger,
+    solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using hill climbing
@@ -50,7 +50,8 @@ def _optimize_batch(
             pinned_positions, 
             swap_position_pairs, 
             positions_at_column, 
-            logger
+            logger,
+            solver_args
         )
         
         final_score = min(population.values())
@@ -81,7 +82,8 @@ def _optimize(
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
-    logger: OptimizerLogger
+    logger: OptimizerLogger,
+    solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using hill climbing

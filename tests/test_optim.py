@@ -63,7 +63,7 @@ def test_real_hardware_metric_checks(scenario: Scenario) -> None:
     optimizer = Optimizer(model, population_size=100)
 
     if scenario.layout == GENERATE:
-        optimizer.generate(freqdist.char_seq[:len(hardware.positions)], 30, 10)
+        optimizer.generate(freqdist.char_seq[:len(hardware.positions)], 30)
     else:
         layout = KeyboardLayout.from_name(scenario.layout, hardware)
         char_at_pos = model.char_at_positions_from_layout(layout)

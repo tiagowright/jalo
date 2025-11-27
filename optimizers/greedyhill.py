@@ -21,6 +21,8 @@ from freqdist import FreqDist
 from layout import KeyboardLayout
 from optim import OptimizerLogger
 
+# Default number of iterations for greedy hill climbing optimizer
+DEFAULT_OPTIMIZER_ITERATIONS = 10
 
 def optimize_batch_worker(args):
     return _optimize_batch(*args)
@@ -35,10 +37,10 @@ def _optimize_batch(
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
-    iterations: int,
     progress_queue: Any,
     population_size: int,
-    logger: OptimizerLogger
+    logger: OptimizerLogger,
+    solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using hill climbing
@@ -62,8 +64,9 @@ def _optimize_batch(
             pinned_positions, 
             swap_position_pairs, 
             positions_at_column, 
-            iterations, 
-            logger
+            DEFAULT_OPTIMIZER_ITERATIONS, 
+            logger,
+            solver_args
         )
         
         final_score = min(population.values())
@@ -95,7 +98,8 @@ def _optimize(
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
     iterations: int,
-    logger: OptimizerLogger
+    logger: OptimizerLogger,
+    solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using hill climbing

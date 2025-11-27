@@ -180,33 +180,25 @@ class JaloShell(cmd.Cmd):
         self._info(self._tabulate_analysis(layouts))
         
     def do_generate(self, arg: str) -> None:
-        """generate [iterations=100] [optimizer_iterations=20]: generates new layouts from scratch"""
+        """generate [iterations=100]: generates new layouts from scratch"""
         args = self._split_args(arg)
 
         iterations = 100
-        optimizer_iterations = 20
 
         if len(args) > 0:
             try:
                 iterations = int(args[0])
             except ValueError:
-                self._warn("iterations must be an integer: generate [iterations=100] [optimizer_iterations=20]")
-                return
-
-        if len(args) > 1:
-            try:
-                optimizer_iterations = int(args[1])
-            except ValueError:
-                self._warn("optimizer_iterations must be an integer: generate [iterations=100] [optimizer_iterations=20]")
+                self._warn("iterations must be an integer: generate [iterations=100]")
                 return
         
-        self._info(f"generating {iterations} iterations X {optimizer_iterations} optimizer iterations each.")
+        self._info(f"generating {iterations} iterations.")
 
         N = len(self.model.hardware.positions)
         char_seq = self.freqdist.char_seq[:N]
 
         optimizer = Optimizer(self.model, population_size=100)
-        optimizer.generate(char_seq=char_seq, iterations=iterations, optimizer_iterations=optimizer_iterations)
+        optimizer.generate(char_seq=char_seq, iterations=iterations)
         
         self._layout_memory_from_optimizer(optimizer)
 
@@ -595,7 +587,6 @@ def main(argv: List[str] | None = None) -> int:
     # Generate command
     generate_parser = subparsers.add_parser("generate", help="Generate a new keyboard layout.")
     generate_parser.add_argument("iterations", type=int, nargs='?', default=100, help="Number of iterations.")
-    generate_parser.add_argument("optimizer_iterations", type=int, nargs='?', default=20, help="Optimizer iterations.")
 
     # Improve command
     improve_parser = subparsers.add_parser("improve", help="Improve an existing keyboard layout.")
@@ -627,7 +618,7 @@ def main(argv: List[str] | None = None) -> int:
         elif args.command == "contributions":
             shell.do_contributions(" ".join(args.keyboards))
         elif args.command == "generate":
-            shell.do_generate(f"{args.iterations} {args.optimizer_iterations}")
+            shell.do_generate(f"{args.iterations}")
         elif args.command == "improve":
             shell.do_improve(f"{args.keyboard} {args.iterations}")
         elif args.command == "metrics":

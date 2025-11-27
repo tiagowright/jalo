@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 import math
 from re import T
@@ -13,6 +14,26 @@ from freqdist import FreqDist
 from layout import KeyboardLayout
 from optim import OptimizerLogger
 from optimizers.steepesthill import _optimize, _position_swapping, _column_swapping, swap_char_at_pos
+
+
+@dataclass
+class GeneticParams:
+    '''
+    Hyper parameters for the Genetic solver. These defaults can overriden
+    by providing a `solver_args` dict entry with the same name.
+    '''
+
+    # this is the number of times we will generate new seeds from parents
+    # if there are N = len(char_at_pos_list) seeds provided, then we will
+    # iteratively generate GENERATIONS * N children seeds from the parents
+    generations = 3
+
+    # the odds that the 75th percentile of the initial population will be a parent compared to the best
+    selection_odds = 2.5
+
+    # odds decay by rank
+    selection_slope = 2
+    
 
 
 def optimize_batch_worker(args):
@@ -110,6 +131,9 @@ def _pmx_crossover(
 
 
 def _report_progress(internal_counter: int, internal_total: int, external_total: int, progress_queue: Any) -> None:
+    # the Optimizer expects progress_queue.put(1) once for each item in the seed list, but 
+    # this algorithm iterates multiple times over all seeds to create new generations. So this
+    # function computes the external update progress, using the internal progress counter.
     previous_external_counter = int((internal_counter-1)*external_total//internal_total)
     external_counter = int(internal_counter*external_total//internal_total)
 
@@ -127,10 +151,10 @@ def _optimize_batch(
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
-    iterations: int,
     progress_queue: Any,
     population_size: int,
-    logger: OptimizerLogger
+    logger: OptimizerLogger,
+    solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using a genetic algorithm
@@ -143,21 +167,18 @@ def _optimize_batch(
     '''
     logger.batch_start()
 
-    #
-    # this is the number of times we will generate new seeds from parents
-    # if there are N = len(char_at_pos_list) seeds provided, then we will
-    # iteratively generate GENERATIONS * N children seeds from the parents
-    #     
-    GENERATIONS = 3
+    args = GeneticParams()
+    for key, value in solver_args.items():
+        if hasattr(args, key):
+            setattr(args, key, value)
 
     seed_count = len(char_at_pos_list)
-    generations_total = GENERATIONS * seed_count
+    generations_total = args.generations * seed_count
 
     # the algorithm will first optimize the seed population, then do generation_total child seeds
     progress_total = seed_count + generations_total
     progress_counter = 0
     
-
     generation_size = max(len(char_at_pos_list), population_size)
 
     # Initialize population with scores
@@ -172,14 +193,18 @@ def _optimize_batch(
             0, 
             char_at_pos, 
             initial_score, 
-            tolerance, order_1, order_2, order_3, pinned_positions, swap_position_pairs, positions_at_column, logger)
+            tolerance, order_1, order_2, order_3, pinned_positions, swap_position_pairs, positions_at_column, logger, solver_args)
         best_population.update(child_population)
         
         progress_counter += 1
         _report_progress(progress_counter, progress_total, seed_count, progress_queue)
 
     # replace population with the best population_size layouts from best_population
-    population = dict(sorted(best_population.items(), key=lambda x: x[1])[:population_size])
+    sorted_population = sorted(best_population.items(), key=lambda x: x[1])[:population_size]
+    population = dict(sorted_population)
+
+    idx = int(0.75 * (len(sorted_population) - 1))
+    typical_starting_score = sorted_population[idx][1]
 
     remaining_iterations = generations_total
     generation = 0
@@ -194,9 +219,15 @@ def _optimize_batch(
         if len(parents) < 2:
             break
         
+        #
         # Create a child through crossover
+        #
+
         # pick parents so that better scores are more likely to be selected, noting that score can be negative
-        weights = [1.0 / (1.0 + item[1] - min_score) for item in sorted_population]
+        # setting the weights so the typical_starting_score is roughly 1/20th the odds of the best score
+        weights = [1.0 / (1.0 + i ** args.selection_slope) for i in range(len(sorted_population))]
+
+        # print(', '.join(f'{w:.2f}' for w in weights))
         
         # make sure p1 != p2
         while True:
@@ -242,7 +273,8 @@ def _optimize_batch(
             pinned_positions, 
             swap_position_pairs, 
             positions_at_column, 
-            logger
+            logger,
+            solver_args
         )
 
         logger.run(generation, child_initial_score, min(child_population.values()))

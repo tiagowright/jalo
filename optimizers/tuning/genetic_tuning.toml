@@ -1,0 +1,36 @@
+# Tuning runs for genetic algorithm
+output = './optimizers/logs/genetic_tuning_runs.csv'
+log_population = true
+
+[default]
+solver = 'genetic'
+hardware = 'ortho'
+corpus = 'en'
+iterations = 300
+population = 1000
+objective = 'default'
+name_format = '{solver}_{generations}g_{selection_slope}ss'
+selection_slope = 2
+generations = 3
+
+[[runs]]
+selection_slope = 1
+
+[[runs]]
+selection_slope = 4
+
+[[runs]]
+selection_slope = 8
+
+[[runs]]
+generations = 1
+
+[[runs]]
+generations = 2
+
+[[runs]]
+generations = 4
+
+[[runs]]
+selection_slope = 8
+generations = 4

@@ -1,0 +1,35 @@
+# Used by optim.py when called in command line, to run multiple optimizations in sequence
+# collect the data into ./logs files. Used to compare the quality of solvers for different 
+# scenarios and test different values of hyperparameters for the solvers to find the best 
+# configuration. Most users most of the time don't need to go in here!
+
+# default settings used for every run, unless they are overriden in the [[runs]] entry.
+# hardware = 'ortho'
+# corpus = 'en'
+# iterations = 100
+# population = 1000
+# objective = 'default'
+# any further parameters specified here will be assumed to be solver specific hyperparameters,
+# and will be provided in `solver_args`
+
+[default]
+hardware = 'ortho'
+corpus = 'en'
+iterations = 10
+population = 1000
+objective = 'default'
+name_format = '{solver}_{iterations}'
+
+# each [[runs]] entry specifies the parameters for a single run of the optimizer, and
+# can override any of the defaults above for that specific run
+[[runs]]
+solver = 'annealing'
+
+[[runs]]
+solver = 'genetic'
+
+[[runs]]
+solver = 'greedyhill'
+
+[[runs]]
+solver = 'steepesthill'

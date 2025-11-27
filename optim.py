@@ -187,10 +187,12 @@ class Optimizer:
         solver: str = "steepesthill", 
         log_runs: bool = False, 
         log_events: bool = False, 
-        log_population: bool = False
+        log_population: bool = False,
+        solver_args: dict | None = None
     ):
         self.model = model
         self.solver = solver
+        self.solver_args = solver_args or {}
         
         # check solver exists
         if not os.path.exists(os.path.join(os.path.dirname(__file__), "optimizers", solver + ".py")):
@@ -216,7 +218,7 @@ class Optimizer:
 
         self.population = Population(max_size=population_size)
 
-    def generate(self, char_seq: list[str], iterations:int = 100, optimizer_iterations:int = 20, score_tolerance:float = 0.001):
+    def generate(self, char_seq: list[str], iterations:int = 100, score_tolerance:float = 0.001):
         assert len(char_seq) == len(self.model.hardware.positions)
 
         char_at_pos = np.zeros(len(self.model.hardware.positions), dtype=int)
@@ -259,10 +261,10 @@ class Optimizer:
                 (),
                 self.swap_position_pairs,
                 self.positions_at_column,
-                optimizer_iterations,
                 progress_queue,
                 self.population.max_size,
-                OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population)
+                OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population),
+                self.solver_args
             )
             for i, initial_positions_batch in enumerate(batches)
         ]
@@ -318,7 +320,8 @@ class Optimizer:
             pinned_positions,
             self.swap_position_pairs,
             self.positions_at_column,
-            iterations
+            iterations,
+            self.solver_args
         )
         
         for new_char_at_pos, score in new_population.items():
@@ -361,13 +364,13 @@ def _optimize_batch_worker_from_module(module_name: str, args):
 
 
 if __name__ == "__main__":
-    # when called from the command line, run each optimizer in ./optimizers
-
     import sys
     import argparse
     import importlib.util
     import time
     import csv
+    import tomllib
+
     from dataclasses import dataclass
     from hardware import KeyboardHardware
     from objective import ObjectiveFunction
@@ -377,6 +380,7 @@ if __name__ == "__main__":
 
     @dataclass
     class OptimizerResult:
+        name: str
         optimizer_name: str
         iterations: int
         time_taken: float
@@ -387,62 +391,186 @@ if __name__ == "__main__":
         objective_name: str
         corpus_name: str
 
+    @dataclass
+    class RunConfig:
+        name: str
+        name_format: str
+        hardware: str
+        corpus: str
+        iterations: int
+        population: int
+        objective: str
+        solver: str
+        solver_args: dict
 
-    # cli args: --iterations <iterations> --hardware <hardware> --objective <objective> --corpus <corpus>
-    # use argparse to parse the args
-    parser = argparse.ArgumentParser()
+        def __post_init__(self):
+            if not self.name and self.name_format:
+                all_fields = self.__dict__.copy()
+                all_fields.update(self.solver_args)
+
+                try:
+                    self.name = self.name_format.format(**all_fields)
+                except KeyError as e:
+                    # this is usually ok when the RunConfig is a default, but not if it's a user-specified run
+                    self.name = f'__name_format_error_key_{e.args[0]}_not_found__'
+
+        @classmethod
+        def from_dict(cls, data: dict, defaults: "RunConfig") -> "RunConfig":
+            # solver_args are all the keys in the data or defaults that are not one of the named fields in this class
+            solver_args = defaults.solver_args.copy()
+            solver_args.update({k: v for k, v in data.items() if k not in cls.__dataclass_fields__.keys()})
+
+            return cls(
+                name=data.get("name", ''),
+                name_format=data.get("name_format", defaults.name_format),
+                hardware=data.get("hardware", defaults.hardware),
+                corpus=data.get("corpus", defaults.corpus), 
+                iterations=data.get("iterations", defaults.iterations),
+                population=data.get("population", defaults.population),
+                objective=data.get("objective", defaults.objective),
+                solver=data.get("solver", defaults.solver),
+                solver_args=solver_args,
+            )
+        
+        @classmethod
+        def runs_from_config(cls, config: dict, defaults: "RunConfig") -> list["RunConfig"]:
+            if "default" in config:
+                defaults = cls.from_dict(config["default"], defaults)
+
+            runs = []
+            for run in config.get("runs", []):
+                runs.append(cls.from_dict(run, defaults))
+
+            return runs
+
+        def __str__(self) -> str:
+            return "\n".join([
+                f"name = {self.name}",
+                f"solver = {self.solver}",
+                f"iterations = {self.iterations}",
+                f"solver_args = {self.solver_args}",
+                f"objective = {self.objective}",
+                f"population = {self.population}",
+                f"hardware = {self.hardware}",
+                f"corpus = {self.corpus}",
+            ])
+
+
+    parser = argparse.ArgumentParser(description="Run layout generation experiments with multiple solvers and hyperparameters.")
+    parser.add_argument("--config", type=str, default=None, help="path to the config toml file to specify the runs to perform (e.g., ./optimizers/tuning/comparison_config.toml)")
+    parser.add_argument("--output", type=str, default="./optimizers/logs/solver_runs_table.csv")
     parser.add_argument("--iterations", type=int, default=1000)
     parser.add_argument("--hardware", type=str, default="ortho")
     parser.add_argument("--objective", type=str, default="default")
     parser.add_argument("--corpus", type=str, default="en")
-    parser.add_argument("--output", type=str, default="./optimizers/compare_optimizers.csv")
-    parser.add_argument("--optimizer", type=str, default=None, help="<optimizer1>[:iterations][,<optimizer2>[:iterations] ...]")
+    parser.add_argument("--solver", type=str, default=None, help="<solver1>[:iterations][,<solver2>[:iterations] ...]")
     parser.add_argument("--log-runs", action="store_true")
     parser.add_argument("--log-events", action="store_true")
     parser.add_argument("--log-population", action="store_true")
     args = parser.parse_args()
 
-    if args.optimizer is not None:
-        optimizers = {
-            tokens[0]: (int(tokens[1]) if len(tokens) > 1 else None) for tokens in (optimizer.split(':') for optimizer in args.optimizer.split(','))
-        }
-    else:
-        optimizers = {}
-
-    hardware = KeyboardHardware.from_name(args.hardware)
-    objective = ObjectiveFunction.from_name(args.objective)
-    freqdist = FreqDist.from_name(args.corpus)
-    model = KeyboardModel(hardware=hardware, metrics=METRICS, objective=objective, freqdist=freqdist)
-
-
-    N = len(hardware.positions)
-    char_seq = freqdist.char_seq[:N]
-
-    # for each .py in ./optimizers in turn, import optimize_batch_worker
-    results = []
-    all_top_scores = []
+    defaults = RunConfig(
+        name='',
+        name_format=r'{solver}_{iterations}',
+        hardware=args.hardware,
+        corpus=args.corpus,
+        iterations=args.iterations,
+        population=1000,
+        objective=args.objective,
+        solver=args.solver,
+        solver_args={}
+    )
 
     # Ensure the parent directory (containing optimizers/) is on sys.path
     parent_dir = os.path.dirname(__file__)
     if parent_dir not in sys.path:
         sys.path.insert(0, parent_dir)
     optimizers_dir = os.path.join(parent_dir, "optimizers")
-    
-    if not optimizers:
-        optimizers = {
-            optimizer_file[:-3]: None
-            for optimizer_file in os.listdir(optimizers_dir) 
-            if optimizer_file.endswith(".py") and not optimizer_file.startswith("__")
-        }
-   
+            
 
-    for module_name in random.sample(list(optimizers.keys()), len(optimizers)):
-        print(f"Running {module_name}")
-        module_path = os.path.join(optimizers_dir, module_name + ".py")
+    if args.config is not None:
+        with open(args.config, "rb") as f:
+            try:
+                config_dict = tomllib.load(f)
+            except tomllib.TOMLDecodeError as e:
+                print(f"Error parsing config file {args.config}: {e}")
+                sys.exit(1)
         
-        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        runs = RunConfig.runs_from_config(config_dict, defaults)
+
+        # for every key in config_dict if it is also an args attribute, override it with the value from config_dict
+        for key in ['output', 'log_runs', 'log_events', 'log_population']:
+            if key in config_dict:
+                setattr(args, key, config_dict[key])
+
+    else:
+        if args.solver is not None:
+            optimizers = {
+                tokens[0]: (int(tokens[1]) if len(tokens) > 1 else None) for tokens in (optimizer.split(':') for optimizer in args.solver.split(','))
+            }
+        else:
+            optimizers = {
+                optimizer_file[:-3]: None
+                for optimizer_file in os.listdir(optimizers_dir) 
+                if optimizer_file.endswith(".py") and not optimizer_file.startswith("__")
+            }
+
+        runs = []
+        for optimizer in optimizers.keys():
+            config_dict = defaults.__dict__.copy()
+            config_dict['solver'] = optimizer
+            config_dict['iterations'] = optimizers[optimizer] or defaults.iterations
+            runs.append(RunConfig(**config_dict))
+
+
+    # print the configuration
+    print("Configuration:")
+    
+    if args.config is not None:
+        print(f"Config file: {args.config}")
+    else:
+        print(f"Solver: {args.solver}")
+        print(f"Iterations: {args.iterations}")
+        print(f"Hardware: {args.hardware}")
+        print(f"Objective: {args.objective}")
+        print(f"Corpus: {args.corpus}")
+
+    print(f"Output: {args.output}")
+
+    logging_strs = [key for key in ['log_runs', 'log_events', 'log_population'] if getattr(args, key)]
+    if logging_strs:
+        print(f"Logging: ", ", ".join(logging_strs))
+    else:
+        print("Logging nothing")
+
+    print()
+
+    # for each .py in ./optimizers in turn, import optimize_batch_worker
+    results = []
+    all_top_scores = []
+
+    random.shuffle(runs)
+    for run in runs:
+        print("-" * 10)
+        print(run)
+        print()
+
+        hardware = KeyboardHardware.from_name(run.hardware)
+        objective = ObjectiveFunction.from_name(run.objective)
+        freqdist = FreqDist.from_name(run.corpus)
+        model = KeyboardModel(hardware=hardware, metrics=METRICS, objective=objective, freqdist=freqdist)
+
+        N = len(hardware.positions)
+        char_seq = freqdist.char_seq[:N]
+
+        if not run.solver:
+            print("Warning: No solver specified, skipping")
+            continue
+
+        module_path = os.path.join(optimizers_dir, run.solver + ".py")
+        spec = importlib.util.spec_from_file_location(run.solver, module_path)
         if spec is None or spec.loader is None:
-            print(f"Warning: Could not load spec for {module_name}")
+            print(f"Warning: Could not load spec for {run.solver}")
             continue
         
         optimizer_module = importlib.util.module_from_spec(spec)
@@ -450,19 +578,28 @@ if __name__ == "__main__":
         
         # Register the module in sys.modules so multiprocessing can pickle functions from it
         # Set __name__ to match what pickle will look for
-        full_module_name = f"optimizers.{module_name}"
+        full_module_name = f"optimizers.{run.solver}"
         optimizer_module.__name__ = full_module_name
         sys.modules[full_module_name] = optimizer_module
+
         # Also register with the simple name for backwards compatibility
-        sys.modules[module_name] = optimizer_module
+        sys.modules[run.solver] = optimizer_module
         
-        optimizer = Optimizer(model, solver=module_name, log_runs=args.log_runs, log_events=args.log_events, log_population=args.log_population)
+        optimizer = Optimizer(
+            model, 
+            solver=run.solver, 
+            log_runs=args.log_runs, 
+            log_events=args.log_events, 
+            log_population=args.log_population,
+            solver_args=run.solver_args
+        )
 
         # capture how long it takes to generate
         start_time = time.time()
-        optimizer.generate(char_seq=char_seq, iterations=optimizers[module_name] or args.iterations)
+        optimizer.generate(char_seq=char_seq, iterations=run.iterations)
         end_time = time.time()
         print(f"Time taken: {end_time - start_time:.1f} seconds")
+        print()
 
         top_scores = [model.score_chars_at_positions(char_at_pos) for char_at_pos in optimizer.population.sorted()]
         mean_score = float(np.mean(top_scores))
@@ -475,11 +612,12 @@ if __name__ == "__main__":
         assert all(abs(score - optimizer.population.scores[char_at_pos]) < 0.001*abs(score) for score, char_at_pos in zip(top_scores, optimizer.population.sorted()))
 
         results.append(OptimizerResult(
+            name=run.name,
             hardware_name=hardware.name,
             objective_name=str(objective),
             corpus_name=freqdist.corpus_name,
-            optimizer_name=module_name,
-            iterations=optimizers[module_name] or args.iterations,
+            optimizer_name=run.solver,
+            iterations=run.iterations,
             time_taken=end_time - start_time,
             best_score=min(top_scores),
             mean_score=mean_score,
@@ -503,6 +641,6 @@ if __name__ == "__main__":
 
         with open(args.output.replace(".csv", "_populations.csv"), "w") as f:
             writer = csv.writer(f, delimiter='\t')
-            writer.writerow([result.optimizer_name for result in results])
+            writer.writerow([result.name for result in results])
             for row in itertools.zip_longest(*all_top_scores, fillvalue=''):
                 writer.writerow(row)

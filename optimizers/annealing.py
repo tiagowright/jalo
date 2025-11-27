@@ -9,6 +9,9 @@ import heapq
 from model import _calculate_swap_delta
 from optim import OptimizerLogger
 
+# Default number of iterations for simulated annealing optimizer
+DEFAULT_OPTIMIZER_ITERATIONS = 10
+
 def optimize_batch_worker(args):
     return _optimize_batch(*args)
 
@@ -23,6 +26,7 @@ def _calibrate_temperature(
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
     logger: OptimizerLogger,
+    solver_args: dict,
     p0: float = 0.675, # 67.5% acceptance probability at start of annealing (seems like a good choice at the moment)
     pf: float = 0.01,
     samples_per_layout: int = 4,
@@ -56,7 +60,8 @@ def _calibrate_temperature(
             10,
             1e-6,
             1e-6,
-            logger
+            logger,
+            solver_args
         )
 
         char_at_pos = min(population.keys(), key=lambda x: population[x])
@@ -116,10 +121,10 @@ def _optimize_batch(
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
-    iterations: int,
     progress_queue: Any,
     population_size: int,
-    logger: OptimizerLogger
+    logger: OptimizerLogger,
+    solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using simulated annealing
@@ -138,7 +143,8 @@ def _optimize_batch(
         pinned_positions, 
         swap_position_pairs, 
         positions_at_column,
-        logger
+        logger,
+        solver_args
     )
 
     for seed_id, char_at_pos, initial_score in zip(range(len(char_at_pos_list)), char_at_pos_list, initial_score_list):
@@ -154,10 +160,11 @@ def _optimize_batch(
             pinned_positions, 
             swap_position_pairs, 
             positions_at_column, 
-            iterations,
+            DEFAULT_OPTIMIZER_ITERATIONS,
             T0,
             Tf,
-            logger
+            logger,
+            solver_args
         )
         
         final_score = min(population.values())
@@ -191,7 +198,8 @@ def _optimize(
     iterations: int,
     T0: float,
     Tf: float,
-    logger: OptimizerLogger
+    logger: OptimizerLogger,
+    solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using simulated annealing
