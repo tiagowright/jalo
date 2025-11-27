@@ -26,10 +26,7 @@ class GeneticParams:
     # this is the number of times we will generate new seeds from parents
     # if there are N = len(char_at_pos_list) seeds provided, then we will
     # iteratively generate GENERATIONS * N children seeds from the parents
-    generations = 3
-
-    # the odds that the 75th percentile of the initial population will be a parent compared to the best
-    selection_odds = 2.5
+    generations = 5
 
     # odds decay by rank
     selection_slope = 2

@@ -1,0 +1,56 @@
+# Tuning runs for genetic algorithm
+output = './optimizers/logs/annealing_tuning_runs.csv'
+log_population = true
+
+[default]
+solver = 'annealing'
+hardware = 'ortho'
+corpus = 'en'
+iterations = 500
+population = 1000
+objective = 'default'
+
+name_format = '{p0}_{pf}_x{annealing_iterations}_cl{layouts_to_sample}_cs{samples_per_layout}'
+annealing_iterations = 10
+p0 = 0.675 
+pf = 0.01
+layouts_to_sample = 10
+samples_per_layout = 4
+
+[[runs]]
+
+[[runs]]
+p0 = 0.3
+
+[[runs]]
+p0 = 0.4
+
+[[runs]]
+p0 = 0.5
+
+[[runs]]
+p0 = 0.6
+
+[[runs]]
+p0 = 0.7
+
+[[runs]]
+p0 = 0.8
+
+[[runs]]
+p0 = 0.9
+
+[[runs]]
+samples_per_layout = 8
+
+[[runs]]
+samples_per_layout = 16
+
+[[runs]]
+samples_per_layout = 2
+
+[[runs]]
+layouts_to_sample = 5
+
+[[runs]]
+layouts_to_sample = 20

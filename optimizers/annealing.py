@@ -9,8 +9,21 @@ import heapq
 from model import _calculate_swap_delta
 from optim import OptimizerLogger
 
-# Default number of iterations for simulated annealing optimizer
-DEFAULT_OPTIMIZER_ITERATIONS = 10
+
+
+@dataclass
+class AnnealingParams:
+    # Default number of iterations of annealing for each seed
+    annealing_iterations: int = 10
+    
+    # Default acceptance probability at start and end of annealing (seems like a good choice at the moment)
+    p0: float = 0.675 
+    pf: float = 0.01
+
+    # prior to annealing, we calibrate temperature by sampling a few layouts and computing the typical uphill delta
+    layouts_to_sample: int = 5
+    samples_per_layout: int = 4
+
 
 def optimize_batch_worker(args):
     return _optimize_batch(*args)
@@ -26,7 +39,7 @@ def _calibrate_temperature(
     swap_position_pairs: tuple[tuple[int, int], ...],
     positions_at_column: tuple[tuple[int, ...], ...],
     logger: OptimizerLogger,
-    solver_args: dict,
+    args: AnnealingParams,
     p0: float = 0.675, # 67.5% acceptance probability at start of annealing (seems like a good choice at the moment)
     pf: float = 0.01,
     samples_per_layout: int = 4,
@@ -57,11 +70,11 @@ def _calibrate_temperature(
             pinned_positions, 
             swap_position_pairs, 
             positions_at_column, 
-            10,
+            args.annealing_iterations,
             1e-6,
             1e-6,
             logger,
-            solver_args
+            args
         )
 
         char_at_pos = min(population.keys(), key=lambda x: population[x])
@@ -131,6 +144,11 @@ def _optimize_batch(
     '''
     logger.batch_start()
 
+    args = AnnealingParams()
+    for key, value in solver_args.items():
+        if hasattr(args, key):
+            setattr(args, key, value)
+
     selected_population = {}
 
     T0, Tf = _calibrate_temperature(
@@ -144,7 +162,11 @@ def _optimize_batch(
         swap_position_pairs, 
         positions_at_column,
         logger,
-        solver_args
+        args,
+        args.p0,
+        args.pf,
+        args.samples_per_layout,
+        args.layouts_to_sample
     )
 
     for seed_id, char_at_pos, initial_score in zip(range(len(char_at_pos_list)), char_at_pos_list, initial_score_list):
@@ -160,11 +182,11 @@ def _optimize_batch(
             pinned_positions, 
             swap_position_pairs, 
             positions_at_column, 
-            DEFAULT_OPTIMIZER_ITERATIONS,
+            args.annealing_iterations,
             T0,
             Tf,
             logger,
-            solver_args
+            args
         )
         
         final_score = min(population.values())
@@ -199,7 +221,7 @@ def _optimize(
     T0: float,
     Tf: float,
     logger: OptimizerLogger,
-    solver_args: dict
+    args: AnnealingParams
 ) -> dict[tuple[int, ...], float]:
     '''
     optimize the layout using simulated annealing

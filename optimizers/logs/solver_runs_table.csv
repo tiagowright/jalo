@@ -1,0 +1,3 @@
+name	optimizer_name	iterations	time_taken	best_score	mean_score	stdev_score	hardware_name	objective_name	corpus_name
+annealing:1_1000	annealing	1	3.7070021629333496	29.59931089993986	32.12131801828615	4.619018843725293	ortho	100sfb + 6effort + 60pinky_ring + 60scissors_ortho + 60sfs + 20finger_0 + 20finger_9 + 18finger_1 + 18finger_8 + 15finger_2 + 15finger_7 + 12finger_3 + 12finger_6	en
+annealing:100_1000	annealing	100	13.054484844207764	29.534710006710483	30.391141571535577	0.34466383378024673	ortho	100sfb + 6effort + 60pinky_ring + 60scissors_ortho + 60sfs + 20finger_0 + 20finger_9 + 18finger_1 + 18finger_8 + 15finger_2 + 15finger_7 + 12finger_3 + 12finger_6	en

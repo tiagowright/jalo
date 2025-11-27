@@ -543,6 +543,7 @@ if __name__ == "__main__":
     else:
         print("Logging nothing")
 
+    print(f"Found {len(runs)} runs")
     print()
 
     # for each .py in ./optimizers in turn, import optimize_batch_worker
@@ -550,8 +551,9 @@ if __name__ == "__main__":
     all_top_scores = []
 
     random.shuffle(runs)
-    for run in runs:
+    for run_i, run in enumerate(runs):
         print("-" * 10)
+        print(f"Run {run_i+1} of {len(runs)}:")
         print(run)
         print()
 

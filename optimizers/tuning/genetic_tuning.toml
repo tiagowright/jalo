@@ -9,28 +9,53 @@ corpus = 'en'
 iterations = 300
 population = 1000
 objective = 'default'
-name_format = '{solver}_{generations}g_{selection_slope}ss'
+name_format = '{generations}g_{selection_slope}s_x{iterations}'
+
+generations = 4
 selection_slope = 2
-generations = 3
+
+[[runs]]
+iterations = 174
 
 [[runs]]
 selection_slope = 1
+iterations = 134
+
+[[runs]]
+selection_slope = 3
+iterations = 174
 
 [[runs]]
 selection_slope = 4
+iterations = 176
 
 [[runs]]
 selection_slope = 8
+iterations = 172
 
 [[runs]]
 generations = 1
+iterations = 299
 
 [[runs]]
 generations = 2
+iterations = 235
+
+[[runs]]
+generations = 3
+iterations = 192
+
+[[runs]]
+generations = 5
+iterations = 128
 
 [[runs]]
 generations = 4
-
-[[runs]]
 selection_slope = 8
-generations = 4
+iterations = 172
+
+[[runs]]
+iterations = 350
+
+[[runs]]
+iterations = 700
