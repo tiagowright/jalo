@@ -37,7 +37,8 @@ def _calibrate_temperature(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     logger: OptimizerLogger,
     args: AnnealingParams,
     p0: float = 0.675, # 67.5% acceptance probability at start of annealing (seems like a good choice at the moment)
@@ -69,7 +70,8 @@ def _calibrate_temperature(
             order_3, 
             pinned_positions, 
             swap_position_pairs, 
-            positions_at_column, 
+            pis_at_column,
+            group_of_pis_at_column,
             args.annealing_iterations,
             1e-6,
             1e-6,
@@ -133,7 +135,8 @@ def _optimize_batch(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     progress_queue: Any,
     population_size: int,
     logger: OptimizerLogger,
@@ -160,7 +163,8 @@ def _optimize_batch(
         order_3, 
         pinned_positions, 
         swap_position_pairs, 
-        positions_at_column,
+        pis_at_column,
+        group_of_pis_at_column,
         logger,
         args,
         args.p0,
@@ -181,7 +185,8 @@ def _optimize_batch(
             order_3, 
             pinned_positions, 
             swap_position_pairs, 
-            positions_at_column, 
+            pis_at_column,
+            group_of_pis_at_column,
             args.annealing_iterations,
             T0,
             Tf,
@@ -216,7 +221,8 @@ def _optimize(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     iterations: int,
     T0: float,
     Tf: float,
@@ -284,7 +290,7 @@ def _optimize(
                 order_2, 
                 order_3, 
                 pinned_positions, 
-                positions_at_column,
+                pis_at_column,
                 cached_scores,
                 temperature,
                 annealing_stats
@@ -395,7 +401,7 @@ def _column_swapping(
     order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
     cached_scores: dict[tuple[int, ...], float],
     temperature: float,
     annealing_stats: AnnealingStats
@@ -409,23 +415,23 @@ def _column_swapping(
     best_delta = float('inf')
     best_swap = None
 
-    for col1, col2 in combinations(range(len(positions_at_column)), 2):
-        if len(positions_at_column[col1]) <= 2 or len(positions_at_column[col2]) <= 2:
+    for col1, col2 in combinations(range(len(pis_at_column)), 2):
+        if len(pis_at_column[col1]) <= 2 or len(pis_at_column[col2]) <= 2:
             continue
 
-        if any(pi in pinned_positions for pi in positions_at_column[col1]) or any(pi in pinned_positions for pi in positions_at_column[col2]):
+        if any(pi in pinned_positions for pi in pis_at_column[col1]) or any(pi in pinned_positions for pi in pis_at_column[col2]):
             continue
 
-        if len(positions_at_column[col1]) > len(positions_at_column[col2]):
+        if len(pis_at_column[col1]) > len(pis_at_column[col2]):
             col1, col2 = col2, col1
         
         # col1 is shorter than col2 or they are the same len
-        random_positions_at_col2 = random.sample(positions_at_column[col2], len(positions_at_column[col1]))
+        selected_pis_at_col2 = pis_at_column[col2][:len(pis_at_column[col1])]
 
         # compute the score after swapping all positions in col1 and col2    
         col_swapped_char_at_pos = char_at_pos
         delta = 0
-        for pi1, pi2 in zip(positions_at_column[col1], random_positions_at_col2):
+        for pi1, pi2 in zip(pis_at_column[col1], selected_pis_at_col2):
             next_swap_char_at_pos = swap_char_at_pos(col_swapped_char_at_pos, pi1, pi2)
             if next_swap_char_at_pos in cached_scores:
                 delta = cached_scores[next_swap_char_at_pos] - original_score

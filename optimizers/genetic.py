@@ -147,7 +147,8 @@ def _optimize_batch(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     progress_queue: Any,
     population_size: int,
     logger: OptimizerLogger,
@@ -190,7 +191,7 @@ def _optimize_batch(
             0, 
             char_at_pos, 
             initial_score, 
-            tolerance, order_1, order_2, order_3, pinned_positions, swap_position_pairs, positions_at_column, logger, solver_args)
+            tolerance, order_1, order_2, order_3, pinned_positions, swap_position_pairs, pis_at_column, group_of_pis_at_column, logger, solver_args)
         best_population.update(child_population)
         
         progress_counter += 1
@@ -269,7 +270,8 @@ def _optimize_batch(
             order_3,
             pinned_positions, 
             swap_position_pairs, 
-            positions_at_column, 
+            pis_at_column,
+            group_of_pis_at_column,
             logger,
             solver_args
         )

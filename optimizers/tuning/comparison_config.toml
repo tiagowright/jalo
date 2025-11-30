@@ -22,16 +22,16 @@ name_format = '{solver}_{iterations}'
 # can override any of the defaults above for that specific run
 [[runs]]
 solver = 'annealing'
-iterations = 260
+iterations = 308
 
 [[runs]]
 solver = 'genetic'
-iterations = 125
+iterations = 132
 
 [[runs]]
 solver = 'greedyhill'
-iterations = 221
+iterations = 253
 
 [[runs]]
 solver = 'steepesthill'
-iterations = 500
+iterations = 465

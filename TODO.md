@@ -3,6 +3,9 @@
 * annealing for the most promising children some times
 * Add some diversity preservation (duplicate filtering or crowding)
 
+* col swap algorithm -- better to look at all permuations?
+
+
 
 # Fixes
 * annealing as default, clean up code

@@ -6,11 +6,18 @@ from itertools import combinations
 from typing import List, Tuple, Optional, Any, Iterable
 import numpy as np
 import random
-import logging
 import heapq
+from dataclasses import dataclass
 
 from model import _calculate_swap_delta
 from optim import OptimizerLogger
+
+@dataclass
+class SteepestHillParams:
+    pos_swaps_per_step: int = 1
+    col_swaps_per_step: int = 1
+    pos_swaps_first: bool = False
+
 
 def optimize_batch_worker(args):
     return _optimize_batch(*args)
@@ -24,7 +31,8 @@ def _optimize_batch(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     progress_queue: Any,
     population_size: int,
     logger: OptimizerLogger,
@@ -49,7 +57,8 @@ def _optimize_batch(
             order_3, 
             pinned_positions, 
             swap_position_pairs, 
-            positions_at_column, 
+            pis_at_column,
+            group_of_pis_at_column,
             logger,
             solver_args
         )
@@ -81,7 +90,8 @@ def _optimize(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     logger: OptimizerLogger,
     solver_args: dict
 ) -> dict[tuple[int, ...], float]:
@@ -92,6 +102,11 @@ def _optimize(
     and the only outputs are returned to the caller.
     '''
 
+    params = SteepestHillParams()
+    for key, value in solver_args.items():
+        if hasattr(params, key):
+            setattr(params, key, value)
+    
     population = {char_at_pos: initial_score}
 
     # cached_scores = Dict.empty(types.UniTuple(types.int64, len(char_at_pos)), types.float64)
@@ -106,40 +121,56 @@ def _optimize(
     while True:
         score_at_start_of_step = current_score
 
-        current_score, current_char_at_pos = _position_swapping(
-            current_char_at_pos, 
-            current_score, 
-            tolerance, 
-            order_1, 
-            order_2, 
-            order_3, 
-            pinned_positions, 
-            swap_position_pairs, 
-            population,
-            cached_scores
-        )
-        
-        current_score, current_char_at_pos = _column_swapping(
-            current_char_at_pos, 
-            current_score, 
-            tolerance, 
-            order_1, 
-            order_2, 
-            order_3, 
-            pinned_positions, 
-            positions_at_column,
-            cached_scores
-        )
-        population[current_char_at_pos] = current_score
+        logger.event(seed_id, step, current_score)
+
+        if params.pos_swaps_first or step > 0:
+            for _ in range(params.pos_swaps_per_step):
+                prev_score = current_score
+                current_score, current_char_at_pos = _position_swapping(
+                    current_char_at_pos, 
+                    prev_score, 
+                    tolerance, 
+                    order_1, 
+                    order_2, 
+                    order_3, 
+                    pinned_positions, 
+                    swap_position_pairs, 
+                    params,
+                    population,
+                    cached_scores
+                )
+                if prev_score/current_score < 1.0001:
+                    break
+
+            logger.event(seed_id, step, current_score)
+
+
+        for _ in range(params.col_swaps_per_step):
+            prev_score = current_score
+            current_score, current_char_at_pos = _column_swapping(
+                current_char_at_pos, 
+                prev_score, 
+                tolerance, 
+                order_1, 
+                order_2, 
+                order_3, 
+                pinned_positions, 
+                pis_at_column,
+                params,
+                cached_scores
+            )
+            if prev_score/current_score < 1.0001:
+                break
 
         logger.event(seed_id, step, current_score)
+
+        population[current_char_at_pos] = current_score
         step += 1
 
         delta = current_score - score_at_start_of_step
         if -tolerance < delta:
             # this loop made no progress, so we are done on this branch
             break
-    
 
     return population
 
@@ -162,6 +193,7 @@ def _position_swapping(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
+    params: SteepestHillParams,
     population: dict[tuple[int, ...], float],
     cached_scores: dict[tuple[int, ...], float]
 ) -> tuple[float, tuple[int, ...]]:
@@ -211,7 +243,8 @@ def _column_swapping(
     order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    params: SteepestHillParams,
     cached_scores: dict[tuple[int, ...], float]
 ) -> tuple[float, tuple[int, ...]]:
 
@@ -222,23 +255,23 @@ def _column_swapping(
     best_delta = 0
     best_swap = None
 
-    for col1, col2 in combinations(range(len(positions_at_column)), 2):
-        if len(positions_at_column[col1]) <= 2 or len(positions_at_column[col2]) <= 2:
+    for col1, col2 in combinations(range(len(pis_at_column)), 2):
+        if len(pis_at_column[col1]) <= 2 or len(pis_at_column[col2]) <= 2:
             continue
 
-        if any(pi in pinned_positions for pi in positions_at_column[col1]) or any(pi in pinned_positions for pi in positions_at_column[col2]):
+        if any(pi in pinned_positions for pi in pis_at_column[col1]) or any(pi in pinned_positions for pi in pis_at_column[col2]):
             continue
 
-        if len(positions_at_column[col1]) > len(positions_at_column[col2]):
+        if len(pis_at_column[col1]) > len(pis_at_column[col2]):
             col1, col2 = col2, col1
         
-        # col1 is shorter than col2 or they are the same len
-        random_positions_at_col2 = random.sample(positions_at_column[col2], len(positions_at_column[col1]))
+        # col1 is shorter than col2 or they are the same len, line up in sequence and hope this is the best way
+        selected_pis_at_col2 = pis_at_column[col2][:len(pis_at_column[col1])]
 
         # compute the score after swapping all positions in col1 and col2    
         col_swapped_char_at_pos = char_at_pos
         delta = 0
-        for pi1, pi2 in zip(positions_at_column[col1], random_positions_at_col2):
+        for pi1, pi2 in zip(pis_at_column[col1], selected_pis_at_col2):
             next_swap_char_at_pos = swap_char_at_pos(col_swapped_char_at_pos, pi1, pi2)
             if next_swap_char_at_pos in cached_scores:
                 delta = cached_scores[next_swap_char_at_pos] - original_score

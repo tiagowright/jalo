@@ -1,28 +1,23 @@
-import os
-import math
-from re import T
-
 from itertools import combinations
-from typing import List, Tuple, Optional, Any, Iterable
+from typing import Any
+from dataclasses import dataclass
 import numpy as np
 import random
-import logging
 import heapq
-import queue
 
-import multiprocessing
-from numba import jit
-from numba import types
-from numba.typed import Dict
-from tqdm import tqdm
-
-from model import KeyboardModel, NgramType, _calculate_swap_delta
-from freqdist import FreqDist
-from layout import KeyboardLayout
+from model import _calculate_swap_delta
 from optim import OptimizerLogger
 
-# Default number of iterations for greedy hill climbing optimizer
-DEFAULT_OPTIMIZER_ITERATIONS = 10
+
+@dataclass
+class GreedyHillParams:
+    hill_climbing_iterations: int = 10
+    pos_swaps_per_step: int = 4
+    col_swaps_per_step: int = 1
+    greedy_columns: bool = True
+    tolerance: float = 0.00001
+
+
 
 def optimize_batch_worker(args):
     return _optimize_batch(*args)
@@ -36,7 +31,8 @@ def _optimize_batch(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     progress_queue: Any,
     population_size: int,
     logger: OptimizerLogger,
@@ -48,6 +44,11 @@ def _optimize_batch(
     this is a greedy hill climb algorithm that accepts any swap that improves the score immediately.
     '''
     logger.batch_start()
+
+    params = GreedyHillParams()
+    for key, value in solver_args.items():
+        if hasattr(params, key):
+            setattr(params, key, value)
 
     selected_population = {}
 
@@ -63,8 +64,10 @@ def _optimize_batch(
             order_3, 
             pinned_positions, 
             swap_position_pairs, 
-            positions_at_column, 
-            DEFAULT_OPTIMIZER_ITERATIONS, 
+            pis_at_column,
+            group_of_pis_at_column,
+            params.hill_climbing_iterations, 
+            params,
             logger,
             solver_args
         )
@@ -96,8 +99,10 @@ def _optimize(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     iterations: int,
+    params: GreedyHillParams,
     logger: OptimizerLogger,
     solver_args: dict
 ) -> dict[tuple[int, ...], float]:
@@ -122,40 +127,50 @@ def _optimize(
         while True:
             score_at_start_of_step = current_score
 
-            current_score, current_char_at_pos = _position_swapping(
-                current_char_at_pos, 
-                current_score, 
-                tolerance, 
-                order_1, 
-                order_2, 
-                order_3, 
-                pinned_positions, 
-                swap_position_pairs, 
-                population,
-                cached_scores
-            )
-            
-            current_score, current_char_at_pos = _column_swapping(
-                current_char_at_pos, 
-                current_score, 
-                tolerance, 
-                order_1, 
-                order_2, 
-                order_3, 
-                pinned_positions, 
-                positions_at_column,
-                cached_scores
-            )
-            population[current_char_at_pos] = current_score
+            for _ in range(params.pos_swaps_per_step):
+                prev_score = current_score
+                current_score, current_char_at_pos = _position_swapping(
+                    current_char_at_pos, 
+                    prev_score, 
+                    tolerance, 
+                    order_1, 
+                    order_2, 
+                    order_3, 
+                    pinned_positions, 
+                    swap_position_pairs, 
+                    params,
+                    population,
+                    cached_scores
+                )
+
+                if prev_score/current_score < (1.0 + params.tolerance):
+                    break
+
+            for _ in range(params.col_swaps_per_step):
+                prev_score = current_score
+                current_score, current_char_at_pos = _column_swapping(
+                    current_char_at_pos, 
+                    prev_score, 
+                    tolerance, 
+                    order_1, 
+                    order_2, 
+                    order_3, 
+                    pinned_positions, 
+                    pis_at_column,
+                    params,
+                    cached_scores
+                )
+                population[current_char_at_pos] = current_score
+
+                if prev_score/current_score < (1.0 + params.tolerance):
+                    break
 
             logger.event(seed_id, i, current_score)
 
-            delta = current_score - score_at_start_of_step
-            if -tolerance < delta:
+            if current_score/score_at_start_of_step < (1.0 + params.tolerance):
                 # this loop made no progress, so we are done on this branch
                 break
         
-    # print(f"end   pid={os.getpid()}\tcache={len(cached_scores)}", flush=True)
 
     return population
 
@@ -178,6 +193,7 @@ def _position_swapping(
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
+    params: GreedyHillParams,
     population: dict[tuple[int, ...], float],
     cached_scores: dict[tuple[int, ...], float]
 ) -> tuple[float, tuple[int, ...]]:
@@ -191,6 +207,7 @@ def _position_swapping(
     and the only mutable input is population, which is updated with new layouts and shared in a single 
     worker process within _optimize loops.
     '''
+    tolerance = params.tolerance * score
     original_score = score
 
     for i, j in random.sample(swap_position_pairs, len(swap_position_pairs)):
@@ -223,34 +240,36 @@ def _column_swapping(
     order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pinned_positions: tuple[int, ...],
-    positions_at_column: tuple[tuple[int, ...], ...],
+    pis_at_column: tuple[tuple[int, ...], ...],
+    params: GreedyHillParams,
     cached_scores: dict[tuple[int, ...], float]
 ) -> tuple[float, tuple[int, ...]]:
 
     '''
     simple hill climbing, swapping columns to improve the score the most
     '''
+    tolerance = params.tolerance * score
     original_score = score
     best_delta = 0
     best_swap = None
 
-    for col1, col2 in combinations(range(len(positions_at_column)), 2):
-        if len(positions_at_column[col1]) <= 2 or len(positions_at_column[col2]) <= 2:
+    for col1, col2 in combinations(range(len(pis_at_column)), 2):
+        if len(pis_at_column[col1]) <= 2 or len(pis_at_column[col2]) <= 2:
             continue
 
-        if any(pi in pinned_positions for pi in positions_at_column[col1]) or any(pi in pinned_positions for pi in positions_at_column[col2]):
+        if any(pi in pinned_positions for pi in pis_at_column[col1]) or any(pi in pinned_positions for pi in pis_at_column[col2]):
             continue
 
-        if len(positions_at_column[col1]) > len(positions_at_column[col2]):
+        if len(pis_at_column[col1]) > len(pis_at_column[col2]):
             col1, col2 = col2, col1
         
         # col1 is shorter than col2 or they are the same len
-        random_positions_at_col2 = random.sample(positions_at_column[col2], len(positions_at_column[col1]))
+        random_positions_at_col2 = random.sample(pis_at_column[col2], len(pis_at_column[col1]))
 
         # compute the score after swapping all positions in col1 and col2    
         col_swapped_char_at_pos = char_at_pos
         delta = 0
-        for pi1, pi2 in zip(positions_at_column[col1], random_positions_at_col2):
+        for pi1, pi2 in zip(pis_at_column[col1], random_positions_at_col2):
             next_swap_char_at_pos = swap_char_at_pos(col_swapped_char_at_pos, pi1, pi2)
             if next_swap_char_at_pos in cached_scores:
                 delta = cached_scores[next_swap_char_at_pos] - original_score
@@ -264,6 +283,9 @@ def _column_swapping(
         if delta < best_delta:
             best_delta = delta
             best_swap = col_swapped_char_at_pos
+
+            if params.greedy_columns and best_delta < -tolerance:
+                break
     
     if best_swap is not None and best_delta < -tolerance:
         return (original_score + best_delta, best_swap)

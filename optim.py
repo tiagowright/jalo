@@ -18,6 +18,7 @@ from tqdm import tqdm
 from model import KeyboardModel, NgramType, _calculate_swap_delta
 from freqdist import FreqDist
 from layout import KeyboardLayout
+from hardware import Finger
 
 
 
@@ -184,7 +185,7 @@ class Optimizer:
         self, 
         model: KeyboardModel, 
         population_size: int = 1000, 
-        solver: str = "steepesthill", 
+        solver: str = "genetic", 
         log_runs: bool = False, 
         log_events: bool = False, 
         log_population: bool = False,
@@ -206,19 +207,43 @@ class Optimizer:
         self.log_events = log_events
         self.log_population = log_population
 
-        positions_at_column_map = {}
-        for pi, position in enumerate(self.model.hardware.positions):
-            if position.col not in positions_at_column_map:
-                positions_at_column_map[position.col] = []
-            positions_at_column_map[position.col].append(pi)
-
-        self.positions_at_column = tuple(tuple(positions) for positions in positions_at_column_map.values())
-
         self.swap_position_pairs = tuple(combinations(range(len(self.model.hardware.positions)), 2))
 
         self.population = Population(max_size=population_size)
 
-    def generate(self, char_seq: list[str], iterations:int = 100, score_tolerance:float = 0.001):
+        # for optimization, we want to be able to try swapping and resequencing whole columns
+        # but the naive definition using Position.col is not enough because not all positions
+        # in a col use the same finger (e.g., a thumb key on col 4). We also don't want to
+        # try all naive permutations of every column, it takes too long to compute, so we will
+        # group positions by col and finger into a "column", and we will group together fingers
+        # 1,2,7,8 into a larger set, and fingers 3 and 6 into another set, and fingers 0,9.
+        pis_at_finger_at_column_map = {}
+        for pi, position in enumerate(self.model.hardware.positions):
+            if position.finger not in pis_at_finger_at_column_map:
+                pis_at_finger_at_column_map[position.finger] = {}
+            if position.col not in pis_at_finger_at_column_map[position.finger]:
+                pis_at_finger_at_column_map[position.finger][position.col] = []
+            pis_at_finger_at_column_map[position.finger][position.col].append(pi)
+
+        finger_groups = [[1,2,7,8],[3,6],[0,9]]
+        self.group_of_pis_at_column = tuple(
+            tuple(
+                tuple(pis_at_finger_at_column_map[Finger(finger_value)][col])
+                for finger_value in fg
+                for col in pis_at_finger_at_column_map[Finger(finger_value)]
+            )
+            for fg in finger_groups
+        )
+
+        self.pis_at_column = tuple(
+            tuple(pis_at_finger_at_column_map[finger][col])
+            for finger in pis_at_finger_at_column_map
+            for col in pis_at_finger_at_column_map[finger]
+        )
+
+        # self.positions_at_column = tuple(tuple(positions) for positions in positions_at_column_map.values())
+
+    def generate(self, char_seq: list[str], iterations:int = 100, score_tolerance:float = 0.001, pinned_positions: tuple[int, ...] = ()):
         assert len(char_seq) == len(self.model.hardware.positions)
 
         char_at_pos = np.zeros(len(self.model.hardware.positions), dtype=int)
@@ -240,6 +265,17 @@ class Optimizer:
             for initial_position in initial_positions
         }
 
+        # update swap_position_pairs, pis_at_column, group_of_pis_at_column to exclude pinned positions
+        swap_position_pairs = tuple(
+            (i, j) for i, j in self.swap_position_pairs if i not in pinned_positions and j not in pinned_positions
+        )
+        pis_at_column = tuple(
+            pis for pis in self.pis_at_column if not any(pi in pinned_positions for pi in pis)
+        )
+        group_of_pis_at_column = tuple(
+            tuple(pis for pis in group if not any(pi in pinned_positions for pi in pis)) for group in self.group_of_pis_at_column
+        )
+
         tolerance = score_tolerance * sum(initial_population.values())/len(initial_positions)
         order_1, order_2, order_3 = self._get_FV()
 
@@ -258,9 +294,10 @@ class Optimizer:
                 order_1,
                 order_2,
                 order_3,
-                (),
-                self.swap_position_pairs,
-                self.positions_at_column,
+                pinned_positions,
+                swap_position_pairs,
+                pis_at_column,
+                group_of_pis_at_column,
                 progress_queue,
                 self.population.max_size,
                 OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population),
@@ -319,7 +356,8 @@ class Optimizer:
             order_3,
             pinned_positions,
             self.swap_position_pairs,
-            self.positions_at_column,
+            self.pis_at_column,
+            self.group_of_pis_at_column,
             iterations,
             self.solver_args
         )

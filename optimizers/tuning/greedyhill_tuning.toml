@@ -1,0 +1,62 @@
+# Tuning runs for genetic algorithm
+output = './optimizers/logs/greedyhill_tuning_runs.csv'
+log_population = true
+
+[default]
+solver = 'greedyhill'
+hardware = 'ortho'
+corpus = 'en'
+population = 1000
+objective = 'default'
+
+name_format = 'x{hill_climbing_iterations}_{greedy_columns}_{pos_swaps_per_step}p_{col_swaps_per_step}c_{tolerance}t'
+hill_climbing_iterations = 10
+greedy_columns = true
+pos_swaps_per_step = 4
+col_swaps_per_step = 1
+tolerance = 0.0001
+iterations = 247
+
+[[runs]]
+
+[[runs]]
+hill_climbing_iterations = 10
+greedy_columns = false
+pos_swaps_per_step = 1
+col_swaps_per_step = 1
+tolerance = 0.0001
+iterations = 753
+
+[[runs]]
+hill_climbing_iterations = 5
+iterations = 500
+
+[[runs]]
+hill_climbing_iterations = 20
+iterations = 124
+
+[[runs]]
+hill_climbing_iterations = 40
+iterations = 62
+
+[[runs]]
+col_swaps_per_step = 4
+
+[[runs]]
+greedy_columns = false
+iterations = 257
+
+[[runs]]
+tolerance = 0.001
+
+[[runs]]
+tolerance = 0.00001
+
+[[runs]]
+pos_swaps_per_step = 8
+iterations = 120
+
+[[runs]]
+pos_swaps_per_step = 2
+iterations = 500
+

@@ -1,0 +1,58 @@
+# Tuning runs for genetic algorithm
+output = './optimizers/logs/steepesthill_tuning_runs.csv'
+log_population = true
+
+[default]
+solver = 'steepesthill'
+hardware = 'ortho'
+corpus = 'en'
+iterations = 500
+population = 1000
+objective = 'default'
+
+name_format = '{pos_swaps_per_step}p_{col_swaps_per_step}c_{pos_swaps_first}pf'
+pos_swaps_per_step = 1
+col_swaps_per_step = 1
+pos_swaps_first = true
+
+
+
+[[runs]]
+iterations = 463
+
+[[runs]]
+pos_swaps_per_step = 2
+iterations = 486
+
+[[runs]]
+pos_swaps_per_step = 4
+
+[[runs]]
+col_swaps_per_step = 2
+iterations = 461
+
+[[runs]]
+col_swaps_per_step = 4
+iterations = 452
+
+[[runs]]
+pos_swaps_per_step = 2
+col_swaps_per_step = 2
+iterations = 488
+
+[[runs]]
+pos_swaps_per_step = 4
+col_swaps_per_step = 4
+iterations = 484
+
+[[runs]]
+pos_swaps_first = false
+iterations = 471
+
+[[runs]]
+pos_swaps_per_step = 4
+col_swaps_per_step = 4
+pos_swaps_first = false
+iterations = 505
+
+
