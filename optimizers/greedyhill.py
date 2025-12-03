@@ -7,7 +7,7 @@ import heapq
 
 from model import _calculate_swap_delta
 from optim import OptimizerLogger
-
+from optimizers import gsa
 
 @dataclass
 class GreedyHillParams:
@@ -16,7 +16,7 @@ class GreedyHillParams:
     col_swaps_per_step: int = 1
     greedy_columns: bool = True
     tolerance: float = 0.00001
-
+    use_gsa: bool = False
 
 
 def optimize_batch_worker(args):
@@ -53,24 +53,45 @@ def _optimize_batch(
     selected_population = {}
 
     for seed_id, char_at_pos, initial_score in zip(range(len(char_at_pos_list)), char_at_pos_list, initial_score_list):
-        
-        population = _optimize(
-            seed_id, 
-            char_at_pos, 
-            initial_score, 
-            tolerance, 
-            order_1, 
-            order_2, 
-            order_3, 
-            pinned_positions, 
-            swap_position_pairs, 
-            pis_at_column,
-            group_of_pis_at_column,
-            params.hill_climbing_iterations, 
-            params,
-            logger,
-            solver_args
-        )
+               
+        if params.use_gsa:
+            population = gsa.improve_layout(
+                seed_id,
+                char_at_pos,
+                initial_score,
+                params.tolerance,
+                order_1,
+                order_2,
+                order_3,
+                swap_position_pairs,
+                pis_at_column,
+                params.hill_climbing_iterations,
+                0,
+                0,
+                True,
+                params.pos_swaps_per_step,
+                params.col_swaps_per_step,
+                True,
+                logger
+            )
+        else:
+            population = _optimize(
+                seed_id, 
+                char_at_pos, 
+                initial_score, 
+                tolerance, 
+                order_1, 
+                order_2, 
+                order_3, 
+                pinned_positions, 
+                swap_position_pairs, 
+                pis_at_column,
+                group_of_pis_at_column,
+                params.hill_climbing_iterations, 
+                params,
+                logger,
+                solver_args
+            )
         
         final_score = min(population.values())
         
@@ -227,7 +248,7 @@ def _position_swapping(
         if delta < -tolerance:
             char_at_pos = swapped_char_at_pos
             score += delta
-            population[char_at_pos] = score
+            # population[char_at_pos] = score
     
     return (score, char_at_pos)
 

@@ -1,9 +1,7 @@
 import os
 import math
 from re import T
-
 from itertools import combinations
-from typing import List, Tuple, Optional, Any, Iterable, Callable
 import numpy as np
 import random
 import heapq
@@ -13,16 +11,16 @@ import csv
 
 import multiprocessing
 from functools import partial
-from tqdm import tqdm
 
-from model import KeyboardModel, NgramType, _calculate_swap_delta
-from freqdist import FreqDist
-from layout import KeyboardLayout
+from model import KeyboardModel
+from freqdist import FreqDist, NgramType
 from hardware import Finger
 
 
-
 class Population:
+    '''
+    A population of layouts, sorted by score (lower is better), and capped at max_size
+    '''
     def __init__(self, max_size: int, cache_all: bool = False):
         self.max_size = max_size
         self.heap = []
@@ -99,6 +97,9 @@ def assert_scores(char_at_pos, score, model):
 
 
 class OptimizerLogger:
+    '''
+    A logger for an optimizer batch run. Logs events, runs, and population to csv files.
+    '''
     def __init__(self, optimizer_name: str, batch_name: str, log_runs: bool = True, log_events: bool = True, log_population: bool = True):
         self.optimizer_name = optimizer_name
         self.batch_name = batch_name
@@ -181,6 +182,9 @@ class OptimizerLogger:
 
 
 class Optimizer:
+    '''
+    An optimizer that generates layouts using a solver. Handles multiprocessing, logging, and population management.
+    '''
     def __init__(
         self, 
         model: KeyboardModel, 
@@ -399,15 +403,59 @@ def _optimize_batch_worker_from_module(module_name: str, args):
     return mod.optimize_batch_worker(args)
 
 
+def hamming_distance(char_at_pos_1: tuple[int, ...], char_at_pos_2: tuple[int, ...]) -> int:
+    '''
+    The Hamming distance between two layouts is the number of positions where the characters differ.
+    '''
+    return sum(1 for i, j in zip(char_at_pos_1, char_at_pos_2) if i != j)
+
+def hamming_distance_cluster_centers(sorted_population: list[tuple[int, ...]], cluster_threshold: int = 10) -> list[int]:
+    '''
+    simple clustering by best score: the cluster center must be the lowest score of the cluster, and 
+    all other layouts within the cluster_threshold distance are then pulled into the cluster.
+
+    empirically, i found cluster_threshold between 10 and 12 to be an interesting point, where simple hill descent
+    seems to generate layouts within that neighborhood for a single seed, but outside the neighborhood for different
+    seeds, and that seems like a good place the set it. It means 5 to 6 swaps from the center.
+
+    i poetically like to think of it as a planet clearing it's neighborhood by it's gravity. Sorry Pluto.
+    '''
+    centers = []
+    clustered = set()
+
+    for i in range(len(sorted_population)):
+        if i in clustered:
+            continue
+
+        centers.append(i)
+
+        for j in range(i+1, len(sorted_population)):
+            if j in clustered:
+                continue
+
+            dist = hamming_distance(sorted_population[i], sorted_population[j])
+            if dist <= cluster_threshold:
+                clustered.add(j)
+
+    return centers
+
 
 
 if __name__ == "__main__":
+    '''
+    optim.py is designed to work from the jalo REPL, but can also be run as a standalone script from CLI
+    to test solvers and fine tune hyperparameters.
+
+    try `python3 optim.py --help` for more information.
+    '''
     import sys
     import argparse
     import importlib.util
     import time
     import csv
     import tomllib
+
+    from tqdm import tqdm
 
     from dataclasses import dataclass
     from hardware import KeyboardHardware
@@ -494,6 +542,8 @@ if __name__ == "__main__":
             ])
 
 
+
+
     parser = argparse.ArgumentParser(description="Run layout generation experiments with multiple solvers and hyperparameters.")
     parser.add_argument("--config", type=str, default=None, help="path to the config toml file to specify the runs to perform (e.g., ./optimizers/tuning/comparison_config.toml)")
     parser.add_argument("--output", type=str, default="./optimizers/logs/solver_runs_table.csv")
@@ -505,6 +555,7 @@ if __name__ == "__main__":
     parser.add_argument("--log-runs", action="store_true")
     parser.add_argument("--log-events", action="store_true")
     parser.add_argument("--log-population", action="store_true")
+    parser.add_argument("--log-hamming-clusters", action="store_true")
     args = parser.parse_args()
 
     defaults = RunConfig(
@@ -575,7 +626,7 @@ if __name__ == "__main__":
 
     print(f"Output: {args.output}")
 
-    logging_strs = [key for key in ['log_runs', 'log_events', 'log_population'] if getattr(args, key)]
+    logging_strs = [key for key in ['log_runs', 'log_events', 'log_population', 'log_hamming_clusters'] if getattr(args, key)]
     if logging_strs:
         print(f"Logging: ", ", ".join(logging_strs))
     else:
@@ -587,6 +638,7 @@ if __name__ == "__main__":
     # for each .py in ./optimizers in turn, import optimize_batch_worker
     results = []
     all_top_scores = []
+    all_clusters = []
 
     random.shuffle(runs)
     for run_i, run in enumerate(runs):
@@ -641,12 +693,17 @@ if __name__ == "__main__":
         print(f"Time taken: {end_time - start_time:.1f} seconds")
         print()
 
-        top_scores = [model.score_chars_at_positions(char_at_pos) for char_at_pos in optimizer.population.sorted()]
+        sorted_population = optimizer.population.sorted()
+        top_scores = [model.score_chars_at_positions(char_at_pos) for char_at_pos in sorted_population]
         mean_score = float(np.mean(top_scores))
         stdev_score = float(np.std(top_scores))
 
         if args.log_population:
             all_top_scores.append(top_scores)
+
+        if args.log_hamming_clusters:
+            cluster_centers = hamming_distance_cluster_centers(sorted_population)
+            all_clusters.append([top_scores[i] for i in cluster_centers])
 
         # assert that top_scores match scores in population.score
         assert all(abs(score - optimizer.population.scores[char_at_pos]) < 0.001*abs(score) for score, char_at_pos in zip(top_scores, optimizer.population.sorted()))
@@ -683,4 +740,13 @@ if __name__ == "__main__":
             writer = csv.writer(f, delimiter='\t')
             writer.writerow([result.name for result in results])
             for row in itertools.zip_longest(*all_top_scores, fillvalue=''):
+                writer.writerow(row)
+
+    if args.log_hamming_clusters and all_clusters:
+        import itertools
+
+        with open(args.output.replace(".csv", "_clusters.csv"), "w") as f:
+            writer = csv.writer(f, delimiter='\t')
+            writer.writerow([result.name for result in results])
+            for row in itertools.zip_longest(*all_clusters, fillvalue=''):
                 writer.writerow(row)

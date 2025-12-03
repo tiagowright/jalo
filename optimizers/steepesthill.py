@@ -11,12 +11,14 @@ from dataclasses import dataclass
 
 from model import _calculate_swap_delta
 from optim import OptimizerLogger
+from optimizers import gsa
 
 @dataclass
 class SteepestHillParams:
     pos_swaps_per_step: int = 1
     col_swaps_per_step: int = 1
     pos_swaps_first: bool = False
+    use_gsa: bool = False
 
 
 def optimize_batch_worker(args):
@@ -43,25 +45,51 @@ def _optimize_batch(
     '''
     logger.batch_start()
 
+    params = SteepestHillParams()
+    for key, value in solver_args.items():
+        if hasattr(params, key):
+            setattr(params, key, value)
+
     selected_population = {}
 
     for seed_id, char_at_pos, initial_score in zip(range(len(char_at_pos_list)), char_at_pos_list, initial_score_list):
-        
-        population = _optimize(
-            seed_id, 
-            char_at_pos, 
-            initial_score, 
-            tolerance, 
-            order_1, 
-            order_2, 
-            order_3, 
-            pinned_positions, 
-            swap_position_pairs, 
-            pis_at_column,
-            group_of_pis_at_column,
-            logger,
-            solver_args
-        )
+
+        if params.use_gsa:
+            population = gsa.improve_layout(
+                seed_id,
+                char_at_pos,
+                initial_score,
+                1e-5,
+                order_1,
+                order_2,
+                order_3,
+                swap_position_pairs,
+                pis_at_column,
+                1,
+                0,
+                0,
+                False,
+                params.pos_swaps_per_step,
+                params.col_swaps_per_step,
+                params.pos_swaps_first,
+                logger
+            )
+        else:
+            population = _optimize(
+                seed_id, 
+                char_at_pos, 
+                initial_score, 
+                tolerance, 
+                order_1, 
+                order_2, 
+                order_3, 
+                pinned_positions, 
+                swap_position_pairs, 
+                pis_at_column,
+                group_of_pis_at_column,
+                logger,
+                solver_args
+            )
         
         final_score = min(population.values())
         

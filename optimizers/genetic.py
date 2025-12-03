@@ -224,8 +224,6 @@ def _optimize_batch(
         # pick parents so that better scores are more likely to be selected, noting that score can be negative
         # setting the weights so the typical_starting_score is roughly 1/20th the odds of the best score
         weights = [1.0 / (1.0 + i ** args.selection_slope) for i in range(len(sorted_population))]
-
-        # print(', '.join(f'{w:.2f}' for w in weights))
         
         # make sure p1 != p2
         while True:
@@ -255,10 +253,6 @@ def _optimize_batch(
         
         # Calculate initial score for child
         child_initial_score = _calculate_score(child, order_1, order_2, order_3)
-
-        # print(f"{logger.batch_name} generation {generation} population size: {len(population)}, ranging from {sorted_population[0][1]} to {sorted_population[-1][1]}")
-        # print(f"{logger.batch_name} generation {generation} parents: {population[p1]} and {population[p2]}, child: {child_initial_score}")
-        # print()
         
         child_population = _optimize(
             generation, 

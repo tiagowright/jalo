@@ -1,0 +1,39 @@
+output = './optimizers/logs/gsa_tuning_runs.csv'
+log_population = true
+# log_events = true
+
+[default]
+hardware = 'ortho'
+corpus = 'en'
+iterations = 300
+population = 1000
+objective = 'default'
+
+name_format = '{solver}_gsa_{use_gsa}'
+
+[[runs]]
+solver = 'annealing'
+use_gsa = false
+
+[[runs]]
+solver = 'annealing'
+use_gsa = true
+
+[[runs]]
+solver = 'greedyhill'
+use_gsa = false
+
+[[runs]]
+solver = 'greedyhill'
+use_gsa = true
+
+[[runs]]
+solver = 'steepesthill'
+use_gsa = false
+iterations = 440
+
+[[runs]]
+solver = 'steepesthill'
+use_gsa = true
+
+

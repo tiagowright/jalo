@@ -499,7 +499,6 @@ if __name__ == "__main__":
             print()
 
     if args.analyze_layout:
-        # print(model.analyze_layout(layout))
         analysis = model.analyze_layout(layout)
         for metric in analysis:
             print(f"{metric.name:13s}: {analysis[metric]*100:>8.4f}%")

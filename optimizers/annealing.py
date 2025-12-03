@@ -8,7 +8,7 @@ import heapq
 
 from model import _calculate_swap_delta
 from optim import OptimizerLogger
-
+from optimizers import gsa
 
 
 @dataclass
@@ -23,6 +23,8 @@ class AnnealingParams:
     # prior to annealing, we calibrate temperature by sampling a few layouts and computing the typical uphill delta
     layouts_to_sample: int = 5
     samples_per_layout: int = 4
+
+    use_gsa: bool = False
 
 
 def optimize_batch_worker(args):
@@ -102,8 +104,6 @@ def _calibrate_temperature(
     T0 = -Δ_typical / math.log(p0)
     Tf = -Δ_typical / math.log(pf)
 
-    # print(f"Δ_typical: {Δ_typical}: T0: {T0}, Tf: {Tf}")
-
     return (T0, Tf)   
 
 
@@ -174,25 +174,46 @@ def _optimize_batch(
     )
 
     for seed_id, char_at_pos, initial_score in zip(range(len(char_at_pos_list)), char_at_pos_list, initial_score_list):
-        
-        population = _optimize(
-            seed_id,
-            char_at_pos, 
-            initial_score, 
-            tolerance, 
-            order_1, 
-            order_2, 
-            order_3, 
-            pinned_positions, 
-            swap_position_pairs, 
-            pis_at_column,
-            group_of_pis_at_column,
-            args.annealing_iterations,
-            T0,
-            Tf,
-            logger,
-            args
-        )
+
+        if args.use_gsa:
+            population = gsa.improve_layout(
+                seed_id,
+                char_at_pos,
+                initial_score,
+                1e-5,
+                order_1,
+                order_2,
+                order_3,
+                swap_position_pairs,
+                pis_at_column,
+                args.annealing_iterations,
+                T0,
+                Tf,
+                False,
+                1,
+                1,
+                True,
+                logger
+            )
+        else:
+            population = _optimize(
+                seed_id,
+                char_at_pos, 
+                initial_score, 
+                tolerance, 
+                order_1, 
+                order_2, 
+                order_3, 
+                pinned_positions, 
+                swap_position_pairs, 
+                pis_at_column,
+                group_of_pis_at_column,
+                args.annealing_iterations,
+                T0,
+                Tf,
+                logger,
+                args
+            )
         
         final_score = min(population.values())
         
@@ -305,9 +326,6 @@ def _optimize(
                 # this loop made no progress, so we are done on this branch
                 break
 
-
-    # print(annealing_stats)
-    
     return population
 
 
@@ -382,7 +400,6 @@ def _position_swapping(
             # Use Metropolis criterion: accept with probability exp(-delta/temperature)
             # Note: best_delta is positive here (worse score), so -best_delta/temperature is negative
             acceptance_probability = math.exp(-best_delta / temperature)
-            # print(f"acceptance_probability: {acceptance_probability} for delta: {best_delta} and temperature: {temperature}")
 
             if random.random() < acceptance_probability:
                 annealing_stats.uphill_swaps_accepted += 1
@@ -460,7 +477,6 @@ def _column_swapping(
             # Use Metropolis criterion: accept with probability exp(-delta/temperature)
             # Note: best_delta is positive here (worse score), so -best_delta/temperature is negative
             acceptance_probability = math.exp(-best_delta / temperature)
-            # print(f"acceptance_probability: {acceptance_probability} for delta: {best_delta} and temperature: {temperature}")
 
             if random.random() < acceptance_probability:
                 annealing_stats.uphill_swaps_accepted += 1
