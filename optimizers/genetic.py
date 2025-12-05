@@ -1,19 +1,16 @@
 from dataclasses import dataclass
 import os
 import math
-from re import T
 
 from typing import List, Tuple, Optional, Any, Iterable
 import numpy as np
 import random
-import logging
-import heapq
 
 from model import KeyboardModel, NgramType, _calculate_swap_delta
 from freqdist import FreqDist
 from layout import KeyboardLayout
 from optim import OptimizerLogger
-from optimizers.steepesthill import _optimize, _position_swapping, _column_swapping, swap_char_at_pos
+from optimizers import helper
 
 
 @dataclass
@@ -26,15 +23,26 @@ class GeneticParams:
     # this is the number of times we will generate new seeds from parents
     # if there are N = len(char_at_pos_list) seeds provided, then we will
     # iteratively generate GENERATIONS * N children seeds from the parents
-    generations = 5
+    generations = 4
 
     # odds decay by rank
     selection_slope = 2
-    
+
+    # random mutation
+    mutation_rate = 0.1
+
+    # fraction of the population to replace with new children for each generation
+    replacement_rate = 0.01
+
+    # parameters for improving the child through helper.improve_layout
+    pos_swaps_per_step: int = 1
+    col_swaps_per_step: int = 1
+    pos_swaps_first: bool = False
+    tolerance: float = 0.00001
 
 
-def optimize_batch_worker(args):
-    return _optimize_batch(*args)
+def improve_batch_worker(args):
+    return improve_batch(*args)
 
 
 def _calculate_score(
@@ -127,28 +135,15 @@ def _pmx_crossover(
     return tuple(child)
 
 
-def _report_progress(internal_counter: int, internal_total: int, external_total: int, progress_queue: Any) -> None:
-    # the Optimizer expects progress_queue.put(1) once for each item in the seed list, but 
-    # this algorithm iterates multiple times over all seeds to create new generations. So this
-    # function computes the external update progress, using the internal progress counter.
-    previous_external_counter = int((internal_counter-1)*external_total//internal_total)
-    external_counter = int(internal_counter*external_total//internal_total)
 
-    for _ in range(external_counter - previous_external_counter):
-        progress_queue.put(1)
-
-
-def _optimize_batch(
+def improve_batch(
     char_at_pos_list: list[tuple[int, ...]],
     initial_score_list: list[float],
-    tolerance: float,
     order_1: tuple[tuple[np.ndarray, np.ndarray], ...],
     order_2: tuple[tuple[np.ndarray, np.ndarray], ...],
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-    pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     pis_at_column: tuple[tuple[int, ...], ...],
-    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     progress_queue: Any,
     population_size: int,
     logger: OptimizerLogger,
@@ -160,7 +155,7 @@ def _optimize_batch(
     Uses genetic algorithm with:
     - Population initialized from char_at_pos_list
     - PMX crossover to combine parents while preserving permutation property
-    - Local optimization with _optimize (10 iterations per child) to find local minima
+    - Local optimization with improve_layout to find local minima
     - Total iterations distributed across generations
     '''
     logger.batch_start()
@@ -187,15 +182,32 @@ def _optimize_batch(
     # run optimize once on each char_at_pos in char_at_pos_list and accumulate the best population
     best_population: dict[tuple[int, ...], float] = {}
     for char_at_pos, initial_score in zip(char_at_pos_list, initial_score_list):
-        child_population = _optimize(
+        child_population = helper.improve_layout(
             0, 
             char_at_pos, 
             initial_score, 
-            tolerance, order_1, order_2, order_3, pinned_positions, swap_position_pairs, pis_at_column, group_of_pis_at_column, logger, solver_args)
-        best_population.update(child_population)
+            args.tolerance, 
+            order_1, 
+            order_2, 
+            order_3, 
+            swap_position_pairs, 
+            pis_at_column, 
+            1,
+            0,
+            0,
+            False,
+            args.pos_swaps_per_step,
+            args.col_swaps_per_step,
+            args.pos_swaps_first,
+            logger
+        )
+        best_child = min(child_population.keys(), key=lambda x: child_population[x])
+        best_population[best_child] = child_population[best_child]
+
+        # best_population.update(child_population)
         
         progress_counter += 1
-        _report_progress(progress_counter, progress_total, seed_count, progress_queue)
+        helper.report_progress(progress_counter, progress_total, seed_count, progress_queue)
 
     # replace population with the best population_size layouts from best_population
     sorted_population = sorted(best_population.items(), key=lambda x: x[1])[:population_size]
@@ -238,42 +250,44 @@ def _optimize_batch(
         child = _pmx_crossover(p1, p2, start, end)
 
         # assert that child has maintained pinned_positions
-        assert all(child[i] == p1[i] for i in pinned_positions), f"child {child} has not maintained pinned_positions {pinned_positions}"
-        assert all(child[i] == p2[i] for i in pinned_positions), f"child {child} has not maintained pinned_positions {pinned_positions}"
+        # assert all(child[i] == p1[i] for i in pinned_positions), f"child {child} has not maintained pinned_positions {pinned_positions}"
+        # assert all(child[i] == p2[i] for i in pinned_positions), f"child {child} has not maintained pinned_positions {pinned_positions}"
         
         # Optional: small mutation (swap two random positions with low probability)
-        if random.random() < 0.1:  # 10% mutation rate
-            unpinned_indices = [i for i in range(n) if i not in pinned_positions]
-            if len(unpinned_indices) >= 2:
-                swap_indices = random.sample(unpinned_indices, 2)
-                child = swap_char_at_pos(child, swap_indices[0], swap_indices[1])
+        if random.random() < args.mutation_rate:
+            i, j = random.choice(swap_position_pairs)
+            child = helper.swap_char_at_pos(child, i, j)
         
         if child == p1 or child == p2:
             continue
         
         # Calculate initial score for child
         child_initial_score = _calculate_score(child, order_1, order_2, order_3)
-        
-        child_population = _optimize(
+
+        child_population = helper.improve_layout(
             generation, 
             child, 
             child_initial_score, 
-            tolerance, 
+            args.tolerance, 
             order_1, 
             order_2, 
             order_3,
-            pinned_positions, 
             swap_position_pairs, 
             pis_at_column,
-            group_of_pis_at_column,
-            logger,
-            solver_args
+            1,
+            0,
+            0,
+            False,
+            args.pos_swaps_per_step,
+            args.col_swaps_per_step,
+            args.pos_swaps_first,
+            logger
         )
 
         logger.run(generation, child_initial_score, min(child_population.values()))
         
         # take the best k from child_population, make sure k <= 10% of len(population)
-        k = min(len(child_population), max(1, int(0.01 * generation_size)))
+        k = min(len(child_population), max(1, int(args.replacement_rate * generation_size)))
 
         child_population = dict(sorted(child_population.items(), key=lambda x: x[1])[:k])
         population.update(child_population)
@@ -285,7 +299,7 @@ def _optimize_batch(
         generation += 1
 
         progress_counter += 1
-        _report_progress(progress_counter, progress_total, seed_count, progress_queue)
+        helper.report_progress(progress_counter, progress_total, seed_count, progress_queue)
     
     logger.batch_end(population)
     logger.save()

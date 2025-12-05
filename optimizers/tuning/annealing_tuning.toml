@@ -1,6 +1,6 @@
 # Tuning runs for genetic algorithm
 output = './optimizers/logs/annealing_tuning_runs.csv'
-log_population = true
+log_hamming_clusters = true
 
 [default]
 solver = 'annealing'
@@ -10,14 +10,10 @@ iterations = 500
 population = 1000
 objective = 'default'
 
-name_format = '{p0}_{pf}_x{annealing_iterations}_cl{layouts_to_sample}_cs{samples_per_layout}'
+name_format = '{p0}_{pf}_x{annealing_iterations}'
 annealing_iterations = 10
-p0 = 0.675 
+p0 = 0.9
 pf = 0.01
-layouts_to_sample = 10
-samples_per_layout = 4
-
-[[runs]]
 
 [[runs]]
 p0 = 0.3
@@ -41,16 +37,22 @@ p0 = 0.8
 p0 = 0.9
 
 [[runs]]
-samples_per_layout = 8
+p0 = 0.9
+pf = 0.001
 
 [[runs]]
-samples_per_layout = 16
+annealing_iterations = 20
+iterations = 460
 
 [[runs]]
-samples_per_layout = 2
+annealing_iterations = 40
+iterations = 411
 
 [[runs]]
-layouts_to_sample = 5
+annealing_iterations = 5
+iterations = 534
 
 [[runs]]
-layouts_to_sample = 20
+annealing_iterations = 3
+iterations = 548
+

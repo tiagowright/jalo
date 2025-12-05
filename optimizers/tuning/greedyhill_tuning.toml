@@ -1,6 +1,6 @@
 # Tuning runs for genetic algorithm
 output = './optimizers/logs/greedyhill_tuning_runs.csv'
-log_population = true
+log_hamming_clusters = true
 
 [default]
 solver = 'greedyhill'

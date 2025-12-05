@@ -1,6 +1,5 @@
 import os
 import math
-from re import T
 from itertools import combinations
 import numpy as np
 import random
@@ -125,10 +124,10 @@ class OptimizerLogger:
         if self.log_population:
             self.population = population
 
-    def event(self, seed_id: int, step: int, score: float) -> None:
+    def event(self, seed_id: int, step: int, score: float, msg: str = '') -> None:
         if not self.log_events:
             return
-        self.events.append((seed_id, step, score))
+        self.events.append((seed_id, step, score, msg))
 
     def run(self, seed_id: int, initial_score: float, final_score: float) -> None:
         if not self.log_runs:
@@ -149,8 +148,8 @@ class OptimizerLogger:
         for file_path, header, rows in (
             (
                 os.path.join(logs_dir, self.events_filename),
-                ["optimizer_name", "batch_name", "seed_id", "step", "score"],
-                [(self.optimizer_name, self.batch_name, seed_id, step, score) for seed_id, step, score in self.events]
+                ["optimizer_name", "batch_name", "seed_id", "step", "score", "msg"],
+                [(self.optimizer_name, self.batch_name, seed_id, step, score, msg) for seed_id, step, score, msg in self.events]
             ),
             (
                 os.path.join(logs_dir, self.runs_filename),
@@ -290,18 +289,16 @@ class Optimizer:
         progress_queue = manager.Queue()
         total_jobs = len(initial_positions)
 
+
         tasks = [
             (
                 initial_positions_batch,
                 tuple(initial_population[initial_position] for initial_position in initial_positions_batch),
-                tolerance,
                 order_1,
                 order_2,
                 order_3,
-                pinned_positions,
                 swap_position_pairs,
                 pis_at_column,
-                group_of_pis_at_column,
                 progress_queue,
                 self.population.max_size,
                 OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population),
@@ -400,7 +397,7 @@ def _optimize_batch_worker_from_module(module_name: str, args):
     """
     import importlib
     mod = importlib.import_module(module_name)
-    return mod.optimize_batch_worker(args)
+    return mod.improve_batch_worker(args)
 
 
 def hamming_distance(char_at_pos_1: tuple[int, ...], char_at_pos_2: tuple[int, ...]) -> int:
@@ -448,6 +445,7 @@ if __name__ == "__main__":
 
     try `python3 optim.py --help` for more information.
     '''
+    
     import sys
     import argparse
     import importlib.util
@@ -588,7 +586,7 @@ if __name__ == "__main__":
         runs = RunConfig.runs_from_config(config_dict, defaults)
 
         # for every key in config_dict if it is also an args attribute, override it with the value from config_dict
-        for key in ['output', 'log_runs', 'log_events', 'log_population']:
+        for key in ['output', 'log_runs', 'log_events', 'log_population', 'log_hamming_clusters']:
             if key in config_dict:
                 setattr(args, key, config_dict[key])
 

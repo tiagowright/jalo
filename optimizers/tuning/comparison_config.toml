@@ -4,7 +4,7 @@
 # configuration. Most users most of the time don't need to go in here!
 
 output = './optimizers/logs/solver_tuning_runs.csv'
-log_population = true
+log_hamming_clusters = true
 
 
 # default settings used for every run, unless they are overriden in the [[runs]] entry.
@@ -22,7 +22,7 @@ name_format = '{solver}_{iterations}'
 # can override any of the defaults above for that specific run
 [[runs]]
 solver = 'annealing'
-iterations = 308
+iterations = 375
 
 [[runs]]
 solver = 'genetic'

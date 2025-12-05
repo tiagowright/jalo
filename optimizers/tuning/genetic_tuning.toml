@@ -1,6 +1,6 @@
 # Tuning runs for genetic algorithm
 output = './optimizers/logs/genetic_tuning_runs.csv'
-log_population = true
+log_hamming_clusters = true
 
 [default]
 solver = 'genetic'
@@ -9,53 +9,62 @@ corpus = 'en'
 iterations = 300
 population = 1000
 objective = 'default'
-name_format = '{generations}g_{selection_slope}s_x{iterations}'
+name_format = '{generations}g_{selection_slope}s_{mutation_rate}m_{replacement_rate}r_x{iterations}'
 
 generations = 4
 selection_slope = 2
+mutation_rate = 0.1
+replacement_rate = 0.01
+
 
 [[runs]]
 iterations = 174
 
-[[runs]]
-selection_slope = 1
-iterations = 134
+# [[runs]]
+# selection_slope = 1
+# iterations = 134
+
+# [[runs]]
+# selection_slope = 3
+# iterations = 174
+
+# [[runs]]
+# selection_slope = 4
+# iterations = 176
+
+# [[runs]]
+# selection_slope = 8
+# iterations = 172
+
+# [[runs]]
+# generations = 1
+# iterations = 299
+
+# [[runs]]
+# generations = 2
+# iterations = 235
+
+# [[runs]]
+# generations = 3
+# iterations = 192
+
+# [[runs]]
+# generations = 5
+# iterations = 128
+
+# [[runs]]
+# generations = 4
+# selection_slope = 8
+# iterations = 172
 
 [[runs]]
-selection_slope = 3
-iterations = 174
+mutation_rate = 0
 
 [[runs]]
-selection_slope = 4
-iterations = 176
+mutation_rate = 0.2
 
 [[runs]]
-selection_slope = 8
-iterations = 172
+replacement_rate = 0.1
 
 [[runs]]
-generations = 1
-iterations = 299
-
-[[runs]]
-generations = 2
-iterations = 235
-
-[[runs]]
-generations = 3
-iterations = 192
-
-[[runs]]
-generations = 5
-iterations = 128
-
-[[runs]]
-generations = 4
-selection_slope = 8
-iterations = 172
-
-[[runs]]
-iterations = 350
-
-[[runs]]
-iterations = 700
+replacement_rate = 0.01

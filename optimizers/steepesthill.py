@@ -11,37 +11,35 @@ from dataclasses import dataclass
 
 from model import _calculate_swap_delta
 from optim import OptimizerLogger
-from optimizers import gsa
+from optimizers import helper
 
 @dataclass
 class SteepestHillParams:
     pos_swaps_per_step: int = 1
     col_swaps_per_step: int = 1
     pos_swaps_first: bool = False
-    use_gsa: bool = False
+    tolerance: float = 0.00001
 
 
-def optimize_batch_worker(args):
-    return _optimize_batch(*args)
+def improve_batch_worker(args):
+    return improve_batch(*args)
 
-def _optimize_batch(
+def improve_batch(
     char_at_pos_list: list[tuple[int, ...]],
     initial_score_list: list[float],
-    tolerance: float,
     order_1: tuple[tuple[np.ndarray, np.ndarray], ...],
     order_2: tuple[tuple[np.ndarray, np.ndarray], ...],
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-    pinned_positions: tuple[int, ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     pis_at_column: tuple[tuple[int, ...], ...],
-    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
     progress_queue: Any,
     population_size: int,
     logger: OptimizerLogger,
     solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
-    optimize the layout using hill climbing
+    optimize the layout using a steepest hill climbing algorithm: checks all possible swaps, and takes the best swap that improves the score,
+    then start over checking all possible swaps again, and until no more swaps improve the score
     '''
     logger.batch_start()
 
@@ -54,42 +52,25 @@ def _optimize_batch(
 
     for seed_id, char_at_pos, initial_score in zip(range(len(char_at_pos_list)), char_at_pos_list, initial_score_list):
 
-        if params.use_gsa:
-            population = gsa.improve_layout(
-                seed_id,
-                char_at_pos,
-                initial_score,
-                1e-5,
-                order_1,
-                order_2,
-                order_3,
-                swap_position_pairs,
-                pis_at_column,
-                1,
-                0,
-                0,
-                False,
-                params.pos_swaps_per_step,
-                params.col_swaps_per_step,
-                params.pos_swaps_first,
-                logger
-            )
-        else:
-            population = _optimize(
-                seed_id, 
-                char_at_pos, 
-                initial_score, 
-                tolerance, 
-                order_1, 
-                order_2, 
-                order_3, 
-                pinned_positions, 
-                swap_position_pairs, 
-                pis_at_column,
-                group_of_pis_at_column,
-                logger,
-                solver_args
-            )
+        population = helper.improve_layout(
+            seed_id,
+            char_at_pos,
+            initial_score,
+            params.tolerance,
+            order_1,
+            order_2,
+            order_3,
+            swap_position_pairs,
+            pis_at_column,
+            1,
+            0,
+            0,
+            False,
+            params.pos_swaps_per_step,
+            params.col_swaps_per_step,
+            params.pos_swaps_first,
+            logger
+        )
         
         final_score = min(population.values())
         
@@ -106,216 +87,3 @@ def _optimize_batch(
     logger.save()
 
     return selected_population
-
-
-def _optimize(
-    seed_id: int,
-    char_at_pos: tuple[int, ...], 
-    initial_score: float,
-    tolerance: float,
-    order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-    pinned_positions: tuple[int, ...],
-    swap_position_pairs: tuple[tuple[int, int], ...],
-    pis_at_column: tuple[tuple[int, ...], ...],
-    group_of_pis_at_column: tuple[tuple[tuple[int, ...], ...], ...],
-    logger: OptimizerLogger,
-    solver_args: dict
-) -> dict[tuple[int, ...], float]:
-    '''
-    optimize the layout using hill climbing
-
-    this internal function is set up for multiprocessing, so all the inputs are considered immutable,
-    and the only outputs are returned to the caller.
-    '''
-
-    params = SteepestHillParams()
-    for key, value in solver_args.items():
-        if hasattr(params, key):
-            setattr(params, key, value)
-    
-    population = {char_at_pos: initial_score}
-
-    # cached_scores = Dict.empty(types.UniTuple(types.int64, len(char_at_pos)), types.float64)
-    # cached_scores[char_at_pos] = initial_score
-    cached_scores = {char_at_pos: initial_score}
-
-
-    current_char_at_pos = char_at_pos
-    current_score = initial_score
-    step = 0
-
-    while True:
-        score_at_start_of_step = current_score
-
-        logger.event(seed_id, step, current_score)
-
-        if params.pos_swaps_first or step > 0:
-            for _ in range(params.pos_swaps_per_step):
-                prev_score = current_score
-                current_score, current_char_at_pos = _position_swapping(
-                    current_char_at_pos, 
-                    prev_score, 
-                    tolerance, 
-                    order_1, 
-                    order_2, 
-                    order_3, 
-                    pinned_positions, 
-                    swap_position_pairs, 
-                    params,
-                    population,
-                    cached_scores
-                )
-                if prev_score/current_score < 1.0001:
-                    break
-
-            logger.event(seed_id, step, current_score)
-
-
-        for _ in range(params.col_swaps_per_step):
-            prev_score = current_score
-            current_score, current_char_at_pos = _column_swapping(
-                current_char_at_pos, 
-                prev_score, 
-                tolerance, 
-                order_1, 
-                order_2, 
-                order_3, 
-                pinned_positions, 
-                pis_at_column,
-                params,
-                cached_scores
-            )
-            if prev_score/current_score < 1.0001:
-                break
-
-        logger.event(seed_id, step, current_score)
-
-        population[current_char_at_pos] = current_score
-        step += 1
-
-        delta = current_score - score_at_start_of_step
-        if -tolerance < delta:
-            # this loop made no progress, so we are done on this branch
-            break
-
-    return population
-
-
-def swap_char_at_pos(char_at_pos: tuple[int, ...], i: int, j: int) -> tuple[int, ...]:
-    return tuple(
-        char_at_pos[i] if k == j else
-        char_at_pos[j] if k == i else
-        char_at_pos[k]
-        for k in range(len(char_at_pos))
-    )
-
-
-def _position_swapping(
-    char_at_pos: tuple[int, ...], 
-    score: float, 
-    tolerance: float,
-    order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-    pinned_positions: tuple[int, ...],
-    swap_position_pairs: tuple[tuple[int, int], ...],
-    params: SteepestHillParams,
-    population: dict[tuple[int, ...], float],
-    cached_scores: dict[tuple[int, ...], float]
-) -> tuple[float, tuple[int, ...]]:
-    '''
-    simple hill climbing, checks every possible swap, and 
-    accepts the swap that improves the score the most
-
-    if N=len(char_at_pos), then there are N*(N-1)/2 swaps to try.
-
-    this internal function is meant to be called from _optimize in a multiprocessing context,
-    and the only mutable input is population, which is updated with new layouts and shared in a single 
-    worker process within _optimize loops.
-    '''
-    original_score = score
-    best_delta = 0
-    best_swap = None
-
-    for i, j in random.sample(swap_position_pairs, len(swap_position_pairs)):
-        if i in pinned_positions or j in pinned_positions:
-            continue
-
-        swapped_char_at_pos = swap_char_at_pos(char_at_pos, i, j)
-
-        if swapped_char_at_pos in cached_scores:
-            swapped_score = cached_scores[swapped_char_at_pos]
-            delta = swapped_score - score
-        else:
-            delta = _calculate_swap_delta(order_1, order_2, order_3, char_at_pos, i, j, swapped_char_at_pos)  # pyright: ignore[reportArgumentType]
-            cached_scores[swapped_char_at_pos] = score + delta
-
-        if delta < best_delta:
-            best_delta = delta
-            best_swap = swapped_char_at_pos
-
-    # accept the best swap if it improves the score
-    if best_swap is not None and best_delta < -tolerance:
-        return (original_score + best_delta, best_swap)
-    
-    return (original_score, char_at_pos)
-
-
-def _column_swapping(
-    char_at_pos: tuple[int, ...], 
-    score: float, 
-    tolerance: float,
-    order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
-    order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
-    pinned_positions: tuple[int, ...],
-    pis_at_column: tuple[tuple[int, ...], ...],
-    params: SteepestHillParams,
-    cached_scores: dict[tuple[int, ...], float]
-) -> tuple[float, tuple[int, ...]]:
-
-    '''
-    simple hill climbing, swapping columns to improve the score the most
-    '''
-    original_score = score
-    best_delta = 0
-    best_swap = None
-
-    for col1, col2 in combinations(range(len(pis_at_column)), 2):
-        if len(pis_at_column[col1]) <= 2 or len(pis_at_column[col2]) <= 2:
-            continue
-
-        if any(pi in pinned_positions for pi in pis_at_column[col1]) or any(pi in pinned_positions for pi in pis_at_column[col2]):
-            continue
-
-        if len(pis_at_column[col1]) > len(pis_at_column[col2]):
-            col1, col2 = col2, col1
-        
-        # col1 is shorter than col2 or they are the same len, line up in sequence and hope this is the best way
-        selected_pis_at_col2 = pis_at_column[col2][:len(pis_at_column[col1])]
-
-        # compute the score after swapping all positions in col1 and col2    
-        col_swapped_char_at_pos = char_at_pos
-        delta = 0
-        for pi1, pi2 in zip(pis_at_column[col1], selected_pis_at_col2):
-            next_swap_char_at_pos = swap_char_at_pos(col_swapped_char_at_pos, pi1, pi2)
-            if next_swap_char_at_pos in cached_scores:
-                delta = cached_scores[next_swap_char_at_pos] - original_score
-
-            else:
-                delta += _calculate_swap_delta(order_1, order_2, order_3, col_swapped_char_at_pos, pi1, pi2, next_swap_char_at_pos)  # pyright: ignore[reportArgumentType]
-                cached_scores[next_swap_char_at_pos] = original_score + delta
-
-            col_swapped_char_at_pos = next_swap_char_at_pos
-            
-        if delta < best_delta:
-            best_delta = delta
-            best_swap = col_swapped_char_at_pos
-    
-    if best_swap is not None and best_delta < -tolerance:
-        return (original_score + best_delta, best_swap)
-    
-    return (original_score, char_at_pos)
-
