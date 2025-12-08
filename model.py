@@ -120,21 +120,38 @@ class KeyboardModel:
 
     def analyze_chars_at_positions(self, char_at_pos: np.ndarray) -> dict[Metric, float]:
         '''
-        Analyze the characters at positions specified by char_at_pos.
+        Analyze the layout specified by char_at_pos, returning the value of every metric.
         '''
         P = self.position_freqdist(char_at_pos)
         return {metric: float(np.sum(P[metric.ngramType] * self.M[metric])) for metric in self.metrics}
 
     def analyze_layout(self, layout: KeyboardLayout) -> dict[Metric, float]:
         '''
-        Analyze the layout specified by the KeyboardLayout.
+        Analyze the layout specified by the KeyboardLayout, returning the value of every metric.
         '''
         char_at_pos = self.char_at_positions_from_layout(layout)
         return self.analyze_chars_at_positions(char_at_pos)
+
+    def top_ngram_per_metric(self, layout: KeyboardLayout | None = None, char_at_pos: np.ndarray | tuple[int, ...] | None = None) -> dict[Metric, dict[tuple[int, ...], float]]:
+        '''
+        Find the top n-gram for each metric, for the layout specified by the KeyboardLayout or char_at_pos.
+        For each metric, return a dict of position indexes mapping to the metric value for that position n-gram.
+        '''
+        if layout is not None:
+            char_at_pos = self.char_at_positions_from_layout(layout)
+        if char_at_pos is None:
+            raise ValueError("Either layout or char_at_pos must be specified")
+        
+        P = self.position_freqdist(char_at_pos)
+        V = {metric: P[metric.ngramType] * self.M[metric] for metric in self.metrics}
+        return {
+            metric: {tuple(idx): Vi[tuple(idx)] for idx in np.argwhere(Vi != 0)}
+            for metric, Vi in V.items()
+        }
     
     def score_chars_at_positions(self, char_at_pos: np.ndarray | tuple[int, ...]) -> float:
         '''
-        Score the characters at positions specified by char_at_pos.
+        Calculate the value of the objective function, that is the score, for the layout specified by char_at_pos.
         '''
         P = self.position_freqdist(char_at_pos)
         return sum(
@@ -145,14 +162,14 @@ class KeyboardModel:
 
     def score_layout(self, layout: KeyboardLayout) -> float:
         '''
-        Score the layout specified by the KeyboardLayout.
+        Calculate the value of the objective function, that is the score, for the layout specified by the KeyboardLayout.
         '''
         char_at_pos = self.char_at_positions_from_layout(layout)
         return self.score_chars_at_positions(char_at_pos)
 
     def score_contributions(self, layout: KeyboardLayout) -> dict[Metric, float]:
         '''
-        Score the contributions of each metric to the total score.
+        Calculate the contributions of each metric to the total value of the objective function (ie, the score).
         '''
         char_at_pos = self.char_at_positions_from_layout(layout)
         P = self.position_freqdist(char_at_pos)
@@ -205,7 +222,12 @@ class KeyboardModel:
             keys.append(LayoutKey.from_position(self.hardware.positions[pi], char))
         return KeyboardLayout(keys, self.hardware, name if name else home_row_name)
 
+
     def calculate_swap_delta(self, char_at_pos: np.ndarray, i: int, j: int) -> float:
+        '''
+        Calculate the change in score (value of the objective function) from swapping char_at_pos[i] and char_at_pos[j].
+        A negative delta means the new layout is better (lower score). This is an O(n^2) operation, much faster than a full O(n^3) rescore.
+        '''
         F = self.freqdist.to_numpy()
 
         order_1 = tuple([
@@ -232,6 +254,7 @@ class KeyboardModel:
         )
 
         return _calculate_swap_delta(order_1, order_2, order_3, tuple(char_at_pos), i, j, new_char_at_pos)  # pyright: ignore[reportArgumentType]
+
 
 @jit
 def _calculate_swap_delta(

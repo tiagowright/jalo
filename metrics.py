@@ -316,7 +316,7 @@ def pinky_off(a):
 # Trigram metrics
 #
 # note that trigram metrics are the most expensive to compute, so a little bit of care
-# can save you a second or more when creating a model instance.
+# here can save you a second or more when creating a model instance.
 #
 def alternate_total(a, b, c):
     return a.finger.hand == c.finger.hand and a.finger.hand != b.finger.hand

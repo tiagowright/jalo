@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Command-line REPL entry point for the Jalo keyboard tooling.
 
@@ -18,7 +18,7 @@ import re
 from pathlib import Path
 from typing import List, Optional
 from tabulate import tabulate
-
+from inspect import cleandoc
 
 from layout import KeyboardLayout
 from model import KeyboardModel
@@ -129,7 +129,7 @@ class JaloShell(cmd.Cmd):
             "",
             self._load_settings_str(),
             "",
-            "Tab does autocomplete. Type `help` to list commands.",
+            "Tab does autocomplete, up arrow brings up previous commands. Type `help` to list commands.",
             ""
         ]))
 
@@ -161,16 +161,54 @@ class JaloShell(cmd.Cmd):
             examples=["0", "qwerty"],
         )
 
-    def complete_analyze(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_analyze(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
         return self._list_keyboard_names(text)
  
     def do_analyze(self, arg: str) -> None:
-        """analyze <keyboard>: Analyze the given keyboard layout."""
+        """analysis: analyze a keyboard layout on all metrics"""
 
 
         layouts = self._parse_keyboard_names(arg)
         if layouts is None or len(layouts)>1:
             self._warn("usage: analyze <keyboard>")
+            return
+
+        # header = [layouts[0].name, layouts[0].hardware.name]
+        # layout_str = str(layouts[0])
+        # hardware_str = layouts[0].hardware.str(show_finger_numbers=True, show_stagger=True)
+
+        # # annoyingly, tabulate removes leading spaces and in this case screws up the formating of layouts
+        # # so adding a leading character
+        # LEAD_SPACE = "| "
+        # rows = zip(
+        #     [LEAD_SPACE + l for l in layout_str.split('\n')], 
+        #     [LEAD_SPACE + l for l in hardware_str.split('\n')]
+        # )
+
+        # self._info('')
+        # self._info(tabulate(rows, headers=header, tablefmt="simple", disable_numparse=True))
+        # self._info('')
+        self.do_show(arg)
+        self._info(self._tabulate_analysis(layouts))
+
+
+    def help_show(self) -> None:
+        self._command_help(
+            command="show",
+            description="Shows a keyboard layout's key assignments and hardware finger assignments.",
+            argument_name_description=[("keyboard", "<keyboard>", "the keyboard layout to show, can be a layout name or the index of a layout in memory.")],
+            examples=["0", "qwerty"],
+        )
+        
+    def complete_show(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
+        return self._list_keyboard_names(text)
+
+    def do_show(self, arg: str) -> None:
+        """analysis: shows a keyboard layout"""
+
+        layouts = self._parse_keyboard_names(arg)
+        if layouts is None or len(layouts) != 1:
+            self._warn("usage: show <keyboard>")
             return
 
         header = [layouts[0].name, layouts[0].hardware.name]
@@ -188,8 +226,6 @@ class JaloShell(cmd.Cmd):
         self._info('')
         self._info(tabulate(rows, headers=header, tablefmt="simple", disable_numparse=True))
         self._info('')
-        self._info(self._tabulate_analysis(layouts))
-
 
 
     def help_contributions(self) -> None:
@@ -202,11 +238,11 @@ class JaloShell(cmd.Cmd):
             examples=["0 1", "0 sturdy qwerty graphite hdpm"],
         )
 
-    def complete_contributions(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_contributions(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
         return self._list_keyboard_names(text)
  
     def do_contributions(self, arg: str) -> None:
-        """contributions <keyboard> [<keyboard>...]: tabulates the contributions of each metric to the score of the each layout"""
+        """analysis: to understand the score, tabulates the contributions of each metric"""
         layouts = self._parse_keyboard_names(arg)
         if layouts is None:
             self._warn("usage: contributions <keyboard> [<keyboard>...]")
@@ -226,11 +262,11 @@ class JaloShell(cmd.Cmd):
             examples=["0 1", "0 sturdy qwerty graphite hdpm"],
         )
         
-    def complete_compare(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_compare(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
         return self._list_keyboard_names(text)
  
     def do_compare(self, arg: str) -> None:
-        """compare <keyboard> [<keyboard>...]"""
+        """analysis: compares keyboard layouts side by side on every metric"""
         layouts = self._parse_keyboard_names(arg)
         if layouts is None:
             self._warn("usage: compare <keyboard> [<keyboard>...]")
@@ -249,25 +285,25 @@ class JaloShell(cmd.Cmd):
         )
 
     def do_generate(self, arg: str) -> None:
-        """generate [iterations=100]: generates new layouts from scratch"""
+        """editing: generates a wide variety of new layouts from scratch"""
         args = self._split_args(arg)
 
-        iterations = 100
+        seeds = 100
 
         if len(args) > 0:
             try:
-                iterations = int(args[0])
+                seeds = int(args[0])
             except ValueError:
-                self._warn("iterations must be an integer: generate [iterations=100]")
+                self._warn("seeds must be an integer: generate [seeds=100]")
                 return
         
-        self._info(f"generating {iterations} iterations.")
+        self._info(f"generating {seeds} seeds.")
 
         N = len(self.model.hardware.positions)
         char_seq = self.freqdist.char_seq[:N]
 
         optimizer = Optimizer(self.model, population_size=100)
-        optimizer.generate(char_seq=char_seq, iterations=iterations)
+        optimizer.generate(char_seq=char_seq, seeds=seeds)
         
         self._layout_memory_from_optimizer(optimizer)
 
@@ -276,9 +312,24 @@ class JaloShell(cmd.Cmd):
 
 
 
+    def help_improve(self) -> None:
+        self._command_help(
+            command="improve",
+            description="Tries to improve the score of a given layout by swapping positions and columns. "
+            "Produces layouts that are not very different from the original layout, but that score better if possible. "
+            "While `generate` produces a wide variety of very different layouts that are a minimum distance from each other, "
+            "`improve` does the opposite, producing layouts that are within a maximum distance. So these are complementary steps, "
+            "with `generate` providing large coarse grained cuts, and `improve` refining it further, and finally `polish` helping with the final "
+            "few swaps.",
+            argument_name_description=[("keyboard", "<keyboard>", "the keyboard layout to improve, can be a layout name or the index of a layout in memory.")],
+            examples=["0", "qwerty"],
+        )
+        
+    def complete_improve(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
+        return self._list_keyboard_names(text)
 
     def do_improve(self, arg: str) -> None:
-        """improve <keyboard> [iterations=10]: tries to improve the score of the named layout by swapping positions and columns"""
+        """editing: try to improve the score of a given layout (neighboring layouts)"""
         args = self._split_args(arg)
 
         layouts = self._parse_keyboard_names(args[0])
@@ -319,8 +370,95 @@ class JaloShell(cmd.Cmd):
 
 
 
+    def help_polish(self) -> None:
+        self._command_help(
+            command="polish",
+            description="Identifies small number of swaps that can improve the score of a given layout.",
+            argument_name_description=[("keyboard", "<keyboard>", "the keyboard layout to polish, can be a layout name or the index of a layout in memory.")],
+            examples=["0", "qwerty"],
+        )
+
+    def complete_polish(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
+        return self._list_keyboard_names(text)
+
+    def do_polish(self, arg: str) -> None:
+        """editing: identifies small number of swaps that can improve the score of a given layout"""
+        args = self._split_args(arg)
+        layouts = self._parse_keyboard_names(args[0])
+
+        if layouts is None or len(layouts) != 1:
+            self._warn("usage: polish <keyboard>")
+            return
+        
+        layout = layouts[0]
+        # TODO: implement polishing
+        self._warn("polish not implemented yet")
+
+
+
+    def help_swap(self) -> None:
+        self._command_help(
+            command="swap",
+            description="Swaps two positions on the keyboard, for those hand crafted, fine tuning adjustments to a layout.",
+            argument_name_description=[
+                ("keyboard", "<keyboard>", "the keyboard layout to swap positions on, can be a layout name or the index of a layout in memory."),
+                ("position1", "<position1>", "the first position to swap, just name the character that is there."), 
+                ("position2", "<position2>", "the second position to swap.")
+            ],
+            examples=["0 d h", "qwerty a q"],
+        )
+        
+    def complete_swap(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
+        # if completing the keyboard, list all keyboard names
+        if begidx == 0:
+            return self._list_keyboard_names(text)
+
+        return []
+
+    def do_swap(self, arg: str) -> None:
+        """editing: swaps two positions on the keyboard"""
+        args = self._split_args(arg)
+        if len(args) != 3:
+            self._warn("usage: swap <keyboard> <position1> <position2>")
+            return
+        
+        self._warn("swap not implemented yet")
+        # TODO
+
+
+    def help_mirror(self) -> None:
+        self._command_help(
+            command="mirror",
+            description="Mirrors a keyboard layout horizontally, so that the left and right hands are swapped.",
+            argument_name_description=[("keyboard", "<keyboard>", "the keyboard layout to mirror, can be a layout name or the index of a layout in memory.")],
+            examples=["0", "hdpm"],
+        )
+        
+    def complete_mirror(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
+        return self._list_keyboard_names(text)
+
+    def do_mirror(self, arg: str) -> None:
+        """editing: mirrors a keyboard layout horizontally"""
+        args = self._split_args(arg)
+
+        self._warn("mirror not implemented yet")
+        # TODO
+
+
+    def help_pin(self) -> None:
+        self._command_help(
+            command="pin",
+            description="Pins characters to their current positions, so that they cannot be swapped or moved to a different position during editing (`generate`, `improve`, etc.). "
+            "To see current pins, pass no arguments (`pin`). To clear all pins, use `pin nothing`.",
+            argument_name_description=[
+                ("nothing", "[nothing]", "to remove all existing pins, specify `pin nothing`."),
+                ("char", "[<char> ...]", "the characters to pin, can be a single character or a space-separated list of characters.")
+            ],
+            examples=["", "a b c", "nothing"],
+        )
+
     def do_pin(self, arg: str) -> None:
-        """pin [nothing|<char> [<char>...]]: pins the given characters to their current positions, shows pins if no argument given, and clears pins with `pin nothing`"""
+        """editing: pins characters to their current position"""
         args = self._split_args(arg)
         
         if not args:
@@ -355,7 +493,7 @@ class JaloShell(cmd.Cmd):
         )
 
     def do_memory(self, arg: str) -> None: # pyright: ignore[reportArgumentType, reportUnusedParameter]
-        """memory: shows the top 10 layouts in memory"""
+        """editing: shows the best layouts that are loaded in memory"""
         args = self._split_args(arg)
         if len(args) > 0:
             try:
@@ -379,7 +517,7 @@ class JaloShell(cmd.Cmd):
         )
 
     def do_reload(self, arg: str) -> None: # pyright: ignore[reportArgumentType, reportUnusedParameter]
-        """Reload the settings from the config.toml file. Keeps generated layouts results in memory, but updates corpus, hardware, and objective function."""
+        """configuration: reload the settings from the config.toml file"""
         # should reload the settings from the config.toml file
         self._load_settings()
 
@@ -405,7 +543,7 @@ class JaloShell(cmd.Cmd):
             examples=["", "100sfb + 6effort + 60pinky_ring + 60scissors_ortho + 60sfs - 5alt"]
         )
 
-    def complete_objective(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_objective(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
         sign_pattern = re.compile(r'[+-]')
         float_pattern = re.compile(r'(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?')
 
@@ -423,7 +561,7 @@ class JaloShell(cmd.Cmd):
         return [text[:i] + metric.name for metric in self.metrics if metric.name.startswith(text[i:])]
 
     def do_objective(self, arg: str) -> None:
-        """objective [<formula>]: shows the current objective function, or sets the objective function from a formula string"""
+        """configuration: view or update the objective function used to score layouts"""
         
         if not arg:
             self._info(f"Current function:\nobjective {self.objective}\n")
@@ -449,7 +587,7 @@ class JaloShell(cmd.Cmd):
         )
 
     def do_metrics(self, arg: str) -> None: # pyright: ignore[reportArgumentType, reportUnusedParameter]
-        """shows the current metrics"""
+        """configuration: shows metric names and descriptions"""
         header = ['Metric', 'Description']
 
         rows = []
@@ -474,7 +612,7 @@ class JaloShell(cmd.Cmd):
         )
 
     def do_save(self, arg: str) -> None:
-        """save <keyboard> [<name>] - save the named layout to the ./layouts/ directory"""
+        """editing: save new layouts from memory to a new file"""
         args = self._split_args(arg)
         layouts = self._parse_keyboard_names(arg[0])
         if layouts is None or len(layouts) != 1:
@@ -493,7 +631,7 @@ class JaloShell(cmd.Cmd):
         filepath = os.path.join('layouts', filename)
 
         if os.path.exists(filepath):
-            self._warn(f"layout file already exists: {filepath}, not overwriting. Specify a name: save <keyboard> <name>")
+            self._warn(f"layout file already exists: {filepath}, not overwriting. Specify a different name: save <keyboard> <name>")
             return
 
         with open(filepath, 'w') as f:
@@ -505,16 +643,62 @@ class JaloShell(cmd.Cmd):
 
     # ----- shell controls ------------------------------------------------
     def do_help(self, arg: str) -> None:  # type: ignore[override]
-        """help [command]"""
-        super().do_help(arg)
+        """help with any command, try `help analyze`"""
+        if arg:
+            super().do_help(arg)
+            return
+        
+        names = self.get_names()
+
+        commands = []
+        for name in names:
+            if name[:3] != 'do_':
+                continue
+            
+            try:
+                doc=getattr(self, name).__doc__
+                doc = cleandoc(doc)
+            except AttributeError:
+                doc = ''
+
+            commands.append((name[3:], doc))
+
+        # analyze  contributions  generate  improve  metrics    pin   reload
+        # compare  exit           help      memory   objective  quit  save  
+
+        headers = ['analysis', 'editing', 'configuration', 'commands']
+
+        sections = {header: [] for header in headers}
+        for name, doc in commands:
+            for header in headers:
+                if doc.startswith(header):
+                    sections[header].append((name, doc[len(header):].strip(':').strip()))
+                    break
+            else:
+                sections['commands'].append((name, doc))
+
+        self._info("")
+        self._info("Type `help <command>` to get help on a specific command.")
+        self._info("")
+        for header in headers:
+            if not sections[header]:
+                continue
+            self._info(f"\n{header}:")
+            self._info(textwrap.indent(
+                tabulate(sections[header], tablefmt="plain", maxcolwidths = 70),
+                "  "
+            ))
+            self._info("")
+
 
     def do_quit(self, arg: str) -> bool: # pyright: ignore[reportArgumentType, reportUnusedParameter]
-        """quit"""
-        self._info("Exiting Jalo REPL.")
+        """quits Jalo"""
+        self._info("Exiting Jalo REPL. Bye bye.")
+        self._info("")
         return True
 
     def do_exit(self, arg: str) -> bool:
-        """exit"""
+        """quits Jalo"""
         return self.do_quit(arg)
 
 
@@ -619,11 +803,15 @@ class JaloShell(cmd.Cmd):
     def _tabulate_analysis(self, layouts: List[KeyboardLayout], show_contributions: bool = False) -> str:
 
         model_for_layout = {layout: self._get_model(layout) for layout in layouts}
+        show_compare = len(layouts)>1
+        show_top_ngram = len(layouts)==1
 
         try:
             analysis = {layout: model_for_layout[layout].analyze_layout(layout) for layout in layouts}
             scores = {layout: model_for_layout[layout].score_layout(layout) for layout in layouts}
             contributions = {layout: model_for_layout[layout].score_contributions(layout) for layout in layouts}
+            top_ngram = {layout: model_for_layout[layout].top_ngram_per_metric(layout) for layout in layouts} if show_top_ngram else {layout: {} for layout in layouts}
+
         except Exception as e:
             self._warn(f"Error: could not analyze layout: {e}")
             return ''
@@ -636,26 +824,55 @@ class JaloShell(cmd.Cmd):
             0: metric value
             1: comparison indicator
             2: contributions indicator
+            3: top n-gram indicator
             '''
-            is_compare = len(layouts)>1
-
             res = [cols[0]]
 
-            if is_compare:
+            if show_compare:
                 res.append(cols[1])
             
             if show_contributions:
                 res.append(cols[2])
 
+            if show_top_ngram:
+                res.append(cols[3])
+
             return res
 
+
+        def format_ngrams(layout: KeyboardLayout, ngram_values: dict[tuple[int, ...], float], max_length: int = 50) -> str:
+            SEP = ', '
+            res = []
+            cum_len = 0
+
+            for ngram, value in sorted(ngram_values.items(), key=lambda x: x[1], reverse=True):
+                chars = ''.join(
+                    layout.char_at_position[layout.hardware.positions[pi]]
+                    for pi in ngram
+                )
+                item = f"{chars}: {100*value:.3f}"
+
+                if cum_len + len(item) > max_length:
+                    break
+                res.append(item)
+                cum_len += len(item) + len(SEP)
+
+            return SEP.join(res)
+
+        top_ngram_str = {
+            layout: {
+                metric: format_ngrams(layout, top_ngram[layout][metric]) if layout in top_ngram and metric in top_ngram[layout] else None
+                for metric in self.metrics
+            }
+            for layout in layouts
+        } 
 
         if show_contributions:
             header = ['metric', 'w']
         else:
             header = ['metric']
 
-        header.extend([item for layout in layouts for item in col_sel([f"{layout.name}\n{layout.hardware.name}", 'Δ', 'ΔS'])])
+        header.extend([item for layout in layouts for item in col_sel([f"{layout.name}\n{layout.hardware.name}", 'Δ', 'ΔS', 'top n-gram'])])
         
         rows = []
         for metric in self.metrics:
@@ -682,7 +899,8 @@ class JaloShell(cmd.Cmd):
                     for item in col_sel([
                         analysis[layout][metric]*100 if metric in analysis[layout] else None, 
                         delta_sign(analysis[layout][metric]),
-                        contributions[layout][metric]*100 if metric in contributions[layout] and abs(contributions[layout][metric]) > 0.01 else None
+                        contributions[layout][metric]*100 if metric in contributions[layout] and abs(contributions[layout][metric]) > 0.01 else None,
+                        top_ngram_str[layout][metric]
                     ])
                 ]
             )
@@ -692,12 +910,14 @@ class JaloShell(cmd.Cmd):
             item 
             for layout in layouts 
             for item in (
-                col_sel([None, None, f"{scores[layout]*100:.3f}"]) if show_contributions else 
-                col_sel([f"{scores[layout]*100:.3f}", None, None])
+                col_sel([None, None, f"{scores[layout]*100:.3f}", None]) if show_contributions else 
+                col_sel([f"{scores[layout]*100:.3f}", None, None, None])
             )
         ])
         
         return tabulate(rows, headers=header, tablefmt="simple", floatfmt=".3f")
+
+
 
     def _command_help(self, command: str, description: str, argument_name_description: list[tuple[str, str, str]], examples: list[str]) -> None:
         args_usage_str = ' '.join([f"{syntax}" for _, syntax, _ in argument_name_description])

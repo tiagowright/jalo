@@ -9,6 +9,7 @@ import time
 import csv
 
 import multiprocessing
+from tqdm import tqdm
 from functools import partial
 
 from model import KeyboardModel
@@ -244,24 +245,67 @@ class Optimizer:
             for col in pis_at_finger_at_column_map[finger]
         )
 
-        # self.positions_at_column = tuple(tuple(positions) for positions in positions_at_column_map.values())
-
-    def generate(self, char_seq: list[str], iterations:int = 100, score_tolerance:float = 0.001, pinned_positions: tuple[int, ...] = ()):
-        assert len(char_seq) == len(self.model.hardware.positions)
-
-        char_at_pos = np.zeros(len(self.model.hardware.positions), dtype=int)
-        for pi, position in enumerate(self.model.hardware.positions):
-            char = char_seq[pi]
-            try:
-                char_at_pos[pi] = self.model.freqdist.char_seq.index(char)
-            except ValueError:
-                char_at_pos[pi] = self.model.freqdist.char_seq.index(FreqDist.out_of_distribution)
 
 
-        initial_positions = tuple(
-            tuple(np.random.permutation(char_at_pos))
-            for _ in range(iterations)
-        )
+    def generate(
+        self, 
+        seeds:int = 100, 
+        char_seq: list[str] = [], 
+        char_at_pos: tuple[int, ...] = (), 
+        pinned_positions: tuple[int, ...] = (),
+        hamming_distance_threshold: int = 10
+    ):
+        '''
+        generates a variety of layouts optimizing for the score and diversity of layouts
+
+        Specify either char_seq or char_at_pos
+        If you specify pinned_positions, you must specify char_at_pos
+
+        layouts are clustered by hamming distance, and the cluster center is the lowest score layout in the cluster
+        only cluster centers are added to the population
+        '''
+
+        if char_seq:
+            assert len(char_seq) == len(self.model.hardware.positions), "char_seq must have the same length as the number of positions in the hardware"
+        
+        if char_seq and char_at_pos:
+            raise ValueError('speficy either char_seq or char_at_pos, but not both')
+
+        if pinned_positions and not char_at_pos:
+            raise ValueError('if you specify pinned_positions, you must specify char_at_pos, so that the positions can be pinned')
+        
+        if not char_seq and not char_at_pos:
+            raise ValueError('speficy char_seq or char_at_pos, one of the two are required')
+        
+        if not char_at_pos:
+            layout = np.zeros(len(self.model.hardware.positions), dtype=int)
+            for pi, position in enumerate(self.model.hardware.positions):
+                char = char_seq[pi]
+                try:
+                    layout[pi] = self.model.freqdist.char_seq.index(char)
+                except ValueError:
+                    layout[pi] = self.model.freqdist.char_seq.index(FreqDist.out_of_distribution)
+            char_at_pos = tuple(layout)
+
+        # map unpinned positions
+        upi = 0
+        upi_at_pi = {}
+        for pi in range(len(self.model.hardware.positions)):
+            if pi in pinned_positions:
+                continue
+            upi_at_pi[pi] = upi
+            upi += 1
+
+        unpinned_chars = list([char_at_pos[pi] for pi in upi_at_pi.keys()])
+            
+        # create random seeds, maintaining pinned positions
+        initial_positions = []
+        for _ in range(seeds):
+            random.shuffle(unpinned_chars)
+            initial_positions.append(tuple(
+                unpinned_chars[upi_at_pi[pi]] if pi in upi_at_pi else char_at_pos[pi]
+                for pi in range(len(char_at_pos))
+            ))
 
         initial_population = {
             initial_position: self.model.score_chars_at_positions(initial_position)
@@ -275,11 +319,7 @@ class Optimizer:
         pis_at_column = tuple(
             pis for pis in self.pis_at_column if not any(pi in pinned_positions for pi in pis)
         )
-        group_of_pis_at_column = tuple(
-            tuple(pis for pis in group if not any(pi in pinned_positions for pi in pis)) for group in self.group_of_pis_at_column
-        )
 
-        tolerance = score_tolerance * sum(initial_population.values())/len(initial_positions)
         order_1, order_2, order_3 = self._get_FV()
 
         batch_size = math.ceil(len(initial_positions) / (os.cpu_count() or 1))
@@ -329,10 +369,17 @@ class Optimizer:
                     except queue.Empty:
                         break
 
+            # get results and update population
             results = results_async.get()
+            population = {}
             for result_batch in results:
                 for new_char_at_pos, score in result_batch.items():
-                    self.population.push(score, new_char_at_pos)
+                    population[new_char_at_pos] = score
+
+            sorted_layouts = sorted(population.keys(), key=lambda x: population[x])
+            center_idxs = hamming_distance_cluster_centers(sorted_layouts, hamming_distance_threshold)
+            for center_idx in center_idxs:
+                self.population.push(population[sorted_layouts[center_idx]], sorted_layouts[center_idx])
 
                         
 
@@ -686,7 +733,7 @@ if __name__ == "__main__":
 
         # capture how long it takes to generate
         start_time = time.time()
-        optimizer.generate(char_seq=char_seq, iterations=run.iterations)
+        optimizer.generate(char_seq=char_seq, seeds=run.iterations)
         end_time = time.time()
         print(f"Time taken: {end_time - start_time:.1f} seconds")
         print()
