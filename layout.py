@@ -4,7 +4,7 @@ from typing import List
 import os
 import re
 
-from hardware import Finger, KeyboardHardware, Position
+from hardware import Finger, FingerType, Hand, KeyboardHardware, Position
 from dataclasses import dataclass
 
 DEFAULT_HARDWARE = 'ansi'
@@ -54,6 +54,9 @@ class KeyboardLayout:
         self.grid = defaultdict(lambda: defaultdict(list[LayoutKey])) # row -> col -> keys
         for key in keys:
             self.grid[key.row][key.col].append(key) 
+
+
+
 
     def __repr__(self) -> str:
         return f"KeyboardLayout(keys={self.keys!r}, hardware='{self.hardware.name}', name='{self.name}')"
@@ -207,6 +210,93 @@ class KeyboardLayout:
             name = ''.join(key.char for key in keys[:6])
 
         return cls(keys, hardware, name)
+
+
+    def mirror(self, mirrored_name = ''):
+        '''
+        returns a new layout that is the result of mirroring this layout
+
+        mirroring swaps left and right hand assignments (where possible)
+        '''
+        # position is a mirror of the other if it has the same row and layer and finger type
+        # but hand is the opposite, and column sequence is reversed for that finger
+        # finger_to_positions
+
+        mirrored_name = mirrored_name or f'{self.name} mirrored'
+
+        position_grid = {}
+        home_position = {}
+        for position in self.hardware.positions:
+            if position.finger not in position_grid:
+                position_grid[position.finger] = {}
+                home_position[position.finger] = {}
+            if position.col not in position_grid[position.finger]:
+                position_grid[position.finger][position.col] = {}
+            if position.row not in position_grid[position.finger][position.col]:
+                position_grid[position.finger][position.col][position.row] = {}
+            if position.layer not in position_grid[position.finger][position.col][position.row]:
+                position_grid[position.finger][position.col][position.row][position.layer] = []
+            position_grid[position.finger][position.col][position.row][position.layer].append(position)
+            if position.is_home:
+                home_position[position.finger] = position
+        
+        finger_map = {
+            hand: {
+                # notate that the value is of type Finger | None
+                fingertype: Finger(0)
+                for fingertype in FingerType
+            }
+            for hand in Hand
+        }
+
+        map_positions = {}
+
+        for finger in Finger:
+            finger_map[finger.hand][finger.type] = finger
+
+        for fingertype in FingerType:
+            lf = finger_map[Hand.LEFT][fingertype]
+            rf = finger_map[Hand.RIGHT][fingertype]
+            
+            # home columns match, then align them in reverse sequence
+            if lf not in home_position or rf not in home_position or lf not in position_grid or rf not in position_grid:
+                continue
+
+            lh = home_position[lf].col
+            rh = home_position[rf].col
+            
+            for lcol in position_grid[lf]:
+                offset = lcol - lh
+
+                # rcol is reversed, so a positive offset from home column on the left is a negative offset on the right
+                rcol = rh - offset
+
+                if rcol not in position_grid[rf]:
+                    continue
+                
+                for row in position_grid[lf][lcol]:
+                    if row not in position_grid[rf][rcol]:
+                        continue
+                    for layer in position_grid[lf][lcol][row]:                
+                        if layer not in position_grid[rf][rcol][row]:
+                            continue
+                        for lposition, rposition in zip(position_grid[lf][lcol][row][layer], position_grid[rf][rcol][row][layer]):
+                            map_positions[lposition] = rposition
+                            map_positions[rposition] = lposition
+        
+        
+        return KeyboardLayout(
+            [
+                LayoutKey.from_position(
+                    map_positions.get(key.position, key.position),
+                    key.char
+                )
+                for key in self.keys
+            ],
+            self.hardware,
+            mirrored_name
+        )  
+                
 
 
 

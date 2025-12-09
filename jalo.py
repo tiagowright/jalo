@@ -23,10 +23,10 @@ from inspect import cleandoc
 from layout import KeyboardLayout
 from model import KeyboardModel
 from freqdist import FreqDist
-from metrics import METRICS, Metric, use_oxeylyzer_mode
+from metrics import METRICS, use_oxeylyzer_mode
 from objective import ObjectiveFunction
 from hardware import KeyboardHardware
-from optim import Optimizer, Population
+from optim import Optimizer
 
 
 
@@ -82,6 +82,98 @@ class JaloSettings:
         return cls(hardware=str(hardware), corpus=str(corpus), oxeylyzer_mode=bool(oxeylyzer_mode), layouts_memory_size=int(layouts_memory_size), objective=str(objective))
 
 
+@dataclasses.dataclass(slots=True)
+class StackItem:
+    """Represents a single item in the stack (list 0)."""
+    layout: KeyboardLayout
+    command: str  # Full user input command
+    original_layout: Optional[KeyboardLayout] = None  # Original layout if one was given as argument
+
+
+@dataclasses.dataclass(slots=True)
+class LayoutList:
+    """Represents a numbered list of layouts."""
+    layouts: list[KeyboardLayout]
+    list_number: int
+    command: str  # Full user input command
+    original_layout: Optional[KeyboardLayout] = None  # Original layout if one was given as argument
+
+
+class LayoutMemoryManager:
+    """Manages all layout memory: stack and numbered lists."""
+    
+    def __init__(self, max_stack_size: int = 100) -> None:
+        self.stack: list[StackItem] = []  # Stack: newest is at index 0
+        self.lists: dict[int, LayoutList] = {}  # List number -> LayoutList
+        self.next_list_number = 1
+        self.max_stack_size = max_stack_size
+    
+    def push_to_stack(self, layout: KeyboardLayout, command: str, original_layout: Optional[KeyboardLayout] = None) -> None:
+        """Push a single layout to the stack (list 0).
+        """
+        item = StackItem(layout=layout, command=command, original_layout=original_layout)
+        
+        # inserting is going to be O(n) because i want to rename every layout in the stack
+        self.stack.insert(0, item)  # Insert at beginning (newest first)
+        self.stack = self.stack[:self.max_stack_size]
+        
+        for i, item in enumerate(self.stack):
+            item.layout.name = f'{i+1}'
+
+    
+    def add_list(self, layouts: list[KeyboardLayout], command: str, original_layout: Optional[KeyboardLayout] = None) -> int:
+        """Add a new numbered list of layouts."""
+        list_num = self.next_list_number
+
+        for i, layout in enumerate(layouts):
+            layout.name = f'{list_num}.{i+1}'
+
+        self.lists[list_num] = LayoutList(
+            layouts=layouts,
+            list_number=list_num,
+            command=command,
+            original_layout=original_layout
+        )
+        self.next_list_number += 1
+        return list_num
+    
+    def get_stack_item(self, index: int) -> StackItem | None:
+        """Get a stack item by index (1-based, where 1 is newest).
+        """
+        if index < 1 or index > len(self.stack):
+            return None
+        return self.stack[index - 1]
+    
+    def get_list(self, list_num: int) -> LayoutList | None:
+        """Get a numbered list by its number.
+        """
+        return self.lists.get(list_num)
+    
+    def get_layout_from_stack(self, index: int) -> KeyboardLayout | None:
+        """Get a layout from the stack by index (1-based, where 1 is newest).
+        """
+        item = self.get_stack_item(index)
+        return item.layout if item else None
+    
+    def get_layout_from_list(self, list_num: int, layout_index: int) -> KeyboardLayout | None:
+        """Get a layout from a numbered list.
+        """
+        layout_list = self.get_list(list_num)
+        if not layout_list:
+            return None
+        if layout_index < 1 or layout_index > len(layout_list.layouts):
+            return None
+        return layout_list.layouts[layout_index - 1]
+    
+    def get_all_list_numbers(self) -> list[int]:
+        """Get all list numbers in sorted order."""
+        return sorted(self.lists.keys())
+    
+    def stack_size(self) -> int:
+        """Get the size of the stack."""
+        return len(self.stack)
+
+
 class JaloShell(cmd.Cmd):
     """Interactive shell for exploring keyboard layouts."""
 
@@ -93,9 +185,9 @@ class JaloShell(cmd.Cmd):
         super().__init__()
         self.config_path = config_path or Path(__file__).resolve().with_name("config.toml")
 
-        # keep a sorted list of the top generated layouts by score
-        self.layouts_memory = []
+        self.memory = LayoutMemoryManager()
         self.model_for_hardware = {}
+        self.current_command = ""  # Will be set by precmd before each command
         
         self._load_settings()
 
@@ -109,6 +201,15 @@ class JaloShell(cmd.Cmd):
 
         self._load_objective(self.objective)
         self.pinned_chars = []
+
+    def precmd(self, line: str) -> str:
+        """Called before each command is executed. Save the command line."""
+        self.current_command = line.strip()
+
+        # remove comments (non-escaped # and everything after)
+        line = re.sub(r'(?<!\\)#.*', '', line)
+
+        return line
 
     def _load_settings_str(self):
         return "\n".join([
@@ -173,21 +274,6 @@ class JaloShell(cmd.Cmd):
             self._warn("usage: analyze <keyboard>")
             return
 
-        # header = [layouts[0].name, layouts[0].hardware.name]
-        # layout_str = str(layouts[0])
-        # hardware_str = layouts[0].hardware.str(show_finger_numbers=True, show_stagger=True)
-
-        # # annoyingly, tabulate removes leading spaces and in this case screws up the formating of layouts
-        # # so adding a leading character
-        # LEAD_SPACE = "| "
-        # rows = zip(
-        #     [LEAD_SPACE + l for l in layout_str.split('\n')], 
-        #     [LEAD_SPACE + l for l in hardware_str.split('\n')]
-        # )
-
-        # self._info('')
-        # self._info(tabulate(rows, headers=header, tablefmt="simple", disable_numparse=True))
-        # self._info('')
         self.do_show(arg)
         self._info(self._tabulate_analysis(layouts))
 
@@ -305,10 +391,11 @@ class JaloShell(cmd.Cmd):
         optimizer = Optimizer(self.model, population_size=100)
         optimizer.generate(char_seq=char_seq, seeds=seeds)
         
-        self._layout_memory_from_optimizer(optimizer)
+        list_num = self._layout_memory_from_optimizer(optimizer, push_to_stack=False)
 
         self._info(f'')
-        self._info(self._layout_memory_to_str())
+        # Show the newly created list
+        self._info(self._layout_memory_to_str(list_num=list_num))
 
 
 
@@ -321,8 +408,11 @@ class JaloShell(cmd.Cmd):
             "`improve` does the opposite, producing layouts that are within a maximum distance. So these are complementary steps, "
             "with `generate` providing large coarse grained cuts, and `improve` refining it further, and finally `polish` helping with the final "
             "few swaps.",
-            argument_name_description=[("keyboard", "<keyboard>", "the keyboard layout to improve, can be a layout name or the index of a layout in memory.")],
-            examples=["0", "qwerty"],
+            argument_name_description=[
+                ("keyboard", "<keyboard>", "the keyboard layout to improve, can be a layout name or the index of a layout in memory."),
+                ("seeds", "[seeds=10]", "the number of random seeds to generate, default is 10."),
+            ],
+            examples=["0", "qwerty", "hdpm 100"],
         )
         
     def complete_improve(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
@@ -332,6 +422,10 @@ class JaloShell(cmd.Cmd):
         """editing: try to improve the score of a given layout (neighboring layouts)"""
         args = self._split_args(arg)
 
+        if not args:
+            self._warn("usage: improve <keyboard> [seeds=10]")
+            return
+
         layouts = self._parse_keyboard_names(args[0])
         if layouts is None or len(layouts) != 1:
             self._warn("usage: improve <keyboard>")
@@ -339,34 +433,31 @@ class JaloShell(cmd.Cmd):
 
         if len(args) > 1:
             try:
-                iterations = int(args[1])
+                seeds = int(args[1])
             except ValueError:
-                self._warn("iterations must be an integer: improve <keyboard> [iterations=10]")
+                self._warn("iterations must be an integer: improve <keyboard> [seeds=10]")
                 return
         else:
-            iterations = 10
-        
+            seeds = 10
+
+
+        self._info(f"improving {layouts[0].name} with {seeds} seeds.")
+
         layout = layouts[0]
-        
         model = self._get_model(layout)
-        original_char_at_pos = model.char_at_positions_from_layout(layout)
-        pinned_positions = model.pinned_positions_from_layout(layout, self.pinned_chars)
-        char_at_pos = original_char_at_pos.copy()
-        original_score = model.score_chars_at_positions(char_at_pos)
 
-        self._info(f"improving {layout.name} {original_score*100:.3f}...")
+        optimizer = Optimizer(model, population_size=100, solver = 'annealing')
+        optimizer.improve(
+            char_at_pos=tuple(model.char_at_positions_from_layout(layout)), 
+            seeds=seeds,
+            hamming_distance_threshold=1
+        )
         
-        optimizer = Optimizer(model, population_size=10)
-        optimizer.optimize(char_at_pos, iterations=iterations, pinned_positions=pinned_positions)
-
-        if len(optimizer.population) == 0:
-            self._warn("no improvement found, no layouts added to memory")
-            return
-
-        self._layout_memory_from_optimizer(optimizer, original_layout=layout)
+        list_num = self._layout_memory_from_optimizer(optimizer, original_layout=layout, push_to_stack=False)
 
         self._info(f'')
-        self._info(self._layout_memory_to_str(original_score=original_score))
+        # Show the newly created list
+        self._info(self._layout_memory_to_str(list_num=list_num))
 
 
 
@@ -441,9 +532,24 @@ class JaloShell(cmd.Cmd):
         """editing: mirrors a keyboard layout horizontally"""
         args = self._split_args(arg)
 
-        self._warn("mirror not implemented yet")
-        # TODO
+        if len(args) != 1:
+            self._warn("usage: mirror <keyboard>")
+            return
 
+        layouts = self._parse_keyboard_names(args[0])
+        if layouts is None or len(layouts) != 1:
+            self._warn("usage: mirror <keyboard>")
+            return
+        
+        layout = layouts[0]
+        model = self._get_model(layout)
+
+        mirrored_layout = layout.mirror()
+
+        self._push_layout_to_stack(mirrored_layout, layout)
+
+        self._info(f'')
+        self._info(self._layout_memory_to_str(list_num=0, top_n=1))
 
     def help_pin(self) -> None:
         self._command_help(
@@ -484,27 +590,63 @@ class JaloShell(cmd.Cmd):
 
 
 
-    def help_memory(self) -> None:
+    def help_list(self) -> None:
         self._command_help(
-            command="memory",
-            description="Shows the best N layouts in memory, that is, the lowest scores based on the current objective (see `help objective`).",
-            argument_name_description=[("N", "[N=10]", "the number of layouts to show, default is 10.")],
-            examples=["", "100"],
+            command="list",
+            description="Lists layouts in memory. Called with no arguments, shows available lists and top 3 layouts from the stack. Called with a list number, shows layouts from that list. Called with two arguments, the second is the number of layouts to show.",
+            argument_name_description=[
+                ("list_num", "[<list_num>]", "the list number to show (0 for stack, >0 for numbered lists). If omitted, shows all lists and top 3 from stack."),
+                ("count", "[<count>=10]", "the number of layouts to show, default is 10 for numbered lists, 3 for stack when no arguments.")
+            ],
+            examples=["", "0", "1", "2 5"],
         )
 
-    def do_memory(self, arg: str) -> None: # pyright: ignore[reportArgumentType, reportUnusedParameter]
-        """editing: shows the best layouts that are loaded in memory"""
+    def do_list(self, arg: str) -> None: # pyright: ignore[reportArgumentType, reportUnusedParameter]
+        """editing: lists layouts in memory"""
         args = self._split_args(arg)
-        if len(args) > 0:
+        
+        if len(args) == 0:
+            # No arguments: list available lists, then top 3 from stack
+            self._info("Available lists:")
+            if self.memory.stack_size() > 0:
+                self._info(f"  stack: {self.memory.stack_size()} layouts")
+            else:
+                self._info("  stack: (empty)")
+            
+            list_numbers = self.memory.get_all_list_numbers()
+            if list_numbers:
+                for list_num in list_numbers:
+                    layout_list = self.memory.get_list(list_num)
+                    if layout_list:
+                        count = len(layout_list.layouts)
+                        self._info(f"  {list_num}: {count} layouts  > {layout_list.command}")
+            else:
+                self._info("  (no numbered lists)")
+            
+            self._info("")
+            self._info("Top 3 layouts from stack:")
+            self._info(self._layout_memory_to_str(list_num=0, top_n=3))
+            return
+        
+        # Parse list number
+        try:
+            list_num = int(args[0])
+        except ValueError:
+            self._warn(f"list number must be an integer: list [<list_num>] [<count>]")
+            return
+        
+        # Parse count (default: 10 for numbered lists, 3 for stack)
+        if len(args) > 1:
             try:
-                N = int(args[0])
+                count = int(args[1])
             except ValueError:
-                self._warn("N must be an integer: memory [N=10]")
+                self._warn(f"count must be an integer: list [<list_num>] [<count>]")
                 return
         else:
-            N = 10
-
-        self._info(self._layout_memory_to_str(top_n=N))
+            count = 10 if list_num > 0 else 3
+        
+        # Show the requested list
+        self._info(self._layout_memory_to_str(list_num=list_num, top_n=count))
 
 
 
@@ -730,7 +872,7 @@ class JaloShell(cmd.Cmd):
     def _parse_keyboard_names(self, arg: str) -> list[KeyboardLayout] | None:
         names = self._split_args(arg)
         if len(names) < 1:
-            self._warn("usage: compare <keyboard> [<keyboard>...]")
+            self._warn("specify at least one keyboard layout")
             return None
 
         layouts = []
@@ -738,66 +880,156 @@ class JaloShell(cmd.Cmd):
         for name in names:
             layout = None
             
-            # Try to interpret as an int index into self.layout_memory
+            # Try to parse as memory reference: "1.2" (list 1, layout 2) or "3" (stack layout 3)
+            if '.' in name:
+                # Format: list_num.layout_idx (e.g., "1.2")
+                try:
+                    parts = name.split('.')
+                    if len(parts) != 2:
+                        raise ValueError("Invalid format")
+                    list_num = int(parts[0])
+                    layout_idx = int(parts[1])
+                    
+                    layout = self.memory.get_layout_from_list(list_num, layout_idx)
+                    if layout is None:
+                        layout_list = self.memory.get_list(list_num)
+                        if layout_list is None:
+                            self._warn(f"No list {list_num} found.")
+                        else:
+                            self._warn(f"No layout {name} found in list {list_num} (has {len(layout_list.layouts)} layouts).")
+                        return None
+                    
+                    layouts.append(layout)
+                    continue
+                except ValueError:
+                    pass  # Not a memory reference, try other formats
+            else:
+                # Try as stack reference: single integer (e.g., "3")
+                try:
+                    stack_idx = int(name)
+                    layout = self.memory.get_layout_from_stack(stack_idx)
+                    if layout is None:
+                        if self.memory.stack_size() == 0:
+                            self._warn(f"No layouts in stack, so cannot retrieve '{name}'. Use 'generate', 'improve', or retrieve by name from ./layouts/.")
+                        else:
+                            self._warn(f"No layout {name} found in stack (has {self.memory.stack_size()} layouts).")
+                        return None
+                    
+                    layouts.append(layout)
+                    continue
+                except ValueError:
+                    pass  # Not an int, try loading by name
+
+            # Try loading by name from file
             try:
-                idx = int(name)
-                if not self.layouts_memory:
-                    self._warn(f"No layouts in memory, so cannot retrieve '{name}'. Use 'generate', 'improve', or retrieve by name from ./layouts/.")
-                    return None
-                if 0 <= idx < len(self.layouts_memory):
-                    layouts.append(self.layouts_memory[idx])
+                # check if layout specifies the hardware
+                hardware_name_hint = KeyboardLayout.hardware_hint(name)
+            
+            except FileNotFoundError as e:
+                self._warn(f"could not find layout in: {e.filename}")
+                return None
+
+            if hardware_name_hint:
+                for hardware in self.model_for_hardware:
+                    if hardware.name == hardware_name_hint:
+                        break
                 else:
-                    self._warn(f"No layout found with index {idx} in memory of {len(self.layouts_memory)} layouts")
-                    return None
+                    hardware = None
+            else:
+                # no hint found, try the default hardware
+                hardware = self.model.hardware
 
-            except ValueError:
-                # Not an int, try loading by name
+            try:
+                layouts.append(KeyboardLayout.from_name(name, hardware))
 
-                try:
-                    # check if layout specifies the hardware
-                    hardware_name_hint = KeyboardLayout.hardware_hint(name)
-                
-                except FileNotFoundError as e:
-                    self._warn(f"could not find layout in: {e.filename}")
-                    return None
-
-                if hardware_name_hint:
-                    for hardware in self.model_for_hardware:
-                        if hardware.name == hardware_name_hint:
-                            break
-                    else:
-                        hardware = None
-                else:
-                    # no hint found, try the default hardware
-                    hardware = self.model.hardware
-
-                try:
-                    layouts.append(KeyboardLayout.from_name(name, hardware))
-
-                except Exception as e:
-                    self._warn(f"could not parse layout: {e}")
-                    return None
+            except Exception as e:
+                self._warn(f"could not parse layout: {e}")
+                return None
 
         return layouts
 
-    def _layout_memory_to_str(self, original_score: float | None = None, top_n: int = 10) -> str:
-        res = []
-        for li,layout in enumerate(self.layouts_memory[:top_n]):
-            score = self._get_model(layout).score_layout(layout)
-            if original_score is None:
-                original_score = score
-            delta = score - original_score
-            layout_str = f"layout {li} {score*100:.3f} {delta*100:.3f}\n"
-            layout_str += f'{layout}\n'
-            res.append(layout_str)
+    def _layout_memory_to_str(self, list_num: int | None = None, top_n: int = 10) -> str:
+        """Format layouts from memory as a string.
         
-        return '\n'.join(res)
+        Args:
+            list_num: List number (None for stack, 0 for stack explicitly, >0 for numbered list)
+            top_n: Number of layouts to show
+        """
+        if list_num is None or list_num == 0:
+            # Show stack
+            items = self.memory.stack[:top_n]
+            if not items:
+                return "No layouts found."
+            
+            res = []
+            for li, item in enumerate(items):
+                layout = item.layout
+                score = self._get_model(layout).score_layout(layout)
+                original_score = self._get_model(item.original_layout).score_layout(item.original_layout) if item.original_layout else None
+                delta_str = f" ({(score - original_score)*100:.3f})" if original_score is not None else ''
+                
+                layout_num = str(li + 1)  # Stack: 1, 2, 3...
+                layout_str = f"layout {layout_num} {score*100:.3f}{delta_str}  > {item.command}\n"
+                layout_str += f'{layout}\n'
+                res.append(layout_str)
+            
+            return '\n'.join(res)
+        else:
+            # Show numbered list
+            layout_list = self.memory.get_list(list_num)
+            if not layout_list:
+                return f"No list {list_num} found."
+            
+            layouts = layout_list.layouts[:top_n]
+            if not layouts:
+                return "No layouts found."
+            
+            res = [f"layout list {list_num} > {layout_list.command}", ""]
+            for li, layout in enumerate(layouts):
+                score = self._get_model(layout).score_layout(layout)
+                original_score = self._get_model(layout_list.original_layout).score_layout(layout_list.original_layout) if layout_list.original_layout else None
+                delta_str = f" ({(score - original_score)*100:.3f})" if original_score is not None else ''
+                
+                layout_num = f"{list_num}.{li + 1}"  # Numbered: 1.1, 1.2, ...
+                layout_str = f"layout {layout_num} {score*100:.3f}{delta_str}\n"
+                layout_str += f'{layout}\n'
+                res.append(layout_str)
+            
+            return '\n'.join(res)
 
-    def _layout_memory_from_optimizer(self, optimizer: Optimizer, original_layout: KeyboardLayout | None = None):
-        self.layouts_memory = []
+    def _layout_memory_from_optimizer(self, optimizer: Optimizer, original_layout: KeyboardLayout | None = None, push_to_stack: bool = False) -> int | None:
+        """Add layouts from optimizer to memory.
+        
+        Args:
+            optimizer: The optimizer containing the layouts
+            original_layout: Original layout if applicable
+            push_to_stack: If True, push to stack (list 0). If False, create a new numbered list.
+            
+        Returns:
+            The list number if a new list was created, None if pushed to stack
+        """
+        layouts = []
         for i, new_char_at_pos in enumerate(optimizer.population.sorted()[:10]):
-            new_layout = optimizer.model.layout_from_char_at_positions(new_char_at_pos, original_layout=original_layout, name = f'{i}')
-            self.layouts_memory.append(new_layout)
+            new_layout = optimizer.model.layout_from_char_at_positions(new_char_at_pos, original_layout=original_layout, name = f'')
+            layouts.append(new_layout)
+        
+        if push_to_stack:
+            # Push each layout to stack individually
+            for layout in layouts:
+                self.memory.push_to_stack(layout, self.current_command, original_layout)
+            return None
+        else:
+            # Create a new numbered list
+            return self.memory.add_list(layouts, self.current_command, original_layout)
+    
+    def _push_layout_to_stack(self, layout: KeyboardLayout, original_layout: KeyboardLayout | None = None) -> None:
+        """Push a single layout to the stack (list 0).
+        
+        Args:
+            layout: The layout to push to the stack
+            original_layout: The original layout if one was given as argument
+        """
+        self.memory.push_to_stack(layout, self.current_command, original_layout)
 
 
     def _tabulate_analysis(self, layouts: List[KeyboardLayout], show_contributions: bool = False) -> str:
@@ -824,7 +1056,7 @@ class JaloShell(cmd.Cmd):
             0: metric value
             1: comparison indicator
             2: contributions indicator
-            3: top n-gram indicator
+            3: top n-grams
             '''
             res = [cols[0]]
 
@@ -858,6 +1090,7 @@ class JaloShell(cmd.Cmd):
                 cum_len += len(item) + len(SEP)
 
             return SEP.join(res)
+
 
         top_ngram_str = {
             layout: {

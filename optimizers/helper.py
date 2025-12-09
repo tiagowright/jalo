@@ -198,6 +198,8 @@ def _position_swapping(
     c) annealing (temperature > 0), then check all swaps
     and accept only the best one, if it improves the score
     or if it clears the annealing criteria for the temperature
+
+    returns chart_at_pos, score, uphill_delta
     '''
 
     original_score = score
@@ -282,6 +284,8 @@ def _column_swapping(
     c) annealing (temperature > 0), then check all swaps
     and accept only the best one, if it improves the score
     or if it clears the annealing criteria for the temperature
+
+    returns chart_at_pos, score, uphill_delta
     '''
 
     original_score = score

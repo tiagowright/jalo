@@ -185,7 +185,7 @@ def lsb(a, b):
 
 # row skip
 def rowskip(a, b):
-    return abs(a.row - b.row) > 1 and same_hand(a, b)
+    return abs(a.row - b.row) > 1 and same_hand(a, b) and a.finger.type != FingerType.THUMB and b.finger.type != FingerType.THUMB
 
 def scissors_oxeylyzer_mode(a, b):
     '''
@@ -202,6 +202,9 @@ def scissors_oxeylyzer_mode(a, b):
             (a.finger.type == FingerType.RING and b.finger.type == FingerType.PINKY and a.row > b.row)
         ):
             return True
+        return False
+
+    if not same_hand(a, b):
         return False
 
     if a.finger.type.value > b.finger.type.value:
@@ -270,12 +273,18 @@ def scissors(a, b):
     The middle prefers being higher.
     The ring prefers being higher than index and pinky, but lower than the middle.
     The pinky prefers being lower than middle and ring, but higher than index.
+    (implied: no scissors on thumbs)
     '''
+
+    if a.finger.type == FingerType.THUMB or b.finger.type == FingerType.THUMB:
+        return False
+
+    if not same_hand(a, b):
+        return False
 
     if oxeylyzer_mode:
         return scissors_oxeylyzer_mode(a, b)
 
-        
     if not rowskip(a, b):
         if same_hand(a,b) and (
             (a.finger.type == FingerType.PINKY and b.finger.type == FingerType.RING and a.row > b.row) or

@@ -381,6 +381,133 @@ class Optimizer:
             for center_idx in center_idxs:
                 self.population.push(population[sorted_layouts[center_idx]], sorted_layouts[center_idx])
 
+
+    def improve(
+        self, 
+        char_at_pos: tuple[int, ...], 
+        seeds:int = 100, 
+        pinned_positions: tuple[int, ...] = (),
+        hamming_distance_threshold: int = 10
+    ):
+        '''
+        generates optimized layouts that are similar to the one provided
+
+        all layouts that are added to the population will be within the hamming distance specified from the original layout.
+        
+        this method complements `generate`: while `generate` provides only the center of a cluster and maximizes the number
+        of clusters, `improve` provides only layouts that would be considered part of the same cluster as the one given in the
+        argument.
+        '''
+
+        # to stay at most hamming_distance_threshold from the center, we'll go half way out for each seed
+        positions_to_shuffle = hamming_distance_threshold // 2
+
+        # map unpinned positions
+        upi = 0
+        upi_at_pi = {}
+        for pi in range(len(self.model.hardware.positions)):
+            if pi in pinned_positions:
+                continue
+            upi_at_pi[pi] = upi
+            upi += 1
+
+        unpinned_chars = list([char_at_pos[pi] for pi in upi_at_pi.keys()])
+            
+        # create random seeds, maintaining pinned positions
+        initial_positions = []
+        for _ in range(seeds):
+
+            # shuffle only positions_to_shuffle indexes
+            idxs = random.sample(range(len(unpinned_chars)), positions_to_shuffle)
+            shuffled_chars = [unpinned_chars[i] for i in idxs]
+            random.shuffle(shuffled_chars)
+            shuffled_unpined_chars = unpinned_chars.copy()
+            for i, v in zip(idxs, shuffled_chars):
+                shuffled_unpined_chars[i] = v
+
+            initial_positions.append(tuple(
+                shuffled_unpined_chars[upi_at_pi[pi]] if pi in upi_at_pi else char_at_pos[pi]
+                for pi in range(len(char_at_pos))
+            ))
+
+        initial_population = {
+            initial_position: self.model.score_chars_at_positions(initial_position)
+            for initial_position in initial_positions
+        }
+
+        print(f"initial_population:")
+        for initial_position, score in initial_population.items():
+            dist = hamming_distance(initial_position, char_at_pos)
+            print(f"{dist} {score}")
+        print(f"--")
+
+        # update swap_position_pairs, pis_at_column, group_of_pis_at_column to exclude pinned positions
+        swap_position_pairs = tuple(
+            (i, j) for i, j in self.swap_position_pairs if i not in pinned_positions and j not in pinned_positions
+        )
+        pis_at_column = tuple(
+            pis for pis in self.pis_at_column if not any(pi in pinned_positions for pi in pis)
+        )
+
+        order_1, order_2, order_3 = self._get_FV()
+
+        batch_size = math.ceil(len(initial_positions) / (os.cpu_count() or 1))
+        batches = [initial_positions[i:i+batch_size] for i in range(0, len(initial_positions), batch_size)]
+
+        manager = multiprocessing.Manager()
+        progress_queue = manager.Queue()
+        total_jobs = len(initial_positions)
+
+
+        tasks = [
+            (
+                initial_positions_batch,
+                tuple(initial_population[initial_position] for initial_position in initial_positions_batch),
+                order_1,
+                order_2,
+                order_3,
+                swap_position_pairs,
+                pis_at_column,
+                progress_queue,
+                self.population.max_size,
+                OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population),
+                self.solver_args
+            )
+            for i, initial_positions_batch in enumerate(batches)
+        ]
+
+        with multiprocessing.Pool() as pool:
+            results_async = pool.map_async(self.optimizer_function, tasks)
+            
+            with tqdm(total=total_jobs, desc="Improving") as pbar:
+                while not results_async.ready():
+                    try:
+                        # Check for progress updates without blocking
+                        if pbar.n < total_jobs:
+                            progress_queue.get(timeout=0.1)
+                            pbar.update(1)
+                    except queue.Empty:
+                        # timeout on get, continue loop
+                        pass
+                
+                # update with any remaining items in the queue
+                while not progress_queue.empty():
+                    try:
+                        progress_queue.get_nowait()
+                        pbar.update(1)
+                    except queue.Empty:
+                        break
+
+            # get results and update population
+            results = results_async.get()
+            for result_batch in results:
+                for new_char_at_pos, score in result_batch.items():
+                    dist = hamming_distance(new_char_at_pos, char_at_pos)
+                    print(f"{dist} {score}")
+                    if hamming_distance(new_char_at_pos, char_at_pos) <= hamming_distance_threshold:
+                        self.population.push(score, new_char_at_pos)
+
+
                         
 
     def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.01, iterations:int = 20, pinned_positions: tuple[int, ...] = ()):
