@@ -26,7 +26,7 @@ from objective import ObjectiveFunction
 from hardware import KeyboardHardware
 from optim import Optimizer
 from memory import LayoutMemoryManager
-from textui import (
+from formatting import (
     format_analysis_table,
     format_command_help,
     format_help_summary,

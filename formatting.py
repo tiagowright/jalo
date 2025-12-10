@@ -268,8 +268,7 @@ def format_layout_memory(
             original_score = score_fn(item.original_layout) if item.original_layout else None
             delta_str = f" ({(score - original_score)*100:.3f})" if original_score is not None else ''
             
-            layout_num = str(li + 1)  # Stack: 1, 2, 3...
-            layout_str = f"layout {layout_num} {score*100:.3f}{delta_str}  > {item.command}\n"
+            layout_str = f"layout {layout.name} {score*100:.3f}{delta_str}  > {item.command}\n"
             layout_str += f'{layout}\n'
             res.append(layout_str)
         
