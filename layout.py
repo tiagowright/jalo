@@ -211,8 +211,31 @@ class KeyboardLayout:
 
         return cls(keys, hardware, name)
 
+    def swap(self, char_pairs: list[tuple[str, str]], new_name: str = '') -> 'KeyboardLayout':
+        '''
+        returns a new layout that is the result of swapping the positions of the given character pairs
+        '''        
+        new_name = new_name or f'{self.name} swapped'
 
-    def mirror(self, mirrored_name = ''):
+        map_positions = {}
+        for char1, char2 in char_pairs:
+            if char1 not in self.char_to_key:
+                raise ValueError(f"Character {char1} not found in layout")
+            if char2 not in self.char_to_key:
+                raise ValueError(f"Character {char2} not found in layout")
+
+            map_positions[self.char_to_key[char1].position] = self.char_to_key[char2].position
+            map_positions[self.char_to_key[char2].position] = self.char_to_key[char1].position
+        
+        return KeyboardLayout(
+            [
+                LayoutKey.from_position(map_positions.get(key.position, key.position), key.char)
+                for key in self.keys
+            ],
+            self.hardware, new_name
+        )
+
+    def mirror(self, mirrored_name = '') -> 'KeyboardLayout':
         '''
         returns a new layout that is the result of mirroring this layout
 

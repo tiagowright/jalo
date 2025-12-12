@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional, Sequence
 from tabulate import tabulate
 
 from layout import KeyboardLayout
-from memory import LayoutMemoryManager, StackItem
+from memory import LayoutMemoryManager
 
 
 def format_table(
@@ -257,36 +257,42 @@ def format_layout_memory(
     """
     if list_num is None or list_num == 0:
         # Show stack
-        items = memory.get_stack_items(top_n)
-        if not items:
+        if len(memory.stack) == 0:
             return "No layouts found."
         
+        layouts = memory.stack
+        top_n_actual = min(top_n, len(layouts))
+        items_to_show = layouts[-top_n_actual:]
+        metadata_to_show = memory.stack_metadata[-top_n_actual:]
+        
         res = []
-        for li, item in enumerate(items):
-            layout = item.layout
+        for li, (layout, metadata) in enumerate(zip(items_to_show, metadata_to_show)):
             score = score_fn(layout)
-            original_score = score_fn(item.original_layout) if item.original_layout else None
+            original_score = score_fn(metadata.original_layout) if metadata.original_layout else None
             delta_str = f" ({(score - original_score)*100:.3f})" if original_score is not None else ''
             
-            layout_str = f"layout {layout.name} {score*100:.3f}{delta_str}  > {item.command}\n"
+            layout_str = f"layout {layout.name} {score*100:.3f}{delta_str}  > {metadata.command}\n"
             layout_str += f'{layout}\n'
             res.append(layout_str)
         
         return '\n'.join(res)
     else:
         # Show numbered list
-        layouts = memory.get_list_layouts(list_num, top_n)
-        if layouts is None:
+        if list_num not in memory.lists:
             return f"No list {list_num} found."
         
+        layouts = memory.lists[list_num].layouts
         if not layouts:
             return "No layouts found."
         
-        command = memory.get_list_command(list_num) or ""
-        res = [f"layout list {list_num} > {command}", ""]
-        original_layout = memory.get_list_original_layout(list_num)
+        top_n_actual = min(top_n, len(layouts))
+        layouts_to_show = layouts[:top_n_actual]
         
-        for li, layout in enumerate(layouts):
+        command = memory.lists[list_num].command or ""
+        res = [f"layout list {list_num} > {command}", ""]
+        original_layout = memory.lists[list_num].original_layout
+        
+        for li, layout in enumerate(layouts_to_show):
             score = score_fn(layout)
             original_score = score_fn(original_layout) if original_layout else None
             delta_str = f" ({(score - original_score)*100:.3f})" if original_score is not None else ''
@@ -423,28 +429,19 @@ def format_metrics_table(
 
 
 def format_help_summary(
-    commands: list[tuple[str, str]],
+    headers: list[str],
     sections: dict[str, list[tuple[str, str]]],
     width: int = 70,
 ) -> str:
-    """Format the general help summary showing all commands grouped by category.
-    
-    Args:
-        commands: List of (command_name, docstring) tuples
-        sections: Dictionary mapping section names to lists of (command_name, description) tuples
-        width: Maximum column width
-        
-    Returns:
-        Formatted help summary
-    """
+    """Format the general help summary showing all commands grouped by category.    """
     lines = [
         "",
         "Type `help <command>` to get help on a specific command.",
         ""
     ]
     
-    for section_name in sections:
-        if not sections[section_name]:
+    for section_name in headers:
+        if section_name not in sections or not sections[section_name]:
             continue
         lines.append(f"\n{section_name}:")
         lines.append(textwrap.indent(
