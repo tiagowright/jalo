@@ -31,6 +31,7 @@ def improve_batch(
     logger: OptimizerLogger,
     center_char_at_pos: tuple[int, ...] | None,
     max_distance: int | None,
+    min_distance: int | None,
     solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
@@ -53,6 +54,7 @@ def improve_batch(
             char_at_pos,
             center_char_at_pos,
             max_distance,
+            min_distance,
             initial_score,
             params.tolerance,
             order_1,

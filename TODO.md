@@ -1,22 +1,18 @@
 # FIX
-* `improve`
+* polish ignores pins
 
-* rerun genetic tuning!!
+* doesn't work, moves the vowels some how
+pin r a e i o u
+generate 100 hdpm
+
 
 # Genetic algorithm improvement ideas
 * Consider multi-child generations, not just 1 child per loop.
 * annealing for the most promising children some times
 * Add some diversity preservation (duplicate filtering or crowding)
 
-# Fixes
-* fix the failing test_optim
-
 
 # Features
-* jalo analyze to show high freq ngram for each metric
-* jalo `show` to just visualize the design
-* jalo KEPL memory management for many layouts
-
 
 * keygen metrics
 * carpalx metrics

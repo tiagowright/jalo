@@ -144,6 +144,7 @@ def improve_batch(
     logger: OptimizerLogger,
     center_char_at_pos: tuple[int, ...] | None,
     max_distance: int | None,
+    min_distance: int | None,
     solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
@@ -184,6 +185,7 @@ def improve_batch(
             char_at_pos, 
             center_char_at_pos,
             max_distance,
+            min_distance,
             initial_score, 
             args.tolerance, 
             order_1, 
@@ -248,10 +250,6 @@ def improve_batch(
         end = random.randint(start + 1, n)
         child = _pmx_crossover(p1, p2, start, end)
 
-        # assert that child has maintained pinned_positions
-        # assert all(child[i] == p1[i] for i in pinned_positions), f"child {child} has not maintained pinned_positions {pinned_positions}"
-        # assert all(child[i] == p2[i] for i in pinned_positions), f"child {child} has not maintained pinned_positions {pinned_positions}"
-        
         # Optional: small mutation (swap two random positions with low probability)
         if random.random() < args.mutation_rate:
             i, j = random.choice(swap_position_pairs)
@@ -268,6 +266,7 @@ def improve_batch(
             child, 
             center_char_at_pos,
             max_distance,
+            min_distance,
             child_initial_score, 
             args.tolerance, 
             order_1, 

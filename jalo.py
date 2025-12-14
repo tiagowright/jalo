@@ -286,7 +286,7 @@ class JaloShell(cmd.Cmd):
             "If a keyboard layout is provided, it will be used to determine the hardware and to for the location of pinned characters. " 
             "If no keyboard layout is provided, default hardware is used and pinned characters are ignored with a warning.",
         arguments=(
-            CommandArgument("seeds", "[seeds=100]", "the number of random seeds to generate, default is 100. Use 1000 for great results."),
+            CommandArgument("seeds", "[seeds=100]", "the number of random seeds to generate, default is 100, which is enough for most cases."),
             CommandArgument("keyboard", "[<keyboard>]", "the keyboard layout to improve, can be a layout name or the index of a layout in memory."),
         ),
         examples=("", "1000", "100 hdpm"),
@@ -301,7 +301,6 @@ class JaloShell(cmd.Cmd):
             return [suggestion for suggestion in seed_suggestions if suggestion.startswith(text)]
 
         return self._list_keyboard_names(text)
-
 
     def do_generate(self, arg: str) -> None:
         args = self._split_args(arg)
@@ -334,7 +333,7 @@ class JaloShell(cmd.Cmd):
 
         self._info(f"generating {seeds} seeds.")
 
-        optimizer = Optimizer(model, population_size=100)
+        optimizer = Optimizer(model, population_size=100, solver='genetic')
 
         if layout is not None:
             optimizer.generate(
@@ -365,9 +364,9 @@ class JaloShell(cmd.Cmd):
         "few swaps.",
         arguments=(
             CommandArgument("keyboard", "<keyboard>", "the keyboard layout to improve, can be a layout name or the index of a layout in memory."),
-            CommandArgument("seeds", "[seeds=10]", "the number of random seeds to generate, default is 10."),
+            CommandArgument("seeds", "[seeds=100]", "the number of random seeds to generate, default is 100, which is enough for most cases."),
         ),
-        examples=("0", "qwerty", "hdpm 100"),
+        examples=("0", "qwerty", "hdpm 200"),
         category="editing",
         short_description="try to improve the score of a given layout (neighboring layouts)",
     )
@@ -377,14 +376,14 @@ class JaloShell(cmd.Cmd):
         if arg_num is None or arg_num <= 1:
             return self._list_keyboard_names(text)
 
-        seed_suggestions = ['10', '20', '100', '1000']
+        seed_suggestions = ['10', '20', '100', '200', '1000']
         return [suggestion for suggestion in seed_suggestions if suggestion.startswith(text)]
 
     def do_improve(self, arg: str) -> None:
         args = self._split_args(arg)
 
         if not args:
-            self._warn("usage: improve <keyboard> [seeds=10]")
+            self._warn("usage: improve <keyboard> [seeds=100]")
             return
 
         layouts = self._parse_keyboard_names(args[0])
@@ -396,10 +395,10 @@ class JaloShell(cmd.Cmd):
             try:
                 seeds = int(args[1])
             except ValueError:
-                self._warn("iterations must be an integer: improve <keyboard> [seeds=10]")
+                self._warn("iterations must be an integer: improve <keyboard> [seeds=100]")
                 return
         else:
-            seeds = 10
+            seeds = 100
 
 
         self._info(f"improving {layouts[0].name} with {seeds} seeds.")
@@ -796,9 +795,12 @@ class JaloShell(cmd.Cmd):
         short_description="save new layouts from memory to a new file",
     )
 
+    def complete_save(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
+        return self._list_keyboard_names(text)
+
     def do_save(self, arg: str) -> None:
         args = self._split_args(arg)
-        layouts = self._parse_keyboard_names(arg[0])
+        layouts = self._parse_keyboard_names(args[0])
         if layouts is None or len(layouts) != 1:
             self._warn("usage: save <keyboard> [<name>]")
             return

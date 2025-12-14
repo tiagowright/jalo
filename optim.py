@@ -105,7 +105,7 @@ class Optimizer:
     def __init__(
         self, 
         model: KeyboardModel, 
-        population_size: int = 1000, 
+        population_size: int = 300, 
         solver: str = "genetic", 
         log_runs: bool = False, 
         log_events: bool = False, 
@@ -261,6 +261,7 @@ class Optimizer:
                 OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population),
                 None,  # center_char_at_pos
                 None,  # max_distance
+                hamming_distance_threshold,  # min_distance
                 self.solver_args
             )
             for i, initial_positions_batch in enumerate(batches)
@@ -296,7 +297,7 @@ class Optimizer:
                     population[new_char_at_pos] = score
 
             sorted_layouts = sorted(population.keys(), key=lambda x: population[x])
-            center_idxs = helper.hamming_distance_cluster_centers(sorted_layouts, hamming_distance_threshold)
+            center_idxs = helper.hamming_distance_cluster_centers(sorted_layouts[:self.population.max_size], hamming_distance_threshold)
             for center_idx in center_idxs:
                 self.population.push(population[sorted_layouts[center_idx]], sorted_layouts[center_idx])
 
@@ -386,6 +387,7 @@ class Optimizer:
                 OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population),
                 char_at_pos,  # center_char_at_pos
                 hamming_distance_threshold,  # max_distance
+                None,  # min_distance
                 self.solver_args
             )
             for i, initial_positions_batch in enumerate(batches)
@@ -446,35 +448,7 @@ class Optimizer:
             if new_char_at_pos in layout_scores
         }
 
-    def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.01, iterations:int = 20, pinned_positions: tuple[int, ...] = ()):
-        initial_char_at_pos = tuple(int(x) for x in char_at_pos)
-        initial_score = self.model.score_chars_at_positions(initial_char_at_pos)
-        tolerance = score_tolerance * initial_score
 
-        order_1, order_2, order_3 = self._get_FV()
-
-        # Import and use the solver module's _optimize function
-        import importlib
-        full_module_name = f"solvers.{self.solver}"
-        solver_module = importlib.import_module(full_module_name)
-        
-        new_population = solver_module._optimize(
-            initial_char_at_pos,
-            initial_score,
-            tolerance,
-            order_1,
-            order_2,
-            order_3,
-            pinned_positions,
-            self.swap_position_pairs,
-            self.pis_at_column,
-            self.group_of_pis_at_column,
-            iterations,
-            self.solver_args
-        )
-        
-        for new_char_at_pos, score in new_population.items():
-            self.population.push(score, new_char_at_pos)
 
 
     def _get_FV(self) -> tuple[tuple[tuple[np.ndarray, np.ndarray], ...], tuple[tuple[np.ndarray, np.ndarray], ...], tuple[tuple[np.ndarray, np.ndarray], ...]]:
@@ -765,6 +739,10 @@ if __name__ == "__main__":
 
         sorted_population = optimizer.population.sorted()
         top_scores = [model.score_chars_at_positions(char_at_pos) for char_at_pos in sorted_population]
+
+        # assert that top_scores match scores in population.score
+        assert all(abs(score - optimizer.population.scores[char_at_pos]) < 0.001*abs(score) for score, char_at_pos in zip(top_scores, sorted_population))
+
         mean_score = float(np.mean(top_scores))
         stdev_score = float(np.std(top_scores))
 
@@ -773,10 +751,13 @@ if __name__ == "__main__":
 
         if args.log_hamming_clusters:
             cluster_centers = helper.hamming_distance_cluster_centers(sorted_population)
-            all_clusters.append([top_scores[i] for i in cluster_centers])
+            cluster_scores = [top_scores[i] for i in cluster_centers]
+            all_clusters.append(cluster_scores)
 
-        # assert that top_scores match scores in population.score
-        assert all(abs(score - optimizer.population.scores[char_at_pos]) < 0.001*abs(score) for score, char_at_pos in zip(top_scores, optimizer.population.sorted()))
+            # use cluster scores instead of raw top_scores for mean and stdev
+            mean_score = float(np.mean(cluster_scores))
+            stdev_score = float(np.std(cluster_scores))
+
 
         results.append(OptimizerResult(
             name=run.name,

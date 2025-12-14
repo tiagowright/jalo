@@ -33,6 +33,7 @@ def improve_layout(
     char_at_pos: tuple[int, ...], 
     center_char_at_pos: tuple[int, ...] | None,
     max_distance: int | None,
+    min_distance: int | None,
     initial_score: float,
     tolerance: float,
     order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
@@ -71,6 +72,8 @@ def improve_layout(
     The algorithm: For multiple iterations, alternate between finding
     position swaps and whole column swaps, until no further improvement is made in the score
     '''
+
+    assert not (min_distance and max_distance), "specify either min_distance (`generate`) or max_distance (`improve`), not both"
 
     if greedy and T0 > 0:
         raise ValueError("greedy and T0 > 0 is not allowed, use either greedy (with T0=0) or annealing (with T0>0)")
@@ -179,8 +182,12 @@ def improve_layout(
                 uphill_deltas.append(min(pos_uphill_delta, col_uphill_delta))
                 break
     
+    if min_distance is not None and min_distance > 0:
+        sorted_population = sorted(population.keys(), key=lambda x: population[x])
+        cluster_centers = hamming_distance_cluster_centers(sorted_population, min_distance)
+        return {sorted_population[i]: population[sorted_population[i]] for i in cluster_centers}
+    
     return population
-
 
 def _position_swapping(
     char_at_pos: tuple[int, ...], 
@@ -335,17 +342,9 @@ def _column_swapping(
         # compute the score after swapping all positions in col1 and col2    
         col_swapped_char_at_pos = char_at_pos
         swapped_score = score
-        swapped_distance = cached_distances.get(col_swapped_char_at_pos, hamming_distance(col_swapped_char_at_pos, center_char_at_pos))
-        cached_distances[col_swapped_char_at_pos] = swapped_distance
 
         for pi1, pi2 in zip(pis_at_column[col1], selected_pis_at_col2):
             next_swap_char_at_pos = swap_char_at_pos(col_swapped_char_at_pos, pi1, pi2)
-
-            if next_swap_char_at_pos in cached_distances:
-                swapped_distance = cached_distances[next_swap_char_at_pos]
-            else:
-                swapped_distance = hamming_distance(next_swap_char_at_pos, center_char_at_pos)
-                cached_distances[next_swap_char_at_pos] = swapped_distance
 
             if next_swap_char_at_pos in cached_scores:
                 swapped_score = cached_scores[next_swap_char_at_pos]
@@ -357,8 +356,10 @@ def _column_swapping(
 
             col_swapped_char_at_pos = next_swap_char_at_pos
 
-        if max_distance is not None and swapped_distance > max_distance:
-            continue
+        if max_distance is not None:
+            swapped_distance = hamming_distance(col_swapped_char_at_pos, center_char_at_pos)
+            if swapped_distance > max_distance:
+                continue
 
         if swapped_score > score and (swapped_score - score) < best_uphill_delta:
             best_uphill_delta = swapped_score - score
@@ -459,21 +460,99 @@ def hamming_distance_cluster_centers(
     The cluster center is always the lowest score layout not yet clustered; any subsequent
     layouts within `cluster_threshold` Hamming distance are pulled into that cluster.
     """
+
+    def _hamming_leq(char_at_pos_1: tuple[int, ...], char_at_pos_2: tuple[int, ...], max_distance: int) -> bool:
+        """Fast Hamming distance check with early exit."""
+        dist = 0
+        for i, j in zip(char_at_pos_1, char_at_pos_2):
+            if i != j:
+                dist += 1
+                if dist > max_distance:
+                    return False
+        return True
+
+    n = len(sorted_population)
+    if n == 0:
+        return []
+
+    r = cluster_threshold
+    k = len(sorted_population[0])
     centers: list[int] = []
-    clustered: set[int] = set()
 
-    for i in range(len(sorted_population)):
-        if i in clustered:
-            continue
-
-        centers.append(i)
-
-        for j in range(i + 1, len(sorted_population)):
-            if j in clustered:
+    # If r is too large relative to k, partitions won't work (need m=r+1 <= k).
+    # Fall back to the simple O(N^2) implementation.
+    if r <= 0:
+        return list(range(n))
+    if r + 1 > k:
+        clustered: set[int] = set()
+        for i in range(n):
+            if i in clustered:
                 continue
+            centers.append(i)
+            for j in range(i + 1, n):
+                if j in clustered:
+                    continue
+                if hamming_distance(sorted_population[i], sorted_population[j]) <= r:
+                    clustered.add(j)
+        return centers
 
-            dist = hamming_distance(sorted_population[i], sorted_population[j])
-            if dist <= cluster_threshold:
-                clustered.add(j)
+    # Candidate generation via multiple random partitions of positions into (r+1) blocks.
+    # Exact guarantee: if dist(x, y) <= r then for any partition into m=r+1 disjoint blocks,
+    # x and y must match at least one whole block. Multiple partitions reduce false candidates.
+    m = r + 1
+    T = 4  # number of independent partitions (tunable)
+    rng = random.Random(0)
+
+    partitions: list[list[list[int]]] = []
+    for _ in range(T):
+        positions = list(range(k))
+        rng.shuffle(positions)
+        blocks: list[list[int]] = []
+        for j in range(m):
+            s = (j * k) // m
+            e = ((j + 1) * k) // m
+            blocks.append(positions[s:e])
+        partitions.append(blocks)
+
+    # tables[t][j][key] -> list of center indices
+    tables: list[list[dict[tuple[int, ...], list[int]]]] = [
+        [dict() for _ in range(m)] for _ in range(T)
+    ]
+
+    for i, x in enumerate(sorted_population):
+        # Collect candidate centers that match at least one block under any partition.
+        candidates: list[int] = []
+        seen: set[int] = set()
+
+        for t in range(T):
+            blocks = partitions[t]
+            for j, block_positions in enumerate(blocks):
+                key = tuple(x[p] for p in block_positions)
+                bucket = tables[t][j].get(key)
+                if not bucket:
+                    continue
+                for center_id in bucket:
+                    if center_id not in seen:
+                        seen.add(center_id)
+                        candidates.append(center_id)
+
+        covered = False
+        for center_id in candidates:
+            if _hamming_leq(x, sorted_population[center_id], r):
+                covered = True
+                break
+
+        if not covered:
+            centers.append(i)
+            # Insert this new center into all buckets.
+            for t in range(T):
+                blocks = partitions[t]
+                for j, block_positions in enumerate(blocks):
+                    key = tuple(x[p] for p in block_positions)
+                    bucket = tables[t][j].get(key)
+                    if bucket is None:
+                        tables[t][j][key] = [i]
+                    else:
+                        bucket.append(i)
 
     return centers
