@@ -3,9 +3,10 @@ from itertools import combinations
 import numpy as np
 import random
 from typing import Any
+import heapq
 
 from model import _calculate_swap_delta
-from optim import OptimizerLogger
+from logger import OptimizerLogger
 
 
 def swap_char_at_pos(char_at_pos: tuple[int, ...], i: int, j: int) -> tuple[int, ...]:
@@ -352,3 +353,50 @@ def _column_swapping(
     return (score, char_at_pos, best_uphill_delta)
 
 
+def best_swaps(
+    char_at_pos: tuple[int, ...], 
+    score: float, 
+    order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
+    order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
+    order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
+    swap_position_pairs: tuple[tuple[int, int], ...],
+    cached_scores: dict[tuple[int, ...], float],
+    iterations: int,
+    max_depth: int
+) -> tuple[dict[tuple[int, ...], float], dict[tuple[int, ...], tuple[tuple[int, int], ...]]]:
+    '''
+    explore swaps recursively to find the most impactful
+
+    for the given layout, we check every possible swap, then iteratively look for additional possible swaps, up to a depth of max_depth
+
+    return a mapping of layouts to scores, and layouts to swaps taken from char_at_pos
+    '''
+
+    layout_scores = {char_at_pos: score}
+    layout_swaps = {char_at_pos: tuple()}
+    layout_heap = [(score, char_at_pos)]
+    heapq.heapify(layout_heap)
+
+    for _ in range(iterations):
+        score, char_at_pos = heapq.heappop(layout_heap)
+
+        for i, j in swap_position_pairs:
+            swapped_char_at_pos = swap_char_at_pos(char_at_pos, i, j)
+
+            if swapped_char_at_pos in layout_scores:
+                continue
+
+            if swapped_char_at_pos in cached_scores:
+                swapped_score = cached_scores[swapped_char_at_pos]
+            else:
+                delta = _calculate_swap_delta(order_1, order_2, order_3, char_at_pos, i, j, swapped_char_at_pos)  # pyright: ignore[reportArgumentType]
+                swapped_score = score + delta
+                cached_scores[swapped_char_at_pos] = swapped_score
+
+            layout_scores[swapped_char_at_pos] = swapped_score
+            layout_swaps[swapped_char_at_pos] = layout_swaps[char_at_pos] + ((i, j),)
+
+            if len(layout_swaps[swapped_char_at_pos]) < max_depth:
+                heapq.heappush(layout_heap, (swapped_score, swapped_char_at_pos))
+
+    return layout_scores, layout_swaps

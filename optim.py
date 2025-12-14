@@ -15,6 +15,8 @@ from functools import partial
 from model import KeyboardModel
 from freqdist import FreqDist, NgramType
 from hardware import Finger
+from logger import OptimizerLogger
+from solvers import helper
 
 
 class Population:
@@ -96,91 +98,6 @@ def assert_scores(char_at_pos, score, model):
 
 
 
-class OptimizerLogger:
-    '''
-    A logger for an optimizer batch run. Logs events, runs, and population to csv files.
-    '''
-    def __init__(self, optimizer_name: str, batch_name: str, log_runs: bool = True, log_events: bool = True, log_population: bool = True):
-        self.optimizer_name = optimizer_name
-        self.batch_name = batch_name
-        self.log_runs = log_runs
-        self.log_events = log_events
-        self.log_population = log_population
-
-        self.events_filename = f"{self.optimizer_name}_events.csv"
-        self.runs_filename = f"{self.optimizer_name}_runs.csv"
-        self.population_filename = f"{self.optimizer_name}_population.csv"
-
-        self.events = []
-        self.runs = []
-        self.population = {}
-
-    def batch_start(self):
-        self.start_time = time.time()
-
-    def batch_end(self, population):
-        self.end_time = time.time()
-        self.duration = self.end_time - self.start_time
-
-        if self.log_population:
-            self.population = population
-
-    def event(self, seed_id: int, step: int, score: float, msg: str = '') -> None:
-        if not self.log_events:
-            return
-        self.events.append((seed_id, step, score, msg))
-
-    def run(self, seed_id: int, initial_score: float, final_score: float) -> None:
-        if not self.log_runs:
-            return
-        self.runs.append((seed_id, initial_score, final_score))
-
-    def save(self) -> None:
-        if not self.log_events and not self.log_runs and not self.log_population:
-            return
-
-        import fcntl
-        
-        # save events and runs to separate csv files in ./optimizers/logs directory (may need to create it)
-        logs_dir = os.path.join(os.path.dirname(__file__), "optimizers", "logs")
-        if not os.path.exists(logs_dir):
-            os.makedirs(logs_dir)
-        
-        for file_path, header, rows in (
-            (
-                os.path.join(logs_dir, self.events_filename),
-                ["optimizer_name", "batch_name", "seed_id", "step", "score", "msg"],
-                [(self.optimizer_name, self.batch_name, seed_id, step, score, msg) for seed_id, step, score, msg in self.events]
-            ),
-            (
-                os.path.join(logs_dir, self.runs_filename),
-                ["optimizer_name", "batch_name", "seed_id", "initial_score", "final_score"],
-                [(self.optimizer_name, self.batch_name, seed_id, initial_score, final_score) for seed_id, initial_score, final_score in self.runs]
-            ),
-            (
-                os.path.join(logs_dir, self.population_filename),
-                ["optimizer_name", "batch_name", "rank", "score"],
-                [
-                    (self.optimizer_name, self.batch_name, rank, score) 
-                    for rank, (char_at_pos, score) in enumerate(sorted(self.population.items(), key=lambda x: x[1]))
-                ]
-            )
-        ):
-            if not rows:
-                continue
-
-            file_exists = os.path.exists(file_path)
-            with open(file_path, "a+") as f:
-                # using a lock to make this code multiprocessor safe if writing to the same log file
-                fcntl.flock(f, fcntl.LOCK_EX)
-                writer = csv.writer(f, delimiter='\t')
-                if not file_exists:
-                    writer.writerow(header)
-                writer.writerows(rows)
-                fcntl.flock(f, fcntl.LOCK_UN)
-
-
-
 class Optimizer:
     '''
     An optimizer that generates layouts using a solver. Handles multiprocessing, logging, and population management.
@@ -200,11 +117,11 @@ class Optimizer:
         self.solver_args = solver_args or {}
         
         # check solver exists
-        if not os.path.exists(os.path.join(os.path.dirname(__file__), "optimizers", solver + ".py")):
-            raise ValueError(f"Solver {solver} not found in ./optimizers directory")
+        if not os.path.exists(os.path.join(os.path.dirname(__file__), "solvers", solver + ".py")):
+            raise ValueError(f"Solver {solver} not found in ./solvers directory")
         
         # Build wrapper function from solver module name
-        full_module_name = f"optimizers.{solver}"
+        full_module_name = f"solvers.{solver}"
         self.optimizer_function = partial(_optimize_batch_worker_from_module, full_module_name)
 
         self.log_runs = log_runs
@@ -508,7 +425,30 @@ class Optimizer:
                         self.population.push(score, new_char_at_pos)
 
 
-                        
+    def polish(self, char_at_pos: tuple[int, ...], iterations: int = 100, max_depth: int = 3) -> dict[tuple[tuple[int, int], ...], float]:
+        order_1, order_2, order_3 = self._get_FV()
+
+        layout_scores, layout_swaps = helper.best_swaps(
+            char_at_pos=char_at_pos,
+            score=self.model.score_chars_at_positions(char_at_pos),
+            order_1=order_1,
+            order_2=order_2,
+            order_3=order_3,
+            swap_position_pairs=self.swap_position_pairs,
+            cached_scores={},
+            iterations=iterations,
+            max_depth=max_depth,
+        )
+        
+        for new_char_at_pos, score in layout_scores.items():
+            self.population.push(score, new_char_at_pos)
+        
+        return {
+            swap: layout_scores[new_char_at_pos]
+            for new_char_at_pos, swap in layout_swaps.items()
+            if new_char_at_pos in layout_scores
+        }
+
 
     def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.01, iterations:int = 20, pinned_positions: tuple[int, ...] = ()):
         initial_char_at_pos = tuple(int(x) for x in char_at_pos)
@@ -519,7 +459,7 @@ class Optimizer:
 
         # Import and use the solver module's _optimize function
         import importlib
-        full_module_name = f"optimizers.{self.solver}"
+        full_module_name = f"solvers.{self.solver}"
         solver_module = importlib.import_module(full_module_name)
         
         new_population = solver_module._optimize(
@@ -717,8 +657,8 @@ if __name__ == "__main__":
 
 
     parser = argparse.ArgumentParser(description="Run layout generation experiments with multiple solvers and hyperparameters.")
-    parser.add_argument("--config", type=str, default=None, help="path to the config toml file to specify the runs to perform (e.g., ./optimizers/tuning/comparison_config.toml)")
-    parser.add_argument("--output", type=str, default="./optimizers/logs/solver_runs_table.csv")
+    parser.add_argument("--config", type=str, default=None, help="path to the config toml file to specify the runs to perform (e.g., ./solvers/tuning/comparison_config.toml)")
+    parser.add_argument("--output", type=str, default="./solvers/logs/solver_runs_table.csv")
     parser.add_argument("--iterations", type=int, default=1000)
     parser.add_argument("--hardware", type=str, default="ortho")
     parser.add_argument("--objective", type=str, default="default")
@@ -742,11 +682,11 @@ if __name__ == "__main__":
         solver_args={}
     )
 
-    # Ensure the parent directory (containing optimizers/) is on sys.path
+    # Ensure the parent directory (containing solvers/) is on sys.path
     parent_dir = os.path.dirname(__file__)
     if parent_dir not in sys.path:
         sys.path.insert(0, parent_dir)
-    optimizers_dir = os.path.join(parent_dir, "optimizers")
+    solvers_dir = os.path.join(parent_dir, "solvers")
             
 
     if args.config is not None:
@@ -766,21 +706,21 @@ if __name__ == "__main__":
 
     else:
         if args.solver is not None:
-            optimizers = {
-                tokens[0]: (int(tokens[1]) if len(tokens) > 1 else None) for tokens in (optimizer.split(':') for optimizer in args.solver.split(','))
+            solvers = {
+                tokens[0]: (int(tokens[1]) if len(tokens) > 1 else None) for tokens in (solver.split(':') for solver in args.solver.split(','))
             }
         else:
-            optimizers = {
-                optimizer_file[:-3]: None
-                for optimizer_file in os.listdir(optimizers_dir) 
-                if optimizer_file.endswith(".py") and not optimizer_file.startswith("__")
+            solvers = {
+                solver_file[:-3]: None
+                for solver_file in os.listdir(solvers_dir)
+                if solver_file.endswith(".py") and not solver_file.startswith("__")
             }
 
         runs = []
-        for optimizer in optimizers.keys():
+        for solver in solvers.keys():
             config_dict = defaults.__dict__.copy()
-            config_dict['solver'] = optimizer
-            config_dict['iterations'] = optimizers[optimizer] or defaults.iterations
+            config_dict['solver'] = solver
+            config_dict['iterations'] = solvers[solver] or defaults.iterations
             runs.append(RunConfig(**config_dict))
 
 
@@ -807,7 +747,7 @@ if __name__ == "__main__":
     print(f"Found {len(runs)} runs")
     print()
 
-    # for each .py in ./optimizers in turn, import optimize_batch_worker
+    # for each .py in ./solvers in turn, import optimize_batch_worker
     results = []
     all_top_scores = []
     all_clusters = []
@@ -831,7 +771,7 @@ if __name__ == "__main__":
             print("Warning: No solver specified, skipping")
             continue
 
-        module_path = os.path.join(optimizers_dir, run.solver + ".py")
+        module_path = os.path.join(solvers_dir, run.solver + ".py")
         spec = importlib.util.spec_from_file_location(run.solver, module_path)
         if spec is None or spec.loader is None:
             print(f"Warning: Could not load spec for {run.solver}")
@@ -842,7 +782,7 @@ if __name__ == "__main__":
         
         # Register the module in sys.modules so multiprocessing can pickle functions from it
         # Set __name__ to match what pickle will look for
-        full_module_name = f"optimizers.{run.solver}"
+        full_module_name = f"solvers.{run.solver}"
         optimizer_module.__name__ = full_module_name
         sys.modules[full_module_name] = optimizer_module
 

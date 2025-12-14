@@ -1,16 +1,11 @@
 from dataclasses import dataclass
-import os
-import math
 
-from typing import List, Tuple, Optional, Any, Iterable
+from typing import Any
 import numpy as np
 import random
 
-from model import KeyboardModel, NgramType, _calculate_swap_delta
-from freqdist import FreqDist
-from layout import KeyboardLayout
-from optim import OptimizerLogger
-from optimizers import helper
+from logger import OptimizerLogger
+from solvers import helper
 
 
 @dataclass

@@ -1,9 +1,9 @@
 # Used by optim.py when called in command line, to run multiple optimizations in sequence
-# collect the data into ./optimizers/logs files. Used to compare the quality of solvers for different 
+# collect the data into ./solvers/logs files. Used to compare the quality of solvers for different 
 # scenarios and test different values of hyperparameters for the solvers to find the best 
 # configuration. Most users most of the time don't need to go in here!
 
-output = './optimizers/logs/solver_tuning_runs.csv'
+output = './solvers/logs/comparison_runs.csv'
 log_hamming_clusters = true
 
 

@@ -1,5 +1,5 @@
 # Tuning runs for genetic algorithm
-output = './optimizers/logs/genetic_tuning_runs.csv'
+output = './solvers/logs/genetic_tuning_runs.csv'
 log_hamming_clusters = true
 
 [default]

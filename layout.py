@@ -224,8 +224,11 @@ class KeyboardLayout:
             if char2 not in self.char_to_key:
                 raise ValueError(f"Character {char2} not found in layout")
 
-            map_positions[self.char_to_key[char1].position] = self.char_to_key[char2].position
-            map_positions[self.char_to_key[char2].position] = self.char_to_key[char1].position
+            pos1 = map_positions.get(self.char_to_key[char1].position, self.char_to_key[char1].position)
+            pos2 = map_positions.get(self.char_to_key[char2].position, self.char_to_key[char2].position)
+
+            map_positions[self.char_to_key[char1].position] = pos2
+            map_positions[self.char_to_key[char2].position] = pos1
         
         return KeyboardLayout(
             [

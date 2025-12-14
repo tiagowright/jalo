@@ -4,8 +4,8 @@ from typing import Any
 import numpy as np
 import heapq
 
-from optim import OptimizerLogger
-from optimizers import helper
+from logger import OptimizerLogger
+from solvers import helper
 
 
 @dataclass

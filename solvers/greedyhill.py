@@ -1,13 +1,10 @@
-from itertools import combinations
 from typing import Any
 from dataclasses import dataclass
 import numpy as np
-import random
 import heapq
 
-from model import _calculate_swap_delta
-from optim import OptimizerLogger
-from optimizers import helper
+from logger import OptimizerLogger
+from solvers import helper
 
 @dataclass
 class GreedyHillParams:

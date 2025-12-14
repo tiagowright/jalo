@@ -27,6 +27,7 @@ from hardware import KeyboardHardware
 from optim import Optimizer
 from memory import LayoutMemoryManager
 from formatting import (
+    format_table,
     format_analysis_table,
     format_command_help,
     format_help_summary,
@@ -407,9 +408,53 @@ class JaloShell(cmd.Cmd):
             return
         
         layout = layouts[0]
-        # TODO: implement polishing
-        self._warn("polish not implemented yet")
+        model = self._get_model(layout)
+        char_at_pos = tuple(model.char_at_positions_from_layout(layout))
 
+        optimizer = Optimizer(model, population_size=100, solver = 'annealing')
+        swaps_scores = optimizer.polish(
+            char_at_pos=char_at_pos,
+            iterations=100,
+            max_depth=3
+        )
+        
+        # list_num = self._layout_memory_from_optimizer(optimizer, original_layout=layout, push_to_stack=False)
+
+        by_len = {}
+        for swaps, score in swaps_scores.items():
+            len_swaps = len(swaps)
+            if len_swaps == 0:
+                continue
+            if len_swaps not in by_len:
+                by_len[len_swaps] = []
+            by_len[len_swaps].append((swaps, score))
+
+
+        parser = shlex.shlex()
+
+        for n_swaps in sorted(by_len.keys()):
+            self._info(f'{n_swaps} swaps:')
+            rows = []
+            sorted_swaps_scores = sorted(by_len[n_swaps], key=lambda x: x[1])
+            for swaps, score in sorted_swaps_scores[:10]:
+                swapped_char_at_pos = list(char_at_pos)
+                chars = []
+                for i, j in swaps:
+                    chari = model.freqdist.char_seq[swapped_char_at_pos[i]]
+                    charj = model.freqdist.char_seq[swapped_char_at_pos[j]]
+                    if chari in parser.quotes or chari in parser.escape:
+                        chari = f"\\{chari}"
+                    if charj in parser.quotes or charj in parser.escape:
+                        charj = f"\\{charj}"
+                    chars.append(f'{chari}{charj}')
+                    swapped_char_at_pos[i], swapped_char_at_pos[j] = swapped_char_at_pos[j], swapped_char_at_pos[i]
+                
+                chars_str = ' '.join(chars)
+                rows.append([f'swap {layout.name} {chars_str}', f'# score: {100*score:.2f}'])
+            self._info(format_table(rows))
+            self._info('')
+
+        self._info('')
 
 
     commands["swap"] = Command(
