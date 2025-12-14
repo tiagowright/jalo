@@ -19,7 +19,7 @@
 - Prefer `black` and `ruff` for formatting/linting when available; document command invocations in this file when tooling changes.
 
 ## Testing Guidelines
-- Tests live in `tests/`; begin with `tests/test_keyboard_model.py` and expand coverage alongside new features.
+- Tests live in `tests/`; begin with `tests/test_model.py` and expand coverage alongside new features.
 - Name tests `test_<behavior>` and include regression IDs in docstrings when referencing bugs.
 - Aim for full branch coverage on swap logic and new metrics; run `pytest --cov=keyboard_model --cov-report=term-missing` before opening a PR.
 - Store fixtures in `tests/data/` with inline comments describing schema and provenance.

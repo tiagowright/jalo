@@ -259,6 +259,8 @@ class Optimizer:
                 progress_queue,
                 self.population.max_size,
                 OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population),
+                None,  # center_char_at_pos
+                None,  # max_distance
                 self.solver_args
             )
             for i, initial_positions_batch in enumerate(batches)
@@ -294,7 +296,7 @@ class Optimizer:
                     population[new_char_at_pos] = score
 
             sorted_layouts = sorted(population.keys(), key=lambda x: population[x])
-            center_idxs = hamming_distance_cluster_centers(sorted_layouts, hamming_distance_threshold)
+            center_idxs = helper.hamming_distance_cluster_centers(sorted_layouts, hamming_distance_threshold)
             for center_idx in center_idxs:
                 self.population.push(population[sorted_layouts[center_idx]], sorted_layouts[center_idx])
 
@@ -329,7 +331,7 @@ class Optimizer:
             upi += 1
 
         unpinned_chars = list([char_at_pos[pi] for pi in upi_at_pi.keys()])
-            
+
         # create random seeds, maintaining pinned positions
         initial_positions = []
         for _ in range(seeds):
@@ -351,12 +353,6 @@ class Optimizer:
             initial_position: self.model.score_chars_at_positions(initial_position)
             for initial_position in initial_positions
         }
-
-        print(f"initial_population:")
-        for initial_position, score in initial_population.items():
-            dist = hamming_distance(initial_position, char_at_pos)
-            print(f"{dist} {score}")
-        print(f"--")
 
         # update swap_position_pairs, pis_at_column, group_of_pis_at_column to exclude pinned positions
         swap_position_pairs = tuple(
@@ -388,6 +384,8 @@ class Optimizer:
                 progress_queue,
                 self.population.max_size,
                 OptimizerLogger(self.solver, f"batch_{i+1}_of_{len(batches)}_with_{len(initial_positions_batch)}", log_runs=self.log_runs, log_events=self.log_events, log_population=self.log_population),
+                char_at_pos,  # center_char_at_pos
+                hamming_distance_threshold,  # max_distance
                 self.solver_args
             )
             for i, initial_positions_batch in enumerate(batches)
@@ -419,9 +417,8 @@ class Optimizer:
             results = results_async.get()
             for result_batch in results:
                 for new_char_at_pos, score in result_batch.items():
-                    dist = hamming_distance(new_char_at_pos, char_at_pos)
-                    print(f"{dist} {score}")
-                    if hamming_distance(new_char_at_pos, char_at_pos) <= hamming_distance_threshold:
+                    dist = helper.hamming_distance(new_char_at_pos, char_at_pos)
+                    if helper.hamming_distance(new_char_at_pos, char_at_pos) <= hamming_distance_threshold:
                         self.population.push(score, new_char_at_pos)
 
 
@@ -448,7 +445,6 @@ class Optimizer:
             for new_char_at_pos, swap in layout_swaps.items()
             if new_char_at_pos in layout_scores
         }
-
 
     def optimize(self, char_at_pos: np.ndarray, score_tolerance = 0.01, iterations:int = 20, pinned_positions: tuple[int, ...] = ()):
         initial_char_at_pos = tuple(int(x) for x in char_at_pos)
@@ -512,44 +508,6 @@ def _optimize_batch_worker_from_module(module_name: str, args):
     import importlib
     mod = importlib.import_module(module_name)
     return mod.improve_batch_worker(args)
-
-
-def hamming_distance(char_at_pos_1: tuple[int, ...], char_at_pos_2: tuple[int, ...]) -> int:
-    '''
-    The Hamming distance between two layouts is the number of positions where the characters differ.
-    '''
-    return sum(1 for i, j in zip(char_at_pos_1, char_at_pos_2) if i != j)
-
-def hamming_distance_cluster_centers(sorted_population: list[tuple[int, ...]], cluster_threshold: int = 10) -> list[int]:
-    '''
-    simple clustering by best score: the cluster center must be the lowest score of the cluster, and 
-    all other layouts within the cluster_threshold distance are then pulled into the cluster.
-
-    empirically, i found cluster_threshold between 10 and 12 to be an interesting point, where simple hill descent
-    seems to generate layouts within that neighborhood for a single seed, but outside the neighborhood for different
-    seeds, and that seems like a good place the set it. It means 5 to 6 swaps from the center.
-
-    i poetically like to think of it as a planet clearing it's neighborhood by it's gravity. Sorry Pluto.
-    '''
-    centers = []
-    clustered = set()
-
-    for i in range(len(sorted_population)):
-        if i in clustered:
-            continue
-
-        centers.append(i)
-
-        for j in range(i+1, len(sorted_population)):
-            if j in clustered:
-                continue
-
-            dist = hamming_distance(sorted_population[i], sorted_population[j])
-            if dist <= cluster_threshold:
-                clustered.add(j)
-
-    return centers
-
 
 
 if __name__ == "__main__":
@@ -814,7 +772,7 @@ if __name__ == "__main__":
             all_top_scores.append(top_scores)
 
         if args.log_hamming_clusters:
-            cluster_centers = hamming_distance_cluster_centers(sorted_population)
+            cluster_centers = helper.hamming_distance_cluster_centers(sorted_population)
             all_clusters.append([top_scores[i] for i in cluster_centers])
 
         # assert that top_scores match scores in population.score

@@ -369,12 +369,14 @@ class JaloShell(cmd.Cmd):
 
         layout = layouts[0]
         model = self._get_model(layout)
+        pinned_positions = model.pinned_positions_from_layout(layout, self.pinned_chars)
 
         optimizer = Optimizer(model, population_size=100, solver = 'annealing')
         optimizer.improve(
             char_at_pos=tuple(model.char_at_positions_from_layout(layout)), 
             seeds=seeds,
-            hamming_distance_threshold=1
+            hamming_distance_threshold=10,
+            pinned_positions=pinned_positions
         )
         
         list_num = self._layout_memory_from_optimizer(optimizer, original_layout=layout, push_to_stack=False)
@@ -582,12 +584,14 @@ class JaloShell(cmd.Cmd):
             self.pinned_chars = []
 
         else:
-            invalid_chars = [char for char in args if char not in self.model.freqdist.char_seq]
+            all_chars = [char for chars in args for char in chars]
+
+            invalid_chars = [char for char in all_chars if char not in self.model.freqdist.char_seq]
             if invalid_chars:
                 str_invalid_chars = ' '.join(invalid_chars)
                 self._warn(f"Warning: {len(invalid_chars)} character(s) are not in the corpus: {str_invalid_chars}")
 
-            self.pinned_chars.extend(args)
+            self.pinned_chars.extend(all_chars)
 
         # display pinned characters
         if not self.pinned_chars:

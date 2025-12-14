@@ -31,6 +31,8 @@ def report_progress(internal_counter: int, internal_total: int, external_total: 
 def improve_layout(
     seed_id: int,
     char_at_pos: tuple[int, ...], 
+    center_char_at_pos: tuple[int, ...] | None,
+    max_distance: int | None,
     initial_score: float,
     tolerance: float,
     order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
@@ -80,7 +82,9 @@ def improve_layout(
     population = {char_at_pos: initial_score}
 
     # cache stores all layouts found in this execution and caches the score to avoid expensive compute
+    center_char_at_pos = center_char_at_pos or char_at_pos
     cached_scores = {char_at_pos: initial_score}
+    cached_distances = {char_at_pos: hamming_distance(char_at_pos, center_char_at_pos)}
 
     if uphill_deltas is None:
         uphill_deltas = []
@@ -125,12 +129,15 @@ def improve_layout(
                     prev_score = current_score
                     current_score, current_char_at_pos, pos_uphill_delta = _position_swapping(
                         current_char_at_pos, 
+                        center_char_at_pos,
+                        max_distance,
                         current_score, 
                         order_1, 
                         order_2, 
                         order_3, 
                         swap_position_pairs, 
                         cached_scores,
+                        cached_distances,
                         temperature,
                         greedy
                     )
@@ -145,12 +152,15 @@ def improve_layout(
                 prev_score = current_score
                 current_score, current_char_at_pos, col_uphill_delta = _column_swapping(
                     current_char_at_pos, 
+                    center_char_at_pos,
+                    max_distance,
                     current_score, 
                     order_1, 
                     order_2, 
                     order_3, 
                     pis_at_column,
                     cached_scores,
+                    cached_distances,
                     temperature,
                     greedy
                 )
@@ -174,12 +184,15 @@ def improve_layout(
 
 def _position_swapping(
     char_at_pos: tuple[int, ...], 
+    center_char_at_pos: tuple[int, ...],
+    max_distance: int | None,
     score: float, 
     order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
     order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     swap_position_pairs: tuple[tuple[int, int], ...],
     cached_scores: dict[tuple[int, ...], float],
+    cached_distances: dict[tuple[int, ...], int],
     temperature: float,
     greedy: bool
 ) -> tuple[float, tuple[int, ...], float]:
@@ -216,6 +229,15 @@ def _position_swapping(
 
     for i, j in ordered_swap_pairs:
         swapped_char_at_pos = swap_char_at_pos(char_at_pos, i, j)
+
+        if swapped_char_at_pos in cached_distances:
+            swapped_distance = cached_distances[swapped_char_at_pos]
+        else:
+            swapped_distance = hamming_distance(swapped_char_at_pos, center_char_at_pos)
+            cached_distances[swapped_char_at_pos] = swapped_distance
+
+        if max_distance is not None and swapped_distance > max_distance:
+            continue
 
         if swapped_char_at_pos in cached_scores:
             swapped_score = cached_scores[swapped_char_at_pos]
@@ -262,12 +284,15 @@ def _position_swapping(
 
 def _column_swapping(
     char_at_pos: tuple[int, ...], 
+    center_char_at_pos: tuple[int, ...],
+    max_distance: int | None,
     score: float, 
     order_1: tuple[tuple[np.ndarray, np.ndarray], ...], 
     order_2: tuple[tuple[np.ndarray, np.ndarray], ...], 
     order_3: tuple[tuple[np.ndarray, np.ndarray], ...],
     pis_at_column: tuple[tuple[int, ...], ...],
     cached_scores: dict[tuple[int, ...], float],
+    cached_distances: dict[tuple[int, ...], int],
     temperature: float,
     greedy: bool
 ) -> tuple[float, tuple[int, ...], float]:
@@ -310,9 +335,18 @@ def _column_swapping(
         # compute the score after swapping all positions in col1 and col2    
         col_swapped_char_at_pos = char_at_pos
         swapped_score = score
+        swapped_distance = cached_distances.get(col_swapped_char_at_pos, hamming_distance(col_swapped_char_at_pos, center_char_at_pos))
+        cached_distances[col_swapped_char_at_pos] = swapped_distance
 
         for pi1, pi2 in zip(pis_at_column[col1], selected_pis_at_col2):
             next_swap_char_at_pos = swap_char_at_pos(col_swapped_char_at_pos, pi1, pi2)
+
+            if next_swap_char_at_pos in cached_distances:
+                swapped_distance = cached_distances[next_swap_char_at_pos]
+            else:
+                swapped_distance = hamming_distance(next_swap_char_at_pos, center_char_at_pos)
+                cached_distances[next_swap_char_at_pos] = swapped_distance
+
             if next_swap_char_at_pos in cached_scores:
                 swapped_score = cached_scores[next_swap_char_at_pos]
 
@@ -322,6 +356,9 @@ def _column_swapping(
                 cached_scores[next_swap_char_at_pos] = swapped_score
 
             col_swapped_char_at_pos = next_swap_char_at_pos
+
+        if max_distance is not None and swapped_distance > max_distance:
+            continue
 
         if swapped_score > score and (swapped_score - score) < best_uphill_delta:
             best_uphill_delta = swapped_score - score
@@ -400,3 +437,43 @@ def best_swaps(
                 heapq.heappush(layout_heap, (swapped_score, swapped_char_at_pos))
 
     return layout_scores, layout_swaps
+
+
+def hamming_distance(char_at_pos_1: tuple[int, ...], char_at_pos_2: tuple[int, ...]) -> int:
+    """
+    Compute the Hamming distance between two layouts.
+
+    The Hamming distance is the number of positions where the characters differ.
+    """
+    return sum(1 for i, j in zip(char_at_pos_1, char_at_pos_2) if i != j)
+
+
+def hamming_distance_cluster_centers(
+    sorted_population: list[tuple[int, ...]],
+    cluster_threshold: int = 10,
+) -> list[int]:
+    """
+    Simple clustering by best score.
+
+    `sorted_population` must be sorted from best (lowest score) to worst (highest score).
+    The cluster center is always the lowest score layout not yet clustered; any subsequent
+    layouts within `cluster_threshold` Hamming distance are pulled into that cluster.
+    """
+    centers: list[int] = []
+    clustered: set[int] = set()
+
+    for i in range(len(sorted_population)):
+        if i in clustered:
+            continue
+
+        centers.append(i)
+
+        for j in range(i + 1, len(sorted_population)):
+            if j in clustered:
+                continue
+
+            dist = hamming_distance(sorted_population[i], sorted_population[j])
+            if dist <= cluster_threshold:
+                clustered.add(j)
+
+    return centers

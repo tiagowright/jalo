@@ -9,9 +9,7 @@
 * Add some diversity preservation (duplicate filtering or crowding)
 
 # Fixes
-* is there a better way to do genetic?
 * fix the failing test_optim
-* improve a design (vs generate), fix _optimize
 
 
 # Features

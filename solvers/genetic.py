@@ -142,6 +142,8 @@ def improve_batch(
     progress_queue: Any,
     population_size: int,
     logger: OptimizerLogger,
+    center_char_at_pos: tuple[int, ...] | None,
+    max_distance: int | None,
     solver_args: dict
 ) -> dict[tuple[int, ...], float]:
     '''
@@ -180,6 +182,8 @@ def improve_batch(
         child_population = helper.improve_layout(
             0, 
             char_at_pos, 
+            center_char_at_pos,
+            max_distance,
             initial_score, 
             args.tolerance, 
             order_1, 
@@ -262,6 +266,8 @@ def improve_batch(
         child_population = helper.improve_layout(
             generation, 
             child, 
+            center_char_at_pos,
+            max_distance,
             child_initial_score, 
             args.tolerance, 
             order_1, 

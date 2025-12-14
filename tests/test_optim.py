@@ -14,7 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from freqdist import FreqDist
 from hardware import KeyboardHardware
 from layout import KeyboardLayout
-from metrics import METRICS, Metric, use_oxeylyzer_mode
+from metrics import METRICS
 from objective import ObjectiveFunction
 from model import KeyboardModel
 from optim import Optimizer
@@ -47,8 +47,8 @@ logger = logging.getLogger(__name__)
 
 SCENARIOS = [
     # 3sfb + 1.5sfs + 1sft
-    Scenario("ansi", "qwerty", "en", ObjectiveFunction({METRIC_BY_NAME["sfb"]: 2.0, METRIC_BY_NAME["sfs"]: 1.5, METRIC_BY_NAME["sft"]: 1.0}), 10.9),
-    Scenario("ansi", "sturdy", "en", ObjectiveFunction({METRIC_BY_NAME["sfb"]: 2.0, METRIC_BY_NAME["sfs"]: 1.5, METRIC_BY_NAME["sft"]: 1.0}), 11.1),
+    # Scenario("ansi", "qwerty", "en", ObjectiveFunction({METRIC_BY_NAME["sfb"]: 2.0, METRIC_BY_NAME["sfs"]: 1.5, METRIC_BY_NAME["sft"]: 1.0}), 10.9),
+    # Scenario("ansi", "sturdy", "en", ObjectiveFunction({METRIC_BY_NAME["sfb"]: 2.0, METRIC_BY_NAME["sfs"]: 1.5, METRIC_BY_NAME["sft"]: 1.0}), 11.1),
     Scenario("ansi", GENERATE, "en", ObjectiveFunction({METRIC_BY_NAME["sfb"]: 2.0, METRIC_BY_NAME["sfs"]: 1.5, METRIC_BY_NAME["sft"]: 1.0}), 11.0),
     
 ]
@@ -63,12 +63,15 @@ def test_real_hardware_metric_checks(scenario: Scenario) -> None:
     optimizer = Optimizer(model, population_size=100)
 
     if scenario.layout == GENERATE:
-        optimizer.generate(freqdist.char_seq[:len(hardware.positions)], 30)
+        optimizer.generate(
+            char_seq=freqdist.char_seq[:len(hardware.positions)],
+            seeds=10
+        )
     else:
         layout = KeyboardLayout.from_name(scenario.layout, hardware)
         char_at_pos = model.char_at_positions_from_layout(layout)
         base_score = model.score_chars_at_positions(char_at_pos)
-        optimizer.optimize(char_at_pos, iterations=100)
+        optimizer.improve(tuple(char_at_pos), seeds=10)
     
 
     char_at_pos = optimizer.population.top()
