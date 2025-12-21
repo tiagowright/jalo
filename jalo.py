@@ -757,7 +757,7 @@ class JaloShell(cmd.Cmd):
         description="Reload the settings from the config.toml file. Keeps generated layouts results in memory, but updates corpus, hardware, and objective function.",
         arguments=(),
         examples=("",),
-        category="configuration",
+        category="commands",
         short_description="reload the settings from the config.toml file",
     )
 
@@ -770,8 +770,12 @@ class JaloShell(cmd.Cmd):
     commands["objective"] = Command(
         name="objective",
         description="\n".join([
-            "Shows the current objective function when called without an argument, or sets the objective function" 
-            "to a new formula when that is given. The objective function is considered an effort, meaning lower scores are better.",
+            "Shows the current objective function when called without an argument, or sets the objective function " 
+            "from a configuration file or to a new explicit formula. "
+            "The objective function is used to score keyboard layouts, and it is considered a measure of effort, meaning lower scores are better. "
+            "Optimization commands (e.g., `generate`, `improve`, `polish`) use the objective function's score to find the best layouts possible.",
+            "",
+            "Objective functions can be loaded from a toml file in ./objectives/ by naming the file, or can be hand crafted directly by typing a formula.",
             "",
             "The formula is any linear combination of metrics:"
             "  [+|-][weight_1]<metric_name_1> [+|- [weight_2]<metric_name_2> ...]",
@@ -780,13 +784,13 @@ class JaloShell(cmd.Cmd):
             "  <weight_i> is a float.",
             "  <metric_name_i> is the name of a valid metric (type `metrics`)",
             "",
-            "Note that there is no `*` between the weight and the metric name."
+            "Note that there is no `*` between the weight and the metric name, but a space is allowed."
         ]),
         arguments=(
-            CommandArgument("formula", "[<formula>]", "when specified, sets the objective function to the given formula."),
+            CommandArgument("formula", "[<name> | <formula>]", "when specified, sets the objective function to the given formula or file."),
         ),
-        examples=("", "100sfb + 6effort + 60pinky_ring + 60scissors_ortho + 60sfs - 5alt"),
-        category="configuration",
+        examples=("", "default", "oxeylyzer", "100sfb + 6effort + 60pinky_ring + 60scissors_ortho + 60sfs - 5alt"),
+        category="optimization",
         short_description="view or update the objective function used to score layouts",
     )
 
@@ -804,21 +808,39 @@ class JaloShell(cmd.Cmd):
         if match:
             i = match.end()
 
+        ret = []
+
+        # if its the first argument, then could be a toml file from ./objectives
+        if i == 0:
+            arg_num = self._arg_num_at_index(line, begidx, endidx)
+            if arg_num is None or arg_num <= 1:
+                ret.extend([
+                    f.stem
+                    for f in Path('objectives').glob(f'{text}*.toml')
+                ])
+
+
         # find all metric names that start with text
-        return [text[:i] + metric.name for metric in self.metrics if metric.name.startswith(text[i:])]
+        ret.extend([text[:i] + metric.name for metric in self.metrics if metric.name.startswith(text[i:])])
+
+        return ret
+
 
     def do_objective(self, arg: str) -> None:
         
         if not arg:
             self._info(f"Current function:\nobjective {self.objective}\n")
             return
-            
+        
         try:
             new_objective = ObjectiveFunction.from_formula(arg)
         except ValueError as e:
-            self._warn(f"error parsing objective function: {e}")
-            return
-
+            try:
+                new_objective = ObjectiveFunction.from_name(arg)
+            except ValueError as e:
+                self._warn(f"error parsing objective function: {e}")
+                return
+            
         self._load_objective(new_objective)
         self._info(f"Updated function to:\nobjective {self.objective}\n")
 
@@ -829,7 +851,7 @@ class JaloShell(cmd.Cmd):
         description="Shows all current metrics and their descriptions.",
         arguments=(),
         examples=("",),
-        category="configuration",
+        category="analysis",
         short_description="shows metric names and descriptions",
     )
 
