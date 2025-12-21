@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional, Sequence
 from tabulate import tabulate
 
 from layout import KeyboardLayout
-from memory import LayoutMemoryManager
+from repl.memory import LayoutMemoryManager
 
 
 def format_table(

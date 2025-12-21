@@ -238,6 +238,67 @@ class KeyboardLayout:
             self.hardware, new_name
         )
 
+
+    def invert(self, hand: Hand | None = None, new_name: str = '') -> 'KeyboardLayout':
+        '''
+        returns a new layout that is the result of inverting the given hand (or both hands if no hand is specified)
+        '''
+
+        hands = {hand} if hand is not None else {Hand.LEFT, Hand.RIGHT}
+        hand_str = f'{hand.name.lower()} hand' if hand is not None else 'both hands'
+        new_name = new_name or f'{self.name} inverted {hand_str}'
+
+        position_grid = {}
+        home_position = {}
+        for position in self.hardware.positions:
+            if position.finger not in position_grid:
+                position_grid[position.finger] = {}
+                home_position[position.finger] = {}
+            if position.col not in position_grid[position.finger]:
+                position_grid[position.finger][position.col] = {}
+            if position.row not in position_grid[position.finger][position.col]:
+                position_grid[position.finger][position.col][position.row] = []
+            position_grid[position.finger][position.col][position.row].append(position)
+            if position.is_home:
+                home_position[position.finger] = position
+        
+        position_map = {}
+        for finger in position_grid:
+            if finger.hand not in hands:
+                continue
+
+            if finger in home_position:
+                home_row = home_position[finger].row
+            else:
+                all_rows = sorted(set(row for col in position_grid[finger] for row in position_grid[finger][col]))
+                home_row = all_rows[len(all_rows) // 2]
+            
+            for col in position_grid[finger]:
+                seen_rows = set()
+                for row in position_grid[finger][col]:
+                    map_row = home_row - (row - home_row)
+                    if map_row not in position_grid[finger][col]:
+                        continue
+                    if map_row in seen_rows:
+                        continue
+                    seen_rows.add(map_row)
+                    seen_rows.add(row)
+
+                    for top_position, bottom_position in zip(position_grid[finger][col][row], position_grid[finger][col][map_row]):
+                        position_map[top_position] = bottom_position
+                        position_map[bottom_position] = top_position
+
+
+        return KeyboardLayout(
+            [
+                LayoutKey.from_position(position_map.get(key.position, key.position), key.char)
+                for key in self.keys
+            ],
+            self.hardware,
+            new_name
+        )
+
+
     def mirror(self, mirrored_name = '') -> 'KeyboardLayout':
         '''
         returns a new layout that is the result of mirroring this layout
@@ -268,7 +329,6 @@ class KeyboardLayout:
         
         finger_map = {
             hand: {
-                # notate that the value is of type Finger | None
                 fingertype: Finger(0)
                 for fingertype in FingerType
             }

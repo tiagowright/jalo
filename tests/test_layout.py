@@ -7,7 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from hardware import KeyboardHardware, Finger
+from hardware import KeyboardHardware, Finger, Hand
 from layout import KeyboardLayout, LayoutKey
 
 
@@ -117,6 +117,35 @@ c i e a ,   k h t n s q
     
     assert actual_lines == expected_lines, \
         f"Mirrored layout mismatch:\n  actual:\n{chr(10).join('    ' + line for line in actual_lines)}\n  expected:\n{chr(10).join('    ' + line for line in expected_lines)}"
+
+
+def test_invert():
+    """Test that invert() correctly inverts a layout for the specified hand."""
+    layout = KeyboardLayout.from_name('hdpm')
+    inverted = layout.invert(hand=Hand.RIGHT)
+    
+    # Verify inverted layout has correct name
+    assert inverted.name == 'hdpm inverted right hand'
+    
+    # Verify the string representation matches expected output
+    # The user-provided format includes blank lines between rows for readability,
+    # but str() produces no blank lines, so we extract and compare content lines
+    expected_str = """f p d l x   - . ' = / z
+
+s n t h k   , a e i c q
+
+v w g m j   ; u o y b  
+
+        r"""
+    
+    actual_str = str(inverted)
+    
+    # Extract non-empty lines from both (ignoring blank lines in expected)
+    expected_lines = [line.rstrip() for line in expected_str.split('\n') if line.strip()]
+    actual_lines = [line.rstrip() for line in actual_str.split('\n') if line.strip()]
+    
+    assert actual_lines == expected_lines, \
+        f"Inverted layout mismatch:\n  actual:\n{chr(10).join('    ' + line for line in actual_lines)}\n  expected:\n{chr(10).join('    ' + line for line in expected_lines)}"
 
 
 def test_mirror_with_custom_name():

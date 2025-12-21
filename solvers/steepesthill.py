@@ -3,7 +3,7 @@ import heapq
 from dataclasses import dataclass
 from typing import Any
 
-from logger import OptimizerLogger
+from repl.logger import OptimizerLogger
 from solvers import helper
 
 @dataclass

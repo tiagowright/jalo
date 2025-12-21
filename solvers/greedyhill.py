@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import heapq
 
-from logger import OptimizerLogger
+from repl.logger import OptimizerLogger
 from solvers import helper
 
 @dataclass

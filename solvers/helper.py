@@ -6,7 +6,7 @@ from typing import Any
 import heapq
 
 from model import _calculate_swap_delta
-from logger import OptimizerLogger
+from repl.logger import OptimizerLogger
 
 
 def swap_char_at_pos(char_at_pos: tuple[int, ...], i: int, j: int) -> tuple[int, ...]:
@@ -16,6 +16,13 @@ def swap_char_at_pos(char_at_pos: tuple[int, ...], i: int, j: int) -> tuple[int,
         char_at_pos[k]
         for k in range(len(char_at_pos))
     )
+
+def update_char_at_pos(char_at_pos: tuple[int, ...], update_values: tuple[int, ...], update_idxs: tuple[int, ...]) -> tuple[int, ...]:
+    updated = list(char_at_pos)
+    for i, v in zip(update_idxs, update_values):
+        updated[i] = v
+    return tuple(updated)
+
 
 def report_progress(internal_counter: int, internal_total: int, external_total: int, progress_queue: Any) -> None:
     # the Optimizer expects progress_queue.put(1) once for each item in the seed list, but 

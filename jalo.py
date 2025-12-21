@@ -23,10 +23,10 @@ from model import KeyboardModel
 from freqdist import FreqDist
 from metrics import METRICS, use_oxeylyzer_mode
 from objective import ObjectiveFunction
-from hardware import KeyboardHardware
+from hardware import KeyboardHardware, Hand
 from optim import Optimizer
-from memory import LayoutMemoryManager
-from formatting import (
+from repl.memory import LayoutMemoryManager
+from repl.formatting import (
     format_table,
     format_analysis_table,
     format_command_help,
@@ -283,14 +283,14 @@ class JaloShell(cmd.Cmd):
         name="generate",
         description="Generates new layouts from scratch, starting from a number of random seeds and improving them to find the best (lowest) score, "
             "based on the current objective (see `help objective`). "
-            "If a keyboard layout is provided, it will be used to determine the hardware and to for the location of pinned characters. " 
+            "If a keyboard layout is provided, it will be used to determine the hardware and the location of pinned characters (see `help pin`). " 
             "If no keyboard layout is provided, default hardware is used and pinned characters are ignored with a warning.",
         arguments=(
             CommandArgument("seeds", "[seeds=100]", "the number of random seeds to generate, default is 100, which is enough for most cases."),
             CommandArgument("keyboard", "[<keyboard>]", "the keyboard layout to improve, can be a layout name or the index of a layout in memory."),
         ),
         examples=("", "1000", "100 hdpm"),
-        category="editing",
+        category="optimization",
         short_description="generates a wide variety of new layouts from scratch",
     )
 
@@ -367,7 +367,7 @@ class JaloShell(cmd.Cmd):
             CommandArgument("seeds", "[seeds=100]", "the number of random seeds to generate, default is 100, which is enough for most cases."),
         ),
         examples=("0", "qwerty", "hdpm 200"),
-        category="editing",
+        category="optimization",
         short_description="try to improve the score of a given layout (neighboring layouts)",
     )
 
@@ -430,7 +430,7 @@ class JaloShell(cmd.Cmd):
             CommandArgument("keyboard", "<keyboard>", "the keyboard layout to polish, can be a layout name or the index of a layout in memory."),
         ),
         examples=("0", "qwerty"),
-        category="editing",
+        category="optimization",
         short_description="identifies small number of swaps that can improve the score of a given layout",
     )
 
@@ -448,12 +448,14 @@ class JaloShell(cmd.Cmd):
         layout = layouts[0]
         model = self._get_model(layout)
         char_at_pos = tuple(model.char_at_positions_from_layout(layout))
+        pinned_positions = model.pinned_positions_from_layout(layout, self.pinned_chars)
 
         optimizer = Optimizer(model, population_size=100, solver = 'annealing')
         swaps_scores = optimizer.polish(
             char_at_pos=char_at_pos,
             iterations=100,
-            max_depth=3
+            max_depth=3,
+            pinned_positions=pinned_positions
         )
         
         # list_num = self._layout_memory_from_optimizer(optimizer, original_layout=layout, push_to_stack=False)
@@ -578,8 +580,6 @@ class JaloShell(cmd.Cmd):
             return
         
         layout = layouts[0]
-        model = self._get_model(layout)
-
         mirrored_layout = layout.mirror()
 
         self._push_layout_to_stack(mirrored_layout, layout)
@@ -588,16 +588,70 @@ class JaloShell(cmd.Cmd):
         self._info(self._layout_memory_to_str(list_num=0, top_n=1))
 
 
+    commands["invert"] = Command(
+        name="invert",
+        description="Inverts top and bottom rows of a keyboard layout (mirrors vertically).",
+        arguments=(
+            CommandArgument("keyboard", "<keyboard>", "the keyboard layout to invert, can be a layout name or the index of a layout in memory."),
+            CommandArgument("hand", "[hand=both]", "`left` or `right` to invert the left or right hand, default is `both`."),
+        ),
+        examples=("0", "hdpm right"),
+        category="editing",
+        short_description="inverts top and bottom rows of a keyboard layout (mirrors vertically)",
+    )
+    def complete_invert(self, text: str, line: str, begidx: int, endidx: int) -> list[str]: # pyright: ignore[reportUnusedParameter]
+        arg_num = self._arg_num_at_index(line, begidx, endidx)
+        if arg_num is None or arg_num <= 1:
+            return self._list_keyboard_names(text)
+
+        return [word for word in ('left', 'right', 'both') if word.startswith(text)]
+
+    def do_invert(self, arg: str) -> None:
+        args = self._split_args(arg)
+
+        if len(args) < 1:
+            self._warn("specify a keyboard. Usage: invert <keyboard> [hand=both]")
+            return
+
+        if len(args) > 2:
+            self._warn("too many arguments. Usage: invert <keyboard> [hand=both]")
+            return
+
+        if len(args) >= 2:
+            hand_str = args[1].lower()
+            if hand_str not in ('left', 'right', 'both'):
+                self._warn("invalid hand: {hand_str}, specify `left` or `right` or `both`. Usage: invert <keyboard> [hand=both]")
+                return
+        else:
+            hand_str = 'both'
+
+        hand = None if hand_str == 'both' else Hand.LEFT if hand_str == 'left' else Hand.RIGHT
+
+        layouts = self._parse_keyboard_names(args[0])
+        if layouts is None or len(layouts) != 1:
+            self._warn("invalid keyboard: {args[0]}. Usage: invert <keyboard> [hand=both]")
+            return
+        
+        layout = layouts[0]
+        inverted_layout = layout.invert(hand=hand)
+
+        self._push_layout_to_stack(inverted_layout, layout)
+
+        self._info(f'')
+        self._info(self._layout_memory_to_str(list_num=0, top_n=1))
+
+
+
     commands["pin"] = Command(
         name="pin",
         description="Pins characters to their current positions, so that they cannot be swapped or moved to a different position during editing (`generate`, `improve`, etc.). "
         "To see current pins, pass no arguments (`pin`). To clear all pins, use `pin nothing`.",
         arguments=(
-            CommandArgument("nothing", "[nothing]", "to remove all existing pins, specify `pin nothing`."),
-            CommandArgument("chars", "[<chars> ...]", "the characters to pin, can be a single character or a space-separated list of characters."),
+            CommandArgument("`nothing`", "[nothing]", "to remove all existing pins, specify `pin nothing`."),
+            CommandArgument("chars", "[<chars> ...]", "the characters to pin, can be a single, multiple characters, or a space-separated list of characters."),
         ),
         examples=("", "a b c", "asdf", "aeiou", "nothing"),
-        category="editing",
+        category="optimization",
         short_description="pins characters to their current position",
     )
 
@@ -852,7 +906,7 @@ class JaloShell(cmd.Cmd):
         # Build summary from commands dict and docstrings
         names = self.get_names()
 
-        headers = ['analysis', 'editing', 'configuration', 'commands']
+        headers = ['analysis', 'optimization', 'editing', 'configuration', 'commands']
         commands_list = {header: list() for header in headers}
 
         for name in names:

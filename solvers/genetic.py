@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 import random
 
-from logger import OptimizerLogger
+from repl.logger import OptimizerLogger
 from solvers import helper
 
 
@@ -213,19 +213,16 @@ def improve_batch(
     # replace population with the best population_size layouts from best_population
     sorted_population = sorted(best_population.items(), key=lambda x: x[1])[:population_size]
     population = dict(sorted_population)
+    unpinned_positions = tuple(sorted(set(i for pair in swap_position_pairs for i in pair)))
 
-    idx = int(0.75 * (len(sorted_population) - 1))
-    typical_starting_score = sorted_population[idx][1]
 
+    # Run genetic algorithm until we exhaust iterations budget
     remaining_iterations = generations_total
     generation = 0
-    
-    # Run genetic algorithm until we exhaust iterations budget
     while remaining_iterations > 0:
         # Select parents (sorted by score - lower is better)
         sorted_population = sorted(population.items(), key=lambda x: x[1])
         parents = [item[0] for item in sorted_population]
-        min_score = sorted_population[0][1]
         
         if len(parents) < 2:
             break
@@ -244,11 +241,16 @@ def improve_batch(
             if p1 != p2:
                 break
 
+        # now select from p1 and p2 the unpinned positions
+        unpinned_p1 = tuple(p1[i] for i in unpinned_positions)
+        unpinned_p2 = tuple(p2[i] for i in unpinned_positions)
+
         # Perform PMX crossover
-        n = len(p1)
+        n = len(unpinned_p1)
         start = random.randint(0, n - 2)
         end = random.randint(start + 1, n)
-        child = _pmx_crossover(p1, p2, start, end)
+        unpinned_child = _pmx_crossover(unpinned_p1, unpinned_p2, start, end)
+        child = helper.update_char_at_pos(p1, unpinned_child, unpinned_positions)
 
         # Optional: small mutation (swap two random positions with low probability)
         if random.random() < args.mutation_rate:

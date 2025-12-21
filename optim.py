@@ -15,7 +15,7 @@ from functools import partial
 from model import KeyboardModel
 from freqdist import FreqDist, NgramType
 from hardware import Finger
-from logger import OptimizerLogger
+from repl.logger import OptimizerLogger
 from solvers import helper
 
 
@@ -424,8 +424,13 @@ class Optimizer:
                         self.population.push(score, new_char_at_pos)
 
 
-    def polish(self, char_at_pos: tuple[int, ...], iterations: int = 100, max_depth: int = 3) -> dict[tuple[tuple[int, int], ...], float]:
+    def polish(self, char_at_pos: tuple[int, ...], iterations: int = 100, max_depth: int = 3, pinned_positions: tuple[int, ...] = ()) -> dict[tuple[tuple[int, int], ...], float]:
         order_1, order_2, order_3 = self._get_FV()
+
+        # update swap_position_pairs to exclude pinned positions
+        swap_position_pairs = tuple(
+            (i, j) for i, j in self.swap_position_pairs if i not in pinned_positions and j not in pinned_positions
+        )
 
         layout_scores, layout_swaps = helper.best_swaps(
             char_at_pos=char_at_pos,
@@ -433,7 +438,7 @@ class Optimizer:
             order_1=order_1,
             order_2=order_2,
             order_3=order_3,
-            swap_position_pairs=self.swap_position_pairs,
+            swap_position_pairs=swap_position_pairs,
             cached_scores={},
             iterations=iterations,
             max_depth=max_depth,

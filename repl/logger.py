@@ -48,7 +48,7 @@ class OptimizerLogger:
             return
         
         # save events and runs to separate csv files in ./solvers/logs directory (may need to create it)
-        logs_dir = os.path.join(os.path.dirname(__file__), "solvers", "logs")
+        logs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "solvers", "logs")
         if not os.path.exists(logs_dir):
             os.makedirs(logs_dir)
         

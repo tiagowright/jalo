@@ -1,10 +1,4 @@
 # FIX
-* polish ignores pins
-
-* doesn't work, moves the vowels some how
-pin r a e i o u
-generate 100 hdpm
-
 
 # Genetic algorithm improvement ideas
 * Consider multi-child generations, not just 1 child per loop.
@@ -13,14 +7,21 @@ generate 100 hdpm
 
 
 # Features
+* show promising combo positions
 
-* keygen metrics
-* carpalx metrics
 * corpus
 * shift and delete
 
+* keygen metrics
+* carpalx metrics
+
+
+# To Release
 * README
 * LICENSE
+* prepare codebase, what should be in github
+* how do you manage version/env
+
 
 
 # Inspiration
