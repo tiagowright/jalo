@@ -34,6 +34,9 @@ def report_progress(internal_counter: int, internal_total: int, external_total: 
     for _ in range(external_counter - previous_external_counter):
         progress_queue.put(1)
 
+def is_progressing(current_score: float, previous_score: float, tolerance: float) -> bool:
+    return previous_score > (1.0 + tolerance) * current_score
+
 
 def improve_layout(
     seed_id: int,
@@ -152,7 +155,7 @@ def improve_layout(
                         greedy
                     )
 
-                    if prev_score/current_score < (1.0 + tolerance):
+                    if not is_progressing(current_score, prev_score, tolerance):
                         break
 
                     population[current_char_at_pos] = current_score
@@ -175,7 +178,7 @@ def improve_layout(
                     greedy
                 )
 
-                if prev_score/current_score < (1.0 + tolerance):
+                if not is_progressing(current_score, prev_score, tolerance):
                     break
                 
                 population[current_char_at_pos] = current_score
@@ -183,7 +186,7 @@ def improve_layout(
             logger.event(seed_id, step, current_score)
             step += 1
 
-            if score_at_start_of_step/current_score < (1.0 + tolerance):
+            if not is_progressing(current_score, score_at_start_of_step, tolerance):
                 # population[current_char_at_pos] = current_score
                 # this loop made no progress, so we are done on this branch
                 uphill_deltas.append(min(pos_uphill_delta, col_uphill_delta))
@@ -423,6 +426,9 @@ def best_swaps(
     heapq.heapify(layout_heap)
 
     for _ in range(iterations):
+        if not layout_heap:
+            break
+
         score, char_at_pos = heapq.heappop(layout_heap)
 
         for i, j in swap_position_pairs:

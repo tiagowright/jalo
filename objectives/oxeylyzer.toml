@@ -5,7 +5,7 @@
 # b) oxeylyzer weights are all positive, and the sign is determined in the code, while
 # jalo expects the weights to be negative when they are desirable features 
 # (e.g. in_roll, if that's your thing), and positive if they are effort (e.g. sfb)
-# c) some metrics are slightly different definitions, such as scissors and lsb;
+# c) some metrics have slightly different definitions, such as scissors and lsb;
 # where possible, the oxeylyzer definition is available in the metrics.py file,
 # and it is simple to compare the definitions in there. To use the oxeylyzer definition,
 # set the oxeylyzer_mode flag to true in config.toml

@@ -329,7 +329,7 @@ class JaloShell(cmd.Cmd):
             model = self.model
             pinned_positions = ()
             if self.pinned_chars:
-                self._warn(f"no keyboard layout provided, cannot pin characters to a position, pins will be ignored ({', '.join(self.pinned_chars)})")
+                self._warn(f"Warning: no keyboard layout provided, cannot pin characters to a position, pins will be ignored ({', '.join(self.pinned_chars)})")
 
         self._info(f"generating {seeds} seeds.")
 
@@ -534,7 +534,7 @@ class JaloShell(cmd.Cmd):
         pairs = args[1:]
         for pair in pairs:
             if len(pair) != 2:
-                self._warn("each pair must be two characters, could not understand pair: {pair}")
+                self._warn(f"each pair must be two characters, could not understand pair: {pair}")
                 return
             
             char1, char2 = pair
@@ -1213,32 +1213,6 @@ def main(argv: List[str] | None = None) -> int:
         action="store_true",
         help="Disable readline history persistence.",
     )
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-
-    # Analyze command
-    analyze_parser = subparsers.add_parser("analyze", help="Analyze a keyboard layout.")
-    analyze_parser.add_argument("keyboard", help="The name of the keyboard layout to analyze.")
-
-    # Contributions command
-    contributions_parser = subparsers.add_parser("contributions", help="Show contributions of a layout.")
-    contributions_parser.add_argument("keyboards", nargs="+", help="The names of the keyboard layouts.")
-
-    # Generate command
-    generate_parser = subparsers.add_parser("generate", help="Generate a new keyboard layout.")
-    generate_parser.add_argument("iterations", type=int, nargs='?', default=100, help="Number of iterations.")
-
-    # Improve command
-    improve_parser = subparsers.add_parser("improve", help="Improve an existing keyboard layout.")
-    improve_parser.add_argument("keyboard", help="The name of the keyboard layout to improve.")
-    improve_parser.add_argument("iterations", type=int, nargs='?', default=10, help="Number of iterations.")
-
-    # Metrics command
-    subparsers.add_parser("metrics", help="Show metrics of a layout.")
-
-    # Compare command
-    compare_parser = subparsers.add_parser("compare", help="Compare two or more layouts.")
-    compare_parser.add_argument("keyboards", nargs="+", help="The names of the keyboard layouts to compare.")
-
     args = parser.parse_args(argv)
 
     if not args.no_history:
@@ -1251,29 +1225,13 @@ def main(argv: List[str] | None = None) -> int:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
-    if args.command:
-        if args.command == "analyze":
-            shell.do_analyze(args.keyboard)
-        elif args.command == "contributions":
-            shell.do_contributions(" ".join(args.keyboards))
-        elif args.command == "generate":
-            shell.do_generate(f"{args.iterations}")
-        elif args.command == "improve":
-            shell.do_improve(f"{args.keyboard} {args.iterations}")
-        elif args.command == "metrics":
-            shell.do_metrics("")
-        elif args.command == "compare":
-            shell.do_compare(" ".join(args.keyboards))
-    else:
-        # shell._info(
-        #     f"Loaded config: hardware='{shell.settings.hardware}', "
-        #     f"corpus='{shell.settings.corpus}'."
-        # )
-        try:
-            shell.cmdloop()
-        except KeyboardInterrupt:
-            shell._info("")  # ensure a newline after Ctrl+C
-            shell._info("Interrupted. Bye bye.\n")
+
+    try:
+        shell.cmdloop()
+    except KeyboardInterrupt:
+        shell._info("")  # ensure a newline after Ctrl+C
+        shell._info("Interrupted. Bye bye.\n")
+
     return 0
 
 

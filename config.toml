@@ -1,9 +1,9 @@
-hardware = "ortho"
+hardware = "ansi"
 corpus = "en"
-objective = "default"
+objective = "oxeylyzer"
 
 # If true, use oxeylyzer's definition for all metrics that have an oxeylyzer equivalent.
 # Where the definitions differ, it is primarily because (i think) the jalo definition
 # more accurately captures the intent of the metric described in the Keyboard layouts doc.
 # But your opinion may be different :-)
-oxeylyzer_mode = false
+oxeylyzer_mode = true
