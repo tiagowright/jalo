@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
+from repl.completers import list_keyboard_names, parse_keyboard_names
 from repl.shell import Command, CommandArgument
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -30,12 +31,12 @@ def desc() -> Command:
 
 
 def complete(shell: "JaloShell", text: str, line: str, begidx: int, endidx: int) -> list[str]:
-    return shell._list_keyboard_names(text)
+    return list_keyboard_names(shell, text)
 
 
 def exec(shell: "JaloShell", arg: str) -> None:
     args = shell._split_args(arg)
-    layouts = shell._parse_keyboard_names(args[0]) if args else None
+    layouts = parse_keyboard_names(shell, args[0]) if args else None
     if layouts is None or len(layouts) != 1:
         shell._warn("usage: save <keyboard> [<name>]")
         return
@@ -60,4 +61,3 @@ def exec(shell: "JaloShell", arg: str) -> None:
         file_handle.write(str(layout))
 
     shell._info(f"saved layout to {filepath}")
-

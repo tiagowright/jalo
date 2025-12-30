@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from optim import Optimizer
+from repl.completers import list_keyboard_names, parse_keyboard_names
 from repl.shell import Command, CommandArgument
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -43,7 +44,7 @@ def complete(shell: "JaloShell", text: str, line: str, begidx: int, endidx: int)
     if arg_num is None or arg_num <= 1:
         seed_suggestions = ["10", "20", "100", "1000"]
         return [suggestion for suggestion in seed_suggestions if suggestion.startswith(text)]
-    return shell._list_keyboard_names(text)
+    return list_keyboard_names(shell, text)
 
 
 def exec(shell: "JaloShell", arg: str) -> None:
@@ -60,7 +61,7 @@ def exec(shell: "JaloShell", arg: str) -> None:
             return
 
     if len(args) > 1:
-        layouts = shell._parse_keyboard_names(args[1])
+        layouts = parse_keyboard_names(shell, args[1])
         if layouts is None or len(layouts) != 1:
             shell._warn("usage: generate <seeds> [keyboard]")
             return
@@ -98,4 +99,3 @@ def exec(shell: "JaloShell", arg: str) -> None:
 
     shell._info("")
     shell._info(shell._layout_memory_to_str(list_num=list_num))
-

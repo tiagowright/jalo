@@ -164,6 +164,31 @@ class JaloShell(cmd.Cmd):
         line = re.sub(r"(?<!\\)#.*", "", line)
         return line
 
+    def onecmd(self, line: str) -> bool:
+        try:
+            return super().onecmd(line)
+        except KeyboardInterrupt:
+            self._info("")
+            self._info("Command interrupted.\n")
+            return False
+
+    def script(self, script: str):
+        """Parse and execute the script as a sequence of commands"""
+        for line in script.splitlines():
+
+            line = line.strip()
+            line = self.precmd(line)
+            if not line:
+                continue
+            
+            stop = self.onecmd(line)
+            stop = self.postcmd(stop, line)
+            self._info("")
+
+            if stop:
+                break
+
+
     # ----- command registration -------------------------------------------
     def register_command(
         self,
@@ -231,14 +256,6 @@ class JaloShell(cmd.Cmd):
     def get_names(self) -> list[str]:
         return dir(self)
 
-    def onecmd(self, line: str) -> bool:
-        try:
-            return super().onecmd(line)
-        except KeyboardInterrupt:
-            self._info("")
-            self._info("Command interrupted.\n")
-            return False
-
     # ----- configuration helpers ------------------------------------------
     def _load_settings(self) -> None:
         self.settings = _load_settings(self.config_path)
@@ -302,107 +319,6 @@ class JaloShell(cmd.Cmd):
         except ValueError:
             return None
         return len(args)
-
-    def _list_keyboard_names(self, prefix: str = "") -> list[str]:
-        names = []
-        if not prefix or prefix[0].isdigit():
-            names = [
-                str(i)
-                for i in range(1, 1 + len(self.memory.stack))
-                if str(i).startswith(prefix)
-            ]
-
-            for list_num in self.memory.lists.keys():
-                names.extend(
-                    [
-                        f"{list_num}.{i}"
-                        for i in range(1, 1 + len(self.memory.lists[list_num].layouts))
-                        if f"{list_num}.{i}".startswith(prefix)
-                    ]
-                )
-
-        names.extend([f.stem for f in Path("layouts").glob(f"{prefix}*.kb")])
-        return names
-
-    def _parse_keyboard_names(self, arg: str) -> list[KeyboardLayout] | None:
-        names = self._split_args(arg)
-        if len(names) < 1:
-            self._warn("specify at least one keyboard layout")
-            return None
-
-        layouts: list[KeyboardLayout] = []
-
-        for name in names:
-            layout = None
-
-            if "." in name:
-                try:
-                    parts = name.split(".")
-                    if len(parts) != 2:
-                        raise ValueError("Invalid format")
-                    list_num = int(parts[0])
-                    layout_idx = int(parts[1])
-
-                    if list_num not in self.memory.lists:
-                        self._warn(f"No list {list_num} found.")
-                        return None
-                    if layout_idx < 1 or layout_idx > len(self.memory.lists[list_num].layouts):
-                        count = len(self.memory.lists[list_num].layouts)
-                        self._warn(
-                            f"No layout {name} found in list {list_num} (has {count} layouts)."
-                        )
-                        return None
-
-                    layout = self.memory.lists[list_num].layouts[layout_idx - 1]
-                    layouts.append(layout)
-                    continue
-                except ValueError:
-                    pass
-            else:
-                try:
-                    stack_idx = int(name)
-                    if len(self.memory.stack) == 0:
-                        self._warn(
-                            "No layouts in stack, so cannot retrieve '{name}'. Use 'generate', 'improve', or retrieve by name from ./layouts/."
-                        )
-                        return None
-                    if stack_idx < 1 or stack_idx > len(self.memory.stack):
-                        self._warn(
-                            f"No layout {name} found in stack (has {len(self.memory.stack)} layouts)."
-                        )
-                        return None
-
-                    layout = self.memory.stack[stack_idx - 1]
-                    layouts.append(layout)
-                    continue
-                except ValueError:
-                    pass
-
-            try:
-                hardware_name_hint = KeyboardLayout.hardware_hint(name)
-            except FileNotFoundError as e:
-                self._warn(f"could not find layout in: {e.filename}")
-                return None
-
-            if hardware_name_hint:
-                hardware = next(
-                    (
-                        hw
-                        for hw in self.model_for_hardware
-                        if hw.name == hardware_name_hint
-                    ),
-                    None,
-                )
-            else:
-                hardware = self.model.hardware
-
-            try:
-                layouts.append(KeyboardLayout.from_name(name, hardware))
-            except Exception as e:  # pragma: no cover - surface parse errors
-                self._warn(f"could not parse layout: {e}")
-                return None
-
-        return layouts
 
     # ----- memory helpers -------------------------------------------------
     def _layout_memory_to_str(
