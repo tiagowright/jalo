@@ -328,7 +328,7 @@ def format_command_help(
     args_lines = '\n'.join([
         textwrap.fill(f"{arg_name}: {desc}", width=width, initial_indent="  ", subsequent_indent="    ")
         for arg_name, _, desc in argument_name_description
-    ])
+    ]) if argument_name_description else "  none"
     
     # Reflow description: make sure all lines are at most width characters
     description = '\n'.join([
