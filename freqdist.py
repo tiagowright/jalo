@@ -21,6 +21,13 @@ class NgramType(Enum):
             return 2
         return self.value
 
+NGRAM_FILENAMES: dict[NgramType, str] = {
+    NgramType.MONOGRAM: "monograms.json",
+    NgramType.BIGRAM: "bigrams.json",
+    NgramType.TRIGRAM: "trigrams.json",
+    NgramType.SKIPGRAM: "skipgrams.json",
+}
+
 class FreqDist:
     # sentinel value for out of distribution characters
     out_of_distribution = '__other__'
@@ -55,7 +62,7 @@ class FreqDist:
         Parameters
         ----------
         name:
-            Name of the corpus file (without extension) to load from ``./corpus/ngrams``.
+            Name of the corpus directory to load from ``./corpus/<name>``.
 
         Returns
         -------
@@ -65,14 +72,27 @@ class FreqDist:
         Raises
         ------
         FileNotFoundError
-            If the named ngram file does not exist.
+            If the named corpus directory or legacy JSON file does not exist.
         json.JSONDecodeError
             If the ngram file is malformed.
         """
 
-        corpus_path = (
-            Path(__file__).resolve().parent / "corpus" / "ngrams" / f"{name}.json"
-        )
+        corpus_root = Path(__file__).resolve().parent / "corpus"
+        corpus_dir = corpus_root / name
+
+        if corpus_dir.is_dir():
+            freqdist_payload: dict[NgramType, dict[str, float]] = {}
+            for ngram_type, filename in NGRAM_FILENAMES.items():
+                ngram_path = corpus_dir / filename
+                if not ngram_path.exists():
+                    freqdist_payload[ngram_type] = {}
+                    continue
+                with ngram_path.open("r", encoding="utf-8") as fp:
+                    freqdist_payload[ngram_type] = json.load(fp)
+            return cls(name, freqdist=freqdist_payload)  # pyright: ignore[reportArgumentType]
+
+        # Fall back to the legacy flat JSON file structure.
+        corpus_path = corpus_root / "ngrams" / f"{name}.json"
         with corpus_path.open("r", encoding="utf-8") as fp:
             return cls(name, freqdist=json.load(fp))
 

@@ -88,6 +88,6 @@ def exec(shell: "JaloShell", arg: str) -> None:
             shell._warn(f"error parsing objective function: {e}")
             return
 
-    shell._load_objective(new_objective)
+    shell._change_settings(objective=new_objective)
     shell._info(f"Updated function to:\nobjective {shell.objective}\n")
 

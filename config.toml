@@ -1,5 +1,5 @@
 hardware = "ansi"
-corpus = "en"
+corpus = "shai"
 objective = "oxeylyzer"
 
 # If true, use oxeylyzer's definition for all metrics that have an oxeylyzer equivalent.

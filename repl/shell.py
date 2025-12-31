@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import cmd
 import dataclasses
 import importlib
@@ -259,13 +258,16 @@ class JaloShell(cmd.Cmd):
     # ----- configuration helpers ------------------------------------------
     def _load_settings(self) -> None:
         self.settings = _load_settings(self.config_path)
-        self.freqdist = FreqDist.from_name(self.settings.corpus)
+        
         self.metrics = METRICS
         use_oxeylyzer_mode(self.settings.oxeylyzer_mode)
-        self.hardware = KeyboardHardware.from_name(self.settings.hardware)
-        self.objective = ObjectiveFunction.from_name(self.settings.objective)
+        
+        self._change_settings(
+            objective = ObjectiveFunction.from_name(self.settings.objective),
+            hardware = KeyboardHardware.from_name(self.settings.hardware),
+            freqdist = FreqDist.from_name(self.settings.corpus)
+        )
 
-        self._load_objective(self.objective)
         self.pinned_chars: list[str] = []
 
     def _load_settings_str(self) -> str:
@@ -276,8 +278,14 @@ class JaloShell(cmd.Cmd):
             str(self.objective),
         )
 
-    def _load_objective(self, objective: ObjectiveFunction) -> None:
-        self.objective = objective
+    def _change_settings(self, objective: ObjectiveFunction | None = None, hardware: KeyboardHardware | None = None, freqdist: FreqDist | None = None):
+        if objective is None and hardware is None and freqdist is None:
+            return
+        
+        self.freqdist = freqdist or self.freqdist
+        self.hardware = hardware or self.hardware
+        self.objective = objective or self.objective
+        
         self.model = KeyboardModel(
             hardware=self.hardware,
             metrics=self.metrics,
@@ -285,6 +293,7 @@ class JaloShell(cmd.Cmd):
             freqdist=self.freqdist,
         )
         self.model_for_hardware = {self.hardware: self.model}
+
 
     def _get_model(self, layout: KeyboardLayout) -> KeyboardModel:
         if layout.hardware not in self.model_for_hardware:
