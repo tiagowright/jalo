@@ -1,6 +1,6 @@
 """`list` command for the Jalo shell."""
 
-from __future__ import annotations
+
 
 from typing import TYPE_CHECKING
 

@@ -1,4 +1,14 @@
+#!/usr/bin/env python
+"""
+`optim.py` contains the core layout optimization functionality, to generate, optimize, and polish layouts using a variety of solvers,
+including genetic algorithms, hill climbing, and simulated annealing. It is used by `jalo.py` to run optimization jobs.
+
+`optim.py` can be used from the command line to run optimization jobs from configuration files and output results to csv files.
+Try `python optim.py --help` to see the available command line options.
+"""
+
 import os
+import sys
 import math
 from itertools import combinations
 import numpy as np
@@ -619,12 +629,16 @@ if __name__ == "__main__":
             
 
     if args.config is not None:
-        with open(args.config, "rb") as f:
-            try:
-                config_dict = tomllib.load(f)
-            except tomllib.TOMLDecodeError as e:
-                print(f"Error parsing config file {args.config}: {e}")
-                sys.exit(1)
+        try:
+            with open(args.config, "rb") as f:
+                try:
+                    config_dict = tomllib.load(f)
+                except tomllib.TOMLDecodeError as e:
+                    print(f"Error parsing config file {args.config}: {e}")
+                    sys.exit(1)
+        except FileNotFoundError:
+            print(f"Error: Config file not found in {args.config}")
+            sys.exit(1)
         
         runs = RunConfig.runs_from_config(config_dict, defaults)
 
@@ -772,6 +786,10 @@ if __name__ == "__main__":
 
     # write results to stdout as csv, \t separated
     # append to the file if it already exists
+    # Ensure the output directory exists
+    output_dir = os.path.dirname(args.output)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
     if os.path.exists(args.output):
         writer = csv.DictWriter(open(args.output, "a"), fieldnames=results[0].__dataclass_fields__.keys(), delimiter='\t')
     else:

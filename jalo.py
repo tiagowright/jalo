@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-"""Command-line REPL entry point for the Jalo keyboard tooling."""
-
-from __future__ import annotations
+"""JALO is just another keyboard layout optimizer. `jalo.py` is the general purpose command-line entry point that can be used
+to start an interactive shell or to execute a series of jalo commands or a script file. Jalo can analyze, generate, optimize, edit keyboard layouts.
+To start run `jalo` and use `help` to list the available commands.
+"""
 
 import argparse
 import sys
@@ -12,7 +13,7 @@ from repl.shell import JaloShell, _configure_readline, DEFAULT_CONFIG_PATH
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Jalo is just another keyboard layout optimizer. Run with no arguments to enter interactive mode, or provide a series of commands or a script file to execute.",
-        epilog="Jalo can analyze, generate, optimize, edit keyboard layouts. Try `jalo.py` to go into interactive mode, or from the command line `jalo.py -c help` to learn more about the commands."
+        epilog="Jalo can analyze, generate, optimize, edit keyboard layouts. Try `jalo` to go into interactive mode, or from the command line `jalo -c help` to learn more about the commands."
     )
     parser.add_argument(
         "script_file",

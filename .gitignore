@@ -7,6 +7,7 @@ __pycache__/
 jaloenv/
 WIP/
 .DS_Store
+.DS_Store/
 AGENTS.md
 # solvers/logs/*.csv
 solvers/tuning/*.xlsx

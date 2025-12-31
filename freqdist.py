@@ -1,6 +1,4 @@
-"""Utilities for loading n-gram frequency distributions from the corpus assets."""
-
-from __future__ import annotations
+"""Utilities for loading ngram frequency distributions from the corpus assets."""
 
 import json
 from pathlib import Path
@@ -56,7 +54,7 @@ class FreqDist:
 
 
     @classmethod
-    def from_name(cls, name: str) -> FreqDist:
+    def from_name(cls, name: str) -> "FreqDist":
         """Load the n-gram frequency distribution for the requested corpus name.
 
         Parameters
@@ -96,7 +94,7 @@ class FreqDist:
         with corpus_path.open("r", encoding="utf-8") as fp:
             return cls(name, freqdist=json.load(fp))
 
-    def select(self, char_set: set[str]) -> FreqDist:
+    def select(self, char_set: set[str]) -> "FreqDist":
         """Select a subset of the frequency distribution for the given list of characters."""
         return FreqDist(
             self.corpus_name, 
@@ -109,7 +107,7 @@ class FreqDist:
             }
         )
     
-    def top(self, n: int) -> FreqDist:
+    def top(self, n: int) -> "FreqDist":
         """Select the top n n-grams for each ngram type."""
         top_monograms = sorted(
             self.freqdist[NgramType.MONOGRAM], 
@@ -117,7 +115,7 @@ class FreqDist:
             reverse=True)[:n]
         return self.select(set(top_monograms))
     
-    def normalized(self) -> FreqDist:
+    def normalized(self) -> "FreqDist":
         """Normalize the frequency distribution so that the sum of the frequencies is 1."""
 
         sum_monograms = sum(self.freqdist[NgramType.MONOGRAM].values())

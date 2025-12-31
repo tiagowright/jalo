@@ -1,6 +1,6 @@
 """Auto-completion helpers and shared parsers for the Jalo shell."""
 
-from __future__ import annotations
+
 
 from pathlib import Path
 from typing import TYPE_CHECKING

@@ -1,6 +1,6 @@
 """`save` command for the Jalo shell."""
 
-from __future__ import annotations
+
 
 import os
 from typing import TYPE_CHECKING

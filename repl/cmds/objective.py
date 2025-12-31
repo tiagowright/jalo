@@ -1,6 +1,6 @@
 """`objective` command for the Jalo shell."""
 
-from __future__ import annotations
+
 
 import re
 from pathlib import Path

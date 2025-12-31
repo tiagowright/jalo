@@ -1,6 +1,6 @@
 """`polish` command for the Jalo shell."""
 
-from __future__ import annotations
+
 
 import shlex
 from typing import TYPE_CHECKING

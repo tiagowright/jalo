@@ -1,6 +1,6 @@
 """Core Jalo shell implementation and shared helpers."""
 
-from __future__ import annotations
+
 
 import cmd
 import dataclasses
