@@ -62,14 +62,6 @@ class Population:
         '''
         return [char_at_pos for score, char_at_pos in sorted(self.heap, reverse=True)]
 
-
-    # def random_item(self) -> np.ndarray:
-    #     '''
-    #     return a random item from the population, but never the top one
-    #     '''
-    #     return random.choice(self.heap[1:])[1]
-
-
     def __len__(self) -> int:
         '''
         return the number of items in the heap

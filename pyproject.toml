@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jalo"
+version = "0.1.0"
+description = "Just Another Keyboard Layout Optimizer"
+authors = [
+    {name = "Tiago Wright", email = "tiagowright@gmail.com"},
+]
+license = {text = "Apache License 2.0"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "tabulate",
+    "numpy>=1.24",
+    "numba==0.61.0",
+    "tqdm",
+]
+
+[project.scripts]
+jalo = "jalo:main"

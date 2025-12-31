@@ -1,7 +1,12 @@
 __pycache__/
+*.pyc
 .pytest_cache/
 .venv/
+.vscode/
+.idea/
 jaloenv/
 WIP/
 .DS_Store
 AGENTS.md
+# solvers/logs/*.csv
+solvers/tuning/*.xlsx

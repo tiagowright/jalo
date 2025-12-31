@@ -14,9 +14,9 @@ log_hamming_clusters = true
 hardware = 'ortho'
 corpus = 'en'
 iterations = 100
-population = 1000
+population = 200
 objective = 'default'
-name_format = '{solver}_{iterations}'
+name_format = '{solver}_{iterations}_{corpus}'
 
 # each [[runs]] entry specifies the parameters for a single run of the optimizer, and
 # can override any of the defaults above for that specific run
@@ -33,5 +33,25 @@ solver = 'greedyhill'
 iterations = 253
 
 [[runs]]
+solver = 'steepesthill'
+iterations = 465
+
+[[runs]]
+corpus = 'shai'
+solver = 'annealing'
+iterations = 375
+
+[[runs]]
+corpus = 'shai'
+solver = 'genetic'
+iterations = 132
+
+[[runs]]
+corpus = 'shai'
+solver = 'greedyhill'
+iterations = 253
+
+[[runs]]
+corpus = 'shai'
 solver = 'steepesthill'
 iterations = 465
