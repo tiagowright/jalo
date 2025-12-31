@@ -17,6 +17,7 @@ import heapq
 import queue
 import time
 import csv
+import importlib
 
 import multiprocessing
 from tqdm import tqdm
@@ -124,6 +125,11 @@ class Optimizer:
         
         # Build wrapper function from solver module name
         full_module_name = f"solvers.{solver}"
+        solver_module = importlib.import_module(full_module_name)
+
+        if not hasattr(solver_module, 'improve_batch_worker'):
+            raise AttributeError(f"Solver module '{solver}' does not have 'improve_batch_worker' method, cannot be used for optimization.")
+
         self.optimizer_function = partial(_optimize_batch_worker_from_module, full_module_name)
 
         self.log_runs = log_runs
@@ -488,6 +494,10 @@ def _optimize_batch_worker_from_module(module_name: str, args):
     """
     import importlib
     mod = importlib.import_module(module_name)
+
+    if not hasattr(mod, 'improve_batch_worker'):
+        raise AttributeError(f"Solver module '{module_name}' does not have 'improve_batch_worker' method, cannot be used for optimization.")
+
     return mod.improve_batch_worker(args)
 
 
@@ -714,32 +724,36 @@ if __name__ == "__main__":
             print("Warning: No solver specified, skipping")
             continue
 
-        module_path = os.path.join(solvers_dir, run.solver + ".py")
-        spec = importlib.util.spec_from_file_location(run.solver, module_path)
-        if spec is None or spec.loader is None:
-            print(f"Warning: Could not load spec for {run.solver}")
-            continue
+        # module_path = os.path.join(solvers_dir, run.solver + ".py")
+        # spec = importlib.util.spec_from_file_location(run.solver, module_path)
+        # if spec is None or spec.loader is None:
+        #     print(f"Warning: Could not load spec for {run.solver}")
+        #     continue
         
-        optimizer_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(optimizer_module)
+        # optimizer_module = importlib.util.module_from_spec(spec)
+        # spec.loader.exec_module(optimizer_module)
         
-        # Register the module in sys.modules so multiprocessing can pickle functions from it
-        # Set __name__ to match what pickle will look for
-        full_module_name = f"solvers.{run.solver}"
-        optimizer_module.__name__ = full_module_name
-        sys.modules[full_module_name] = optimizer_module
+        # # Register the module in sys.modules so multiprocessing can pickle functions from it
+        # # Set __name__ to match what pickle will look for
+        # full_module_name = f"solvers.{run.solver}"
+        # optimizer_module.__name__ = full_module_name
+        # sys.modules[full_module_name] = optimizer_module
 
-        # Also register with the simple name for backwards compatibility
-        sys.modules[run.solver] = optimizer_module
+        # # Also register with the simple name for backwards compatibility
+        # sys.modules[run.solver] = optimizer_module
         
-        optimizer = Optimizer(
-            model, 
-            solver=run.solver, 
-            log_runs=args.log_runs, 
-            log_events=args.log_events, 
-            log_population=args.log_population,
-            solver_args=run.solver_args
-        )
+        try:
+            optimizer = Optimizer(
+                model, 
+                solver=run.solver, 
+                log_runs=args.log_runs, 
+                log_events=args.log_events, 
+                log_population=args.log_population,
+                solver_args=run.solver_args
+            )
+        except AttributeError as e:
+            print(f"Error: {e}\nSkipping run {run.name}")
+            continue
 
         # capture how long it takes to generate
         start_time = time.time()
