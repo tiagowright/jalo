@@ -1,18 +1,135 @@
 # Jalo
 
-Jalo is just another keyboard layout optimizer.
+Jalo is just another layout optimizer. Jalo can analyze keyboards with any number of keys and physical configurations, including keys on thumbs, any number of pinky or central columns, extra rows, keys on layers, and more. Optimization features can generate a wide range of layouts, improve existing layouts, and fine tune them by suggesting the most promising swaps. Under the hood, Jalo combines simulated annealing, genetic algorithms, and different flavors of hill climbing depending on the job for the best outcomes. To score layouts, Jalo allows any (linear) combination of metrics with user-defined weights, and makes it simple and interactive to change them. Jalo also provides clear reporting on how each metric contributes to each layout's final score, so it's easy to understand how to improve both the scoring and the layouts. Most of the metrics in the Keyboard Layout doc are included, but the definitions of the metrics can be changed, and new metrics can be added. Jalo makes it easy to analyze layouts, identify what key combiniations are contributing to any metric, and compare layouts side-by-side. Editing layouts is simple, with commands to mirror and invert layouts, and swap pairs of keys.
+
+Jalo works as a command line tool with an interactive mode (REPL), or by invoking it with commands or a script file. Start the interactive mode `./jalo.py` then type `help` to get a list of commands. Use tab to auto-complete command names and arguments, and up/down to cycle through command history.
+
+## Examples
+
+### Analyze
+
+```
+jalo> analyze enthium
+
+enthium                      ortho_pinky_33
+---------------------------  ----------------------------
+|   z p d l x   = u o y q    |    0 1 2 3 3   6 6 7 8 9
+| w s n t h k   - e a i c b  |  0 0 1 2 3 3   6 6 7 8 9 9
+|   v f g m j   ; / . , '    |    0 1 2 3 3   6 6 7 8 9
+|           r                |            4
+
+metric                     enthium  top n-gram
+                    ortho_pinky_33
+----------------  ----------------  -------------------------------------------------
+rep                          2.742  ll: 0.713, ee: 0.412, ss: 0.353, oo: 0.295
+sfb                          0.795  ue: 0.128, y,: 0.104, oa: 0.074, nf: 0.059
+sfs                          5.795  dt: 0.491, gt: 0.454, ue: 0.434, oa: 0.326
+sft                          0.007  e-e: 0.002, e-u: 0.001, ue-: 0.001, ueu: 0.000
+...
+```
+
+### Compare
+
+```
+jalo> compare qwerty graphite hdpm
+metric              qwerty  Δ      graphite  Δ                hdpm  Δ
+                      ansi             ansi         ortho_thumb_33
+----------------  --------  ---  ----------  ---  ----------------  ---
+rep                  2.733            2.741                  2.742
+sfb                  6.604  +         0.996  -               0.828  -
+sfs                 11.238  +         6.260  -               6.653  -
+sft                  0.431  +         0.025  -               0.005  -
+...
+```
+
+### Generate layouts
+
+```
+jalo> objective
+Current function:
+objective 100sfb + 6effort + 60pinky_ring + 60scissors_ortho + 60sfs + 20finger_0 + 20finger_9 + 18finger_1 + 18finger_8 + 15finger_2 + 15finger_7 + 12finger_3 + 12finger_6
+
+jalo> generate
+generating 100 seeds.
+Generating: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:24<00:00,  4.15it/s]
+
+layout list 1 > generate
+
+layout 1.1 2931.348
+x w l m k   q h o - ;
+s c r t v   f n a e i
+y g , d j   b p . ' u
+
+layout 1.2 2933.606
+; - o r j   k d . g v
+i e a n x   f h t c s
+u , ' l q   b p m w y
+...
+```
+
+### Understand the scores
+
+```
+jalo> contributions 1.1 graphite sturdy
+metric                  w      1.1  Δ          ΔS    graphite  Δ          ΔS    sturdy  Δ          ΔS
+                              ansi                       ansi                     ansi
+----------------  -------  -------  ---  --------  ----------  ---  --------  --------  ---  --------
+rep                          2.735                      2.741                    2.732
+sfb               100.000    0.980         98.043       0.996         99.557     0.870         87.021
+sfs                60.000    6.123        367.408       6.260        375.571     5.996        359.783
+...
+score                                    2931.348                   3030.263                 2996.416
+```
+
+### Help
+
+```
+jalo> help
+
+Type `help <command>` to get help on a specific command.
+
+
+analysis:
+  analyze        analyze a keyboard layout on all metrics
+  compare        compares keyboard layouts side by side on every metric
+  contributions  to understand the score, tabulates the contributions of each metric
+  corpus         view or update the text corpus used to score layouts
+  metrics        shows metric names and descriptions
+  show           show a keyboard layout
+
+
+optimization:
+  generate   generates a wide variety of new layouts from scratch
+  hardware   view or update the default keyboard hardware used to generate layouts
+  improve    try to improve the score of a given layout (neighboring layouts)
+  objective  view or update the objective function used to score layouts
+  pin        pins characters to their current position
+  polish     identifies small number of swaps that can improve the score of a given layout
+
+
+editing:
+  invert  inverts top and bottom rows of a keyboard layout (mirrors vertically)
+  list    lists layouts in memory
+  mirror  mirrors a keyboard layout horizontally
+  save    save new layouts from memory to a new file
+  swap    swaps two or more positions on the keyboard
+...
+```
 
 ## Installation
 
 ```bash
+git clone https://github.com/tiagowright/jalo
+cd jalo
 pip install .
 ```
 
 ## Usage
 
 ```bash
-jalo
+./jalo.py
 ```
+
 
 ## Analysis
 
