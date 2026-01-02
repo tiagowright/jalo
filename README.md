@@ -35,11 +35,7 @@ The typical workflows are to `analyze` and `compare` layouts, or to `generate`, 
 
 ## Analyzing layouts
 
-Jalo analyzes layouts and reports on 30+ common metrics, plus finger-level metrics. Use `analyze` to see how a specific layout fare against all metrics, along with the key sequences that are the most impactful on that metric. For example, `analyze qwerty` will shows that `sfb` is 6.6% and that the worst offender is `ed` at 0.99% frequency in English. 
-
-You can also compare multiple layouts on all metrics with `compare`. For example, `compare graphite sturdy` will quickly show that graphite has more `alt_sfs` but lower redirects. 
-
-You can also change the corpus being used to assess the metrics using the `corpus` command, for example, to assess layouts on different language, or to use your own corpus.
+Jalo analyzes layouts and reports on 30+ common metrics, plus finger-level metrics. Use `analyze` to see how a specific layout fare against all metrics, along with the key sequences that are the most impactful on that metric. For example, `analyze enthium` will shows that `sfb` is 0.795% and that the worst offender is `ue` at 0.128% frequency in English.
 
 ```
 jalo> analyze enthium
@@ -61,20 +57,112 @@ sft                          0.007  e-e: 0.002, e-u: 0.001, ue-: 0.001, ueu: 0.0
 ...
 ```
 
+You can also compare multiple layouts on all metrics with `compare`. For example, `compare graphite sturdy` will quickly show that graphite has more `alt_sfs` but lower redirects. 
+
+```
+jalo> compare graphite sturdy
+metric              graphite  Δ      sturdy  Δ
+                        ansi           ansi
+----------------  ----------  ---  --------  ---
+...
+same_hand              6.510  -       9.493  +
+alt                   37.295  +      31.755  -
+alt_sfs                4.854  +       3.898  -
+alt_total             42.149  +      35.654  -
+...
+redirect               2.037  -       3.338  +
+redirect_sfs           0.549  -       1.569  +
+redirect_bad           0.283          0.212
+redirect_bad_sfs       0.114          0.110
+redirect_total         2.983  -       5.229  +
+...
+```
+
+You can also change the corpus being used to assess the metrics using the `corpus` command, for example, to assess layouts on different language, or to use your own corpus (see [Corpus section](#corpus)).
+
+
 ## Layouts
 
-TODO
+Jalo ships with a number of layouts, all available in `./layouts/` folder. You can also use tab to auto-complete layout names to get a list:
 
+```
+jalo> analyze 
+asto       colemak    dvorak     enthium    graphite   hdneu      hdti       isrt       qwerty     sturdy    
+asto_22    colemak_dh engram     gallium    hdgold     hdpm       inrolly    mtgap      semimak    workman   
+```
 
-## Corpus
+Creating your own layout is easy. You can add a `.kb` file in the `./layouts/` folder using a text editor (use any of the existing files there as examples). 
 
-When analyzing a layout, the corpus determines how often key sequences of a layout will be typed, and thus it is a critical driver of all the results. For example, the `en` corpus (the default English language corpus) specifies that the sequence of letters `ed` will be typed 0.99% of the time, and therefore, on a qwerty layout, where `e` and `d` are both on the left middle finger, it drives the `sfb` metric (single finger bigram) up by that amount.
+You can also create layouts in Jalo, for example, using `generate` or by editing an existing layout with `swap`, `mirror`, `invert`, and so on. Layouts created in jalo are kept in memory and can be accessed by their number (use `list` command to see what is in memory). If you are happy with a layout, you can use `save` to create a new file in the `./layouts/` folder that can be referenced later, edited by hand for any additional changes, shared, etc.
 
-Jalo corpuses are provided in the `./corpus` directory, including the most commonly used corpus for english language optimizations. To select a corpus, use the `corpus` command, or to avoid repeating the command, change the default corpus in `config.toml` ([see Defaults section](#defaults))
+```
+jalo> invert hdpm
 
-To provide your own corpus, create a new folder under `./corpus` named for the new corpus. The folder should contain 4 json files: `monograms.json`, `bigrams.json`, `trigrams.json`, `skipgrams.json`, that specify the frequency of each ngram in the corpus. The values in each file should add up to 1.0 (i.e., should be frequencies, not counts). Additional files can be added for more information about the corpus, and will be dutifully ignored.
+layout 2 3004.163 (30.686)  > invert hdpm
+v w g m j   - . ' = / z
+s n t h k   , a e i c q
+f p d l x   ; u o y b  
+        r            
 
-Creating a great corpus can be tricky to get right. You want to the corpus to be closely representative of what you will be typing, and large enough to provide robust statistics within a tenth of a percent or better. The corpus also needs to be cleaned, for example, by dealing with capitalization, accented characters, special characters that are shifted, and so on. I would recommend using an existing corpus, either provided here, or from one of the other layout optimization projects listed in references, if possible.
+jalo> save 2 hdpm_inverted
+saved layout to layouts/hdpm_inverted.kb
+```
+
+Layout files can optionally name the hardware to be used for the layout. Many layouts are created using a 3 x 10 grid of 30 keys that are compatible with `ansi` or `ortho` hardware. When a layout is needed, jalo tries to load it into the default hardware, typically `ansi` or `ortho`. You can change the default with the `hardware` command, or by editing the `config.toml` file to change it for all future sessions.
+
+But you may be interested in adding thumb letter keys, more keys to the pinky finger, removing keys, adding layers, etc. Layouts that are not compatible with the 3 x 10 grid can name the hardware setup to be used for that layout by adding a comment with a hint, for example, `# use: ortho_thumb` will tell jalo to use `ortho_thumb` hardware for this layout (see `hdpm.kb` for an example).
+
+See [Keebs](#keebs) section for more information about customizing the hardware, and [Defaults](#defaults) to change the default hardware.
+
+## Keebs
+
+Jalo supports a variety of keyboard hardware with different numbers and arrangements of keys, available in the `./keebs/` folder, including:
+* `ansi`: the standard 30 key, row staggered, setup common to most laptops, and the most widely used for layout designs
+* `ortho`: the analogous 30 key orthonormal setup (no stagger), that is compatible with `ansi` so that any layout built for one can be easily transposed on the other
+* `ansi_angle`: this is the standard `ansi` setup with an "angle mod", where the typist uses a different set of fingers for the bottom row on the left hand
+* `ortho_thumb`: the `ortho` setup with an additional key on the left thumb that can assigned a letter/character, for layouts like Hands Down series
+
+Jalo shows layouts and the hardware they are loaded on side by side. The hardware shows the fingers that are assigned to each position, from the left pinky at 0 to the right pinky at 9.
+
+```
+jalo> show qwerty
+
+qwerty                   ansi
+-----------------------  --------------------------
+| q w e r t   y u i o p  |  0 1 2 3 3   6 6 7 8 9
+| a s d f g   h j k l ;  |   0 1 2 3 3   6 6 7 8 9
+| z x c v b   n m , . /  |    0 1 2 3 3   6 6 7 8 9
+
+jalo> hardware ortho
+Updated hardware to: ortho
+jalo> show graphite
+
+graphite                 ortho
+-----------------------  ------------------------
+| b l d w z   ' f o u j  |  0 1 2 3 3   6 6 7 8 9
+| n r t s g   y h a e i  |  0 1 2 3 3   6 6 7 8 9
+| q x m c v   k p . - ,  |  0 1 2 3 3   6 6 7 8 9
+
+jalo> show hdpm
+
+hdpm                       ortho_thumb_33
+-------------------------  --------------------------
+| f p d l x   ; u o y b z  |  0 1 2 3 3   6 6 7 8 9 9
+| s n t h k   , a e i c q  |  0 1 2 3 3   6 6 7 8 9 9
+| v w g m j   - . ' = /    |  0 1 2 3 3   6 6 7 8 9
+|         r                |          4
+
+jalo> show inrolly
+
+inrolly                  ansi_angle
+-----------------------  --------------------------
+| y o u q x   k d l w ,  |  0 1 2 3 3   6 6 7 8 9
+| i a e n j   v h t s c  |   0 1 2 3 3   6 6 7 8 9
+| " - r b z   f p m g .  |    1 2 3 3 3   6 6 7 8 9
+```
+
+To create your own hardware setup, add a file to the `./keebs` directory that exports a `KEYBOARD` attribute. The exported object needs to be an instance of `hardware.KeyboardHardware`. The simplest way to build a new layout is to modify the ansi/ortho setup by adding or modifying keys (e.g. see `ortho_pinky_33`). If you must / want to start from scratch, use `ansi` or `cr8` as examples for the approach. Once the file is created, you can refer to the keyboard by the file's name in Jalo.
+
 
 ## Metrics
 
@@ -94,16 +182,6 @@ sfs               single finger skipgram
 ...
 ```
 
-## Keebs
-
-Jalo supports a variety of keyboard hardware with different numbers and arrangements of keys, available in the `./keebs/` folder, including:
-* `ansi`: the standard 30 key, row staggered, setup common to most laptops, and the most widely used for layout designs
-* `ortho`: the analogous 30 key orthonormal setup (no stagger), that is compatible with `ansi` so that any layout built for one can be easily transposed on the other
-* `ansi_angle`: this is the standard `ansi` setup with an "angle mod", where the typist uses a different set of fingers for the bottom row on the left hand
-* `ortho_thumb`: the `ortho` setup with an additional key on the left thumb that can assigned a letter/character, for layouts like Hands Down series
-
-To create your own hardware setup, add a file to the `./keebs` directory that exports a `KEYBOARD` attribute. The exported object needs to be an instance of `hardware.KeyboardHardware`. The simplest way to build a new layout is to modify the ansi/ortho setup by adding or modifying keys (e.g. see `ortho_pinky_33`). If you must / want to start from scratch, use `ansi` or `cr8` as examples for the approach. Once the file is created, you can refer to the keyboard by the file's name in Jalo.
-
 ## Scoring the effort of a layout
 
 TODO
@@ -115,6 +193,16 @@ TODO
 ## Improving and Polishing
 
 TODO
+
+## Corpus
+
+When analyzing a layout, the corpus determines how often key sequences of a layout will be typed, and thus it is a critical driver of all the results. For example, the `en` corpus (the default English language corpus) specifies that the sequence of letters `ed` will be typed 0.99% of the time, and therefore, on a qwerty layout, where `e` and `d` are both on the left middle finger, it drives the `sfb` metric (single finger bigram) up by that amount.
+
+Jalo corpuses are provided in the `./corpus` directory, including the most commonly used corpus for english language optimizations. To select a corpus, use the `corpus` command, or to avoid repeating the command, change the default corpus in `config.toml` ([see Defaults section](#defaults))
+
+To provide your own corpus, create a new folder under `./corpus` named for the new corpus. The folder should contain 4 json files: `monograms.json`, `bigrams.json`, `trigrams.json`, `skipgrams.json`, that specify the frequency of each ngram in the corpus. The values in each file should add up to 1.0 (i.e., should be frequencies, not counts). Additional files can be added for more information about the corpus, and will be dutifully ignored.
+
+Creating a great corpus can be tricky to get right. You want to the corpus to be closely representative of what you will be typing, and large enough to provide robust statistics within a tenth of a percent or better. The corpus also needs to be cleaned, for example, by dealing with capitalization, accented characters, special characters that are shifted, and so on. I would recommend using an existing corpus, either provided here, or from one of the other layout optimization projects listed in references, if possible.
 
 ## Defaults
 
