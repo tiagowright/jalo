@@ -3,10 +3,10 @@
 Jalo is an interactive keyboard layout analyzer and optmizer, with the following capabilities;
 
 * *Flexible number of keys*: Jalo can analyze keyboards with any number of keys and physical configurations, including keys on thumbs, any number of pinky or central columns, extra rows, keys on layers, and more. 
-* *Powerful optimization*: Optimization features can generate a wide range of layouts, improve existing layouts, and fine tune them by suggesting the most promising swaps. Under the hood, Jalo combines simulated annealing, genetic algorithms, and different flavors of hill climbing depending on the job for the best outcomes. 
-* *Your own scoring function*: To score layouts, Jalo allows any (linear) combination of metrics with user-defined weights, and makes it simple and interactive to change them. Jalo also provides clear reporting on how each metric contributes to each layout's final score, so it's easy to understand how to improve both the scoring and the layouts. 
+* *Powerful optimization*: Optimization features can generate a wide range of layouts, improve existing layouts, and fine tune them by suggesting the most promising swaps. Under the hood, Jalo combines simulated annealing, genetic algorithms, and different flavors of hill climbing depending on the job.
+* *Your own scoring function*: To score layouts, Jalo allows any (linear) combination of metrics with user-defined weights, and makes it simple and interactive to change them. Jalo also provides clear reporting on how each metric contributes to each layout's final score, so it's easy to understand how to improve both. 
 * *Your metrics*: Most of the metrics in the [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o) are included, but the definitions of the metrics can be changed, and new metrics can be added. Jalo makes it easy to analyze layouts, identify what key combiniations are contributing to any metric, and compare layouts side-by-side. 
-* *Editing capabilities*: Editing layouts is simple, with commands to mirror and invert layouts, and swap pairs of keys.
+* *Editing*: Editing layouts is simple, with commands to mirror and invert layouts, and swap pairs of keys.
 
 Jalo works as a command line tool with an interactive mode (REPL), or by invoking it with commands or a script file. Start the interactive mode `./jalo.py` then type `help` to get a list of commands. Use tab to auto-complete command names and arguments, and up/down to cycle through command history.
 
@@ -28,33 +28,93 @@ Once installed, you can use Jalo by invoking it from the command line:
 ./jalo.py
 ```
 
-Type `help` for an overview of all available commands, and `help <command>` for details on each command. Use arrows up/down to cycle through your command history. Tab is auto-complete, and it will complete commands as well as arguments, including completing layout names, metric names, etc.
+At the prompt `jalo> `, type `help` for an overview of all available commands, and `help <command>` for details on each command. Use arrows up/down to cycle through your command history. Tab is auto-complete, and it will complete commands as well as arguments, including completing layout names, metric names, etc.
 
 The typical workflows are to `analyze` and `compare` layouts, or to `generate`, `improve`, `polish`, modify layouts (e.g. `swap`) for your needs. In the sections that follow, we'll cover these in more depth.
 
+
 ## Analyzing layouts
 
-Jalo analyzes layouts and reports on 30+ common metrics, plus finger level metrics. Use `analyze` to see how a specific layout fare against all metrics, along with the key sequences that are the most impactful on that metric. For example, `analyze qwerty` will shows that `sfb` is 6.6% and that the worst offender is `ed` at 0.99% frequency in English. 
+Jalo analyzes layouts and reports on 30+ common metrics, plus finger-level metrics. Use `analyze` to see how a specific layout fare against all metrics, along with the key sequences that are the most impactful on that metric. For example, `analyze qwerty` will shows that `sfb` is 6.6% and that the worst offender is `ed` at 0.99% frequency in English. 
 
 You can also compare multiple layouts on all metrics with `compare`. For example, `compare graphite sturdy` will quickly show that graphite has more `alt_sfs` but lower redirects. 
 
 You can also change the corpus being used to assess the metrics using the `corpus` command, for example, to assess layouts on different language, or to use your own corpus.
 
+```
+jalo> analyze enthium
+
+enthium                      ortho_pinky_33
+---------------------------  ----------------------------
+|   z p d l x   = u o y q    |    0 1 2 3 3   6 6 7 8 9
+| w s n t h k   - e a i c b  |  0 0 1 2 3 3   6 6 7 8 9 9
+|   v f g m j   ; / . , '    |    0 1 2 3 3   6 6 7 8 9
+|           r                |            4
+
+metric                     enthium  top n-gram
+                    ortho_pinky_33
+----------------  ----------------  -------------------------------------------------
+rep                          2.742  ll: 0.713, ee: 0.412, ss: 0.353, oo: 0.295
+sfb                          0.795  ue: 0.128, y,: 0.104, oa: 0.074, nf: 0.059
+sfs                          5.795  dt: 0.491, gt: 0.454, ue: 0.434, oa: 0.326
+sft                          0.007  e-e: 0.002, e-u: 0.001, ue-: 0.001, ueu: 0.000
+...
+```
+
+## Layouts
+
+TODO
+
+
 ## Corpus
 
 When analyzing a layout, the corpus determines how often key sequences of a layout will be typed, and thus it is a critical driver of all the results. For example, the `en` corpus (the default English language corpus) specifies that the sequence of letters `ed` will be typed 0.99% of the time, and therefore, on a qwerty layout, where `e` and `d` are both on the left middle finger, it drives the `sfb` metric (single finger bigram) up by that amount.
 
-Jalo corpuses are provided in the `./corpus` directory, including the most commonly used corpus for english language optimizations.
+Jalo corpuses are provided in the `./corpus` directory, including the most commonly used corpus for english language optimizations. To select a corpus, use the `corpus` command, or to avoid repeating the command, change the default corpus in `config.toml` ([see Defaults section](#defaults))
 
-To provide your own corpus, create a new folder under `./corpus` named for the new corpus. The folder should contain 4 json files: `monograms.json`, `bigrams.json`, `trigrams.json`, `skipgrams.json`, that specify the frequency of each ngram in the corpus. The values in each file should add up to 1.0 (or a bit less).
+To provide your own corpus, create a new folder under `./corpus` named for the new corpus. The folder should contain 4 json files: `monograms.json`, `bigrams.json`, `trigrams.json`, `skipgrams.json`, that specify the frequency of each ngram in the corpus. The values in each file should add up to 1.0 (i.e., should be frequencies, not counts). Additional files can be added for more information about the corpus, and will be dutifully ignored.
+
+Creating a great corpus can be tricky to get right. You want to the corpus to be closely representative of what you will be typing, and large enough to provide robust statistics within a tenth of a percent or better. The corpus also needs to be cleaned, for example, by dealing with capitalization, accented characters, special characters that are shifted, and so on. I would recommend using an existing corpus, either provided here, or from one of the other layout optimization projects listed in references, if possible.
 
 ## Metrics
 
-The metrics were carefully createed to match as closely as possible the definitions in the [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o) and to work with a wide range of different kayboard hardware definitions. Use the `metric` command to review the metrics and their descriptions.
+The metrics were carefully created to match as closely as possible the definitions in the [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o) and to work with a wide range of different kayboard hardware definitions. Use the `metric` command to review the metrics and their descriptions.
 
 You can also inspect, update, or create your own metrics. All metrics are defined in `metrics.py`. Metrics are defined as a method that takes either 1, 2, or 3 key positions, and returns a floating point value. You can inspect the definitions and modify the functions to better align with your preferences if needed. For instance, `scissors` are especially difficult to define, and you may have different preferences for what should be included or not.
 
 To create your own metric, add a new function to `metrics.py`, then add your new metric to the `METRICS` array at the end of the file. Copy the patterns of an existing metric that is of the same type. If you define a new trigram based metric (three position inputs), it may be worth thinking about efficiency in your code, since these are computed for every combination of 3 positions on the keyboard you are analyzing (`O(N^3)`). After defining your metric, use `analyze` to check on the most common key combinations to inspect the quality of the definition.
+
+```
+jalo> metrics
+Metric            Description
+----------------  ------------------------------------------------------------------------
+rep               single finger repetition
+sfb               single finger bigram
+sfs               single finger skipgram
+...
+```
+
+## Keebs
+
+Jalo supports a variety of keyboard hardware with different numbers and arrangements of keys, available in the `./keebs/` folder, including:
+* `ansi`: the standard 30 key, row staggered, setup common to most laptops, and the most widely used for layout designs
+* `ortho`: the analogous 30 key orthonormal setup (no stagger), that is compatible with `ansi` so that any layout built for one can be easily transposed on the other
+* `ansi_angle`: this is the standard `ansi` setup with an "angle mod", where the typist uses a different set of fingers for the bottom row on the left hand
+* `ortho_thumb`: the `ortho` setup with an additional key on the left thumb that can assigned a letter/character, for layouts like Hands Down series
+
+To create your own hardware setup, add a file to the `./keebs` directory that exports a `KEYBOARD` attribute. The exported object needs to be an instance of `hardware.KeyboardHardware`. The simplest way to build a new layout is to modify the ansi/ortho setup by adding or modifying keys (e.g. see `ortho_pinky_33`). If you must / want to start from scratch, use `ansi` or `cr8` as examples for the approach. Once the file is created, you can refer to the keyboard by the file's name in Jalo.
+
+## Scoring the effort of a layout
+
+TODO
+
+## Generating layouts
+
+TODO
+
+## Improving and Polishing
+
+TODO
 
 ## Defaults
 
@@ -192,8 +252,9 @@ Thank you to the Keyboard layout communities for your help and inspiration over 
 
 The following projects speficically were fundamental inspiration and sources of ideas for Jalo:
 * [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o)
-* [carpalX](https://mk.bcgsc.ca/carpalx/)
-* [Oxeylyzer](https://github.com/o-x-e-y/oxeylyzer/)
+* [carpalx](https://mk.bcgsc.ca/carpalx/)
+* [oxeylyzer](https://github.com/o-x-e-y/oxeylyzer/)
 * [keygen](https://github.com/xsznix/keygen)
 * [keymui](https://github.com/semilin/keymui)
 * [cmini](https://github.com/Apsu/cmini)
+* [colemak](https://colemak.com/Design)

@@ -20,42 +20,42 @@ replacement_rate = 0.01
 [[runs]]
 iterations = 174
 
-# [[runs]]
-# selection_slope = 1
-# iterations = 134
+[[runs]]
+selection_slope = 1
+iterations = 134
 
-# [[runs]]
-# selection_slope = 3
-# iterations = 174
+[[runs]]
+selection_slope = 3
+iterations = 174
 
-# [[runs]]
-# selection_slope = 4
-# iterations = 176
+[[runs]]
+selection_slope = 4
+iterations = 176
 
-# [[runs]]
-# selection_slope = 8
-# iterations = 172
+[[runs]]
+selection_slope = 8
+iterations = 172
 
-# [[runs]]
-# generations = 1
-# iterations = 299
+[[runs]]
+generations = 1
+iterations = 299
 
-# [[runs]]
-# generations = 2
-# iterations = 235
+[[runs]]
+generations = 2
+iterations = 235
 
-# [[runs]]
-# generations = 3
-# iterations = 192
+[[runs]]
+generations = 3
+iterations = 192
 
-# [[runs]]
-# generations = 5
-# iterations = 128
+[[runs]]
+generations = 5
+iterations = 128
 
-# [[runs]]
-# generations = 4
-# selection_slope = 8
-# iterations = 172
+[[runs]]
+generations = 4
+selection_slope = 8
+iterations = 172
 
 [[runs]]
 mutation_rate = 0
