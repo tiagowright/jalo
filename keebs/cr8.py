@@ -15,7 +15,7 @@ to create a custom keeb with layers
 '''
 
 from hardware import Finger, KeyboardHardware, Position
-from keebs.ansi import effort_map
+from keebs.ansi import heat_map
 
 finger_at_col = {
     0: Finger.LP,
@@ -53,9 +53,9 @@ second_layer_positions = [
     [2, 6, 7, 8]
 ]
 
-# additional effort needed to access the second layer (e.g., hold/tap the layer key)
-# this will be added to the standard effort map for that row and column
-second_layer_additional_effort = 1.0
+# additional heat needed to access the second layer (e.g., hold/tap the layer key)
+# this will be added to the standard heat map for that row and column
+second_layer_additional_heat = 1.0
 
 KEYBOARD = KeyboardHardware(
     name='cr8', 
@@ -63,7 +63,7 @@ KEYBOARD = KeyboardHardware(
         Position(row=row, col=col, x=col, y=row, 
             finger=finger_at_col[col], 
             is_home = is_home.get((row, col), False), 
-            effort=effort_map[row][col]
+            heat=heat_map[row][col]
         )
         for row, cols in enumerate(cols_at_row)
         for col in cols
@@ -72,7 +72,7 @@ KEYBOARD = KeyboardHardware(
             finger=finger_at_col[col], 
             is_home = is_home.get((row, col), False), 
             layer = 1, 
-            effort=effort_map[row][col] + second_layer_additional_effort
+            heat=heat_map[row][col] + second_layer_additional_heat
         )
         for row, cols in enumerate(second_layer_positions)
         for col in cols

@@ -440,8 +440,8 @@ def left_hand(a):
 def right_hand(a):
     return a.finger.hand == Hand.RIGHT
 
-def effort(a):
-    return a.effort
+def heat(a):
+    return a.heat
 
 def home(a):
     return a.is_home
@@ -458,7 +458,7 @@ METRICS = [
     Metric(name="sfb_dist", description="single finger bigram distance squared", ngramType=NgramType.BIGRAM, function=sfb_distance),
     Metric(name="sfs_dist", description="single finger skipgram distance squared", ngramType=NgramType.SKIPGRAM, function=sfs_distance),
     Metric(name="sft_dist", description="single finger trigram distance squared", ngramType=NgramType.TRIGRAM, function=sft_distance),
-    Metric(name="effort", description="effort of a key press", ngramType=NgramType.MONOGRAM, function=effort),
+    Metric(name="heat", description="heat of a key press", ngramType=NgramType.MONOGRAM, function=heat),
     Metric(name="lsb", description="lateral stretch bigram", ngramType=NgramType.BIGRAM, function=lsb),
     Metric(name="rowskip", description="row skip where a bigram on the same hand is separated by more than 1 row", ngramType=NgramType.BIGRAM, function=rowskip),
     Metric(name="scissors", description="full scissor bigram", ngramType=NgramType.BIGRAM, function=scissors),

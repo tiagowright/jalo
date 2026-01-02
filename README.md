@@ -184,11 +184,46 @@ sfs               single finger skipgram
 
 ## Scoring layouts
 
-The "magic" in optimizing layouts using any computer optimization tool is figuring out how to score them. The workflow often involves coming up with a way to score layouts (such as setting a bunch of weights), running the optimization, then tweaking the weights again to improve the outputs.
+The "magic" in optimizing layouts using most computer optimization tool is figuring out how to score them. The workflow often involves coming up with a way to score layouts (such as setting a bunch of weights), running the optimization, then tweaking the weights again to improve the outputs. Jalo makes it easier to understand how the current score is calculate and what drives it, and then simple to update the scoring function.
 
-In Jalo, the score is an amount of *effort*, so that lower scores are always considered better. This means that "bad" things should have a positive weight, and "good" things a negative weight.
+In Jalo, the score is an amount of *heat*, so that lower scores are always considered better. This means that "bad" things should have a positive weight, and "good" things a negative weight.
 
-Jalo allows any linear combination of 
+Jalo allows any linear combination of any of it's metrics to create a score. Typically, this is a combination of positive weights (indicating increased heat) for metrics such as `sfb`, `sfs`, `scissors`, `redirect`, and negative weights (indicating reduced heat) for metrics such as `in_roll`, `home`, `alt`. This combination of weights into a single score is called an "objective".
+
+Jalo ships with some objectives that are available in `./objectives`. Use the `objective` command to name one of these as your objective function (e.g., `objective default` for the "default" function), or update `config.toml` to change the default for all future sessions as well.
+
+Jalo makes it easy to create your own objectives. Use the `objective` command to view the current objective, and use it to make updates to the weights, add / remove metrics, etc directly in the interative shell.
+
+```
+jalo> objective
+Current function:
+objective 100sfb + 6heat + 60pinky_ring + 60scissors_ortho + 60sfs + 20finger_0 + 20finger_9 + 18finger_1 + 18finger_8 + 15finger_2 + 15finger_7 + 12finger_3 + 12finger_6
+
+jalo> objective 100sfb + 60sfs + 60pinky_ring
+Updated function to:
+objective 100sfb + 60sfs + 60pinky_ring
+```
+
+If you have a good objective function, you can also save it, and use it in the future, or set it as the default. Create a new `.toml` file in `./objectives` with the name you want. The toml file must follow one of these two conventions:
+
+* Have a key called `formula` with a string that contains the same format of formula that the `objective` command supports (e.g., `default.toml`)
+* Have a `formula` table, where each key is the name of a metric, and the value is the weight assigned to that metric (e.g., `oxeylyzer.toml`)
+
+Jalo makes it much easier to understand how the layouts you are building are getting scored, in detail. A tricky step in improving the objective can be just understanding why it is leading to some layouts that are not great, what weights are driving it there. Jalo provides `contributions` command, which breaks down how each weight and metric contributes to the score, comparing multiple layouts side-by-side. 
+
+In this example, layout `1.1` is compared with `hdpm` and `graphite`, with the score weights shown in `w`, and the contributions to the score for each metric and layout in the `ΔS` columns, showing that `sfs` in this case is one of the drivers of the differences in score.
+
+```
+jalo> contributions 1.1 hdpm graphite
+metric                  w               1.1  Δ          ΔS              hdpm  Δ          ΔS    graphite  Δ          ΔS
+                             ortho_thumb_33                   ortho_thumb_33                       ansi
+----------------  -------  ----------------  ---  --------  ----------------  ---  --------  ----------  ---  --------
+rep                                   2.742                            2.742                      2.741
+sfb               100.000             0.906         90.626             0.828         82.792       0.996         99.557
+sfs                60.000             5.162  -     309.722             6.653  +     399.162       6.260        375.571
+...
+score                                             2657.097                         2973.477                   3030.263
+```
 
 ## Generating layouts
 
@@ -257,7 +292,7 @@ sft                  0.431  +         0.025  -               0.005  -
 ```
 jalo> objective
 Current function:
-objective 100sfb + 6effort + 60pinky_ring + 60scissors_ortho + 60sfs + 20finger_0 + 20finger_9 + 18finger_1 + 18finger_8 + 15finger_2 + 15finger_7 + 12finger_3 + 12finger_6
+objective 100sfb + 6heat + 60pinky_ring + 60scissors_ortho + 60sfs + 20finger_0 + 20finger_9 + 18finger_1 + 18finger_8 + 15finger_2 + 15finger_7 + 12finger_3 + 12finger_6
 
 jalo> generate
 generating 100 seeds.
@@ -328,7 +363,7 @@ editing:
 
 ## Optimization
 
-Jalo's optimization capabilities help you discover and refine keyboard layouts through multiple complementary approaches. The `generate` command creates entirely new layouts from scratch, starting from random seeds and iteratively improving them to find layouts with the lowest scores based on your objective function. This is perfect for exploring the solution space broadly and discovering novel layouts that might outperform existing ones. Once you have promising candidates, `improve` refines them further by making smaller, more conservative changes—producing layouts that are similar to the original but potentially better scoring. For final fine-tuning, `polish` identifies small numbers of strategic swaps that can improve a layout's score, perfect for those last few percentage points of optimization. Throughout this process, you can customize the `objective` function to define what makes a layout good—whether that's minimizing finger effort, maximizing hand alternation, or balancing multiple competing concerns. The `hardware` command lets you specify different keyboard physical configurations, and `pin` allows you to lock certain characters in place, ensuring that your optimization respects constraints like keeping vowels on the home row or maintaining specific ergonomic preferences.
+Jalo's optimization capabilities help you discover and refine keyboard layouts through multiple complementary approaches. The `generate` command creates entirely new layouts from scratch, starting from random seeds and iteratively improving them to find layouts with the lowest scores based on your objective function. This is perfect for exploring the solution space broadly and discovering novel layouts that might outperform existing ones. Once you have promising candidates, `improve` refines them further by making smaller, more conservative changes—producing layouts that are similar to the original but potentially better scoring. For final fine-tuning, `polish` identifies small numbers of strategic swaps that can improve a layout's score, perfect for those last few percentage points of optimization. Throughout this process, you can customize the `objective` function to define what makes a layout good—whether that's minimizing finger heat, maximizing hand alternation, or balancing multiple competing concerns. The `hardware` command lets you specify different keyboard physical configurations, and `pin` allows you to lock certain characters in place, ensuring that your optimization respects constraints like keeping vowels on the home row or maintaining specific ergonomic preferences.
 
 ## Editing
 

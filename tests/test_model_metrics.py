@@ -163,8 +163,8 @@ SCENARIOS = [
     Scenario("ansi", "qwerty", "et eg eb dt dg ct cg cb iy ih ky kh kn nk n,", {"lsb": 1.0}, oxeylyzer_mode=True),
     Scenario("ansi", "qwerty", "dv db ni wb sb", {"lsb": 0.0}, oxeylyzer_mode=True),
 
-    # effort map
-    Scenario("ansi", "qwerty", "a s d f g h j k l ;", {"effort": 1.42}),
+    # heat map
+    Scenario("ansi", "qwerty", "a s d f g h j k l ;", {"heat": 1.42}),
 ]
 
 ### skipping some tests today?

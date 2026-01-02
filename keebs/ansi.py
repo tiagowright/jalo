@@ -3,7 +3,7 @@ Standard ANSI hardware, with 30 keys in 3 rows of 10 columns, with a row stagger
 This is the typical setup for keyboard layout optimization.
 
 This file also defines a function that can be used to create similar layouts
-with different stagger patterns, finger assignments, home keys, effort maps, 
+with different stagger patterns, finger assignments, home keys, heat maps, 
 and additional positions.
 
 ansi:
@@ -48,10 +48,10 @@ is_home = {
     (1,9): True
 }
 
-# effort map obtained from a linear regression on the speed of a key press using a key logger
+# heat map obtained from a linear regression on the speed of a key press using a key logger
 # note that this does not account for the distances and the effects of the horizontal stagger
 # which should be incorporated into your optimization using the distance metrics
-effort_map = [
+heat_map = [
     [3.0, 1.6, 1.4, 1.2, 2.4,  2.4, 1.2, 1.4, 1.6, 3.0],
     [1.6, 1.4, 1.3, 1.0, 1.8,  1.8, 1.0, 1.3, 1.4, 1.6],
     [2.2, 1.8, 1.6, 1.3, 2.4,  2.4, 1.3, 1.6, 1.8, 2.2],
@@ -64,7 +64,7 @@ def standard_hardware(
     finger_at_col = finger_at_col, 
     finger_at_row_col = {},
     is_home = is_home,
-    effort_map = effort_map,
+    heat_map = heat_map,
     additional_positions = []
 ):
     '''Creates KeyboardHardware with a standard 30 key positions arranged in 3 rows of 10 columns
@@ -89,8 +89,8 @@ def standard_hardware(
     is_home : dict {(int, int): bool}
         Whether the key at the given row and column is a home key for that finger.
         Defaults to the ANSI standard home keys.
-    effort_map : list[list[float]]
-        The effort map for each key, used to calculate the `effort` metric.
+    heat_map : list[list[float]]
+        The heat map for each key, used to calculate the `heat` metric.
         A rasonable default is provided, based on a linear regression of a user's key press speed.
     additional_positions : list[Position]
         Additional Positions to add to the keyboard hardware, for simple modifications,
@@ -111,7 +111,7 @@ def standard_hardware(
             y=row + stagger_at_col.get(col,0), 
             finger=finger_at_row_col.get((row,col), finger_at_col[col]), 
             is_home=is_home.get((row,col), False),
-            effort=effort_map[row][col]
+            heat=heat_map[row][col]
         )
         for row in range(3)
         for col in range(10)

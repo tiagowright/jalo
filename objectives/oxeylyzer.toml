@@ -4,7 +4,7 @@
 # a) some metrics have slightly different names (in_roll vs inrolls, roll3 vs onehands)
 # b) oxeylyzer weights are all positive, and the sign is determined in the code, while
 # jalo expects the weights to be negative when they are desirable features 
-# (e.g. in_roll, if that's your thing), and positive if they are effort (e.g. sfb)
+# (e.g. in_roll, if that's your thing), and positive if they are heat (e.g. sfb)
 # c) some metrics have slightly different definitions, such as scissors and lsb;
 # where possible, the oxeylyzer definition is available in the metrics.py file,
 # and it is simple to compare the definitions in there. To use the oxeylyzer definition,
@@ -15,8 +15,8 @@
 # oxeylyzer fspeed = (sfb + (dsfb_ratio)sfs + (dsfb_ratio)**2 * s2fs + (dsfb_ratio)**3 * s3fs) * weight
 # approximation function = weight * sfb + (weight * dsfb_ratio) * sfs
 # e) oxeylyzer includes max_finger_use, which is not available in jalo. We approximate by
-# assigning efforts to each finger separately finger_0 ... finger_9
-# f) oxeylyzer has a `heatmap`, which is equivalent to `effort` metric in jalo,
+# assigning heat contributions to each finger separately finger_0 ... finger_9
+# f) oxeylyzer has a `heatmap`, which is equivalent to `heat` metric in jalo,
 # but the values on each position are different, and can be adjusted in keebs/ansi.py
 
 [formula]
@@ -34,4 +34,4 @@ redirect = 5.4
 redirect_sfs = 7.2
 redirect_bad = 6.9
 redirect_bad_sfs = 9.5
-effort = 1.7
+heat = 1.7

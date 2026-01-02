@@ -7,7 +7,7 @@ ortho_22:
 
 
 from hardware import Finger, KeyboardHardware, Position
-from keebs.ansi import effort_map
+from keebs.ansi import heat_map
 
 finger_at_col = {
     0: Finger.LP,
@@ -29,7 +29,7 @@ cols_at_row = [
 ]
 
 KEYBOARD = KeyboardHardware(name='ortho_22', positions=[
-    Position(row=row, col=col, x=col, y=row, finger=finger_at_col[col], effort=effort_map[row][col])
+    Position(row=row, col=col, x=col, y=row, finger=finger_at_col[col], heat=heat_map[row][col])
     for row, cols in enumerate(cols_at_row)
     for col in cols
 ])

@@ -90,7 +90,7 @@ class Position:
     finger: Finger
     layer: int = 0
     is_home: bool = False
-    effort: float = 0.0
+    heat: float = 0.0
 
     def __eq__(self, other: 'Position') -> bool:
         return self.row == other.row and self.col == other.col and self.finger == other.finger and self.layer == other.layer

@@ -20,7 +20,7 @@ def desc() -> Command:
             [
                 "Shows the current objective function when called without an argument, or sets the objective function "
                 "from a configuration file or to a new explicit formula. "
-                "The objective function is used to score keyboard layouts, and it is considered a measure of effort, meaning lower scores are better. "
+                "The objective function is used to score keyboard layouts, and it represents a measure of heat (lower scores are better). "
                 "Optimization commands (e.g., `generate`, `improve`, `polish`) use the objective function's score to find the best layouts possible.",
                 "",
                 "Objective functions can be loaded from a toml file in ./objectives/ by naming the file, or can be hand crafted directly by typing a formula.",
@@ -42,7 +42,7 @@ def desc() -> Command:
                 "when specified, sets the objective function to the given formula or file.",
             ),
         ),
-        examples=("", "default", "oxeylyzer", "100sfb + 6effort + 60pinky_ring + 60scissors_ortho + 60sfs - 5alt"),
+        examples=("", "default", "oxeylyzer", "100sfb + 6heat + 60pinky_ring + 60scissors_ortho + 60sfs - 5alt"),
         category="optimization",
         short_description="view or update the objective function used to score layouts",
     )
@@ -90,4 +90,3 @@ def exec(shell: "JaloShell", arg: str) -> None:
 
     shell._change_settings(objective=new_objective)
     shell._info(f"Updated function to:\nobjective {shell.objective}\n")
-

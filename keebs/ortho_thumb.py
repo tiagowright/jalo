@@ -16,7 +16,7 @@ from hardware import Finger, KeyboardHardware, Position
 from keebs.ansi import standard_hardware
 
 KEYBOARD = standard_hardware(stagger_at_row={}, additional_positions=[
-    Position(row=3, col=4, x=4, y=3, finger=Finger.LT, is_home=True, effort=1.0),
+    Position(row=3, col=4, x=4, y=3, finger=Finger.LT, is_home=True, heat=1.0),
 ])
 
 if __name__ == "__main__":

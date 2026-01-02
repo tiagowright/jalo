@@ -130,7 +130,7 @@ class JaloShell(cmd.Cmd):
     prompt = "jalo> "
     break_before_metrics = [
         "home",
-        "effort",
+        "heat",
         "lsb",
         "same_hand",
         "roll",

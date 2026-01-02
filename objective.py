@@ -12,7 +12,7 @@ class ObjectiveFunction:
     ObjectiveFunction is a linear combination of metrics. The primary purpose is to
     be used as the objective function for the optimizer, summarizing the quality of a keyboard layout.
     
-    The optimizer will MINIMIZE the objective function. So think of it as cost or effort function.
+    The optimizer will MINIMIZE the objective function. So think of it as cost or heat function.
 
     ObjectiveFunction allows other ObjectiveFunctions as input to the linear combination.
     '''
