@@ -182,9 +182,13 @@ sfs               single finger skipgram
 ...
 ```
 
-## Scoring the effort of a layout
+## Scoring layouts
 
-TODO
+The "magic" in optimizing layouts using any computer optimization tool is figuring out how to score them. The workflow often involves coming up with a way to score layouts (such as setting a bunch of weights), running the optimization, then tweaking the weights again to improve the outputs.
+
+In Jalo, the score is an amount of *effort*, so that lower scores are always considered better. This means that "bad" things should have a positive weight, and "good" things a negative weight.
+
+Jalo allows any linear combination of 
 
 ## Generating layouts
 

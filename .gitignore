@@ -11,3 +11,5 @@ WIP/
 AGENTS.md
 # solvers/logs/*.csv
 solvers/tuning/*.xlsx
+jalo.egg-info/
+build/
