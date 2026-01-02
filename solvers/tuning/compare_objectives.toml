@@ -1,0 +1,57 @@
+# Used by optim.py when called in command line, to run multiple optimizations in sequence
+# collect the data into ./solvers/logs files. Used to compare the quality of solvers for different 
+# scenarios and test different values of paramters for the solvers to find the best 
+# configuration. Most users most of the time don't need to go in here!
+
+output = './solvers/logs/compare_objectives.csv'
+log_hamming_clusters = true
+
+
+# default settings used for every run, unless they are overriden in the [[runs]] entry.
+# any further parameters specified here will be assumed to be solver specific parameters,
+# and will be provided in `solver_args`
+[default]
+hardware = 'ortho'
+corpus = 'en'
+iterations = 100
+population = 200
+objective = 'default'
+name_format = '{solver}_{objective}'
+
+# each [[runs]] entry specifies the parameters for a single run of the optimizer, and
+# can override any of the defaults above for that specific run
+[[runs]]
+solver = 'annealing'
+iterations = 375
+
+[[runs]]
+solver = 'genetic'
+iterations = 132
+
+[[runs]]
+solver = 'greedyhill'
+iterations = 253
+
+[[runs]]
+solver = 'steepesthill'
+iterations = 465
+
+[[runs]]
+objective = 'oxeylyzer'
+solver = 'annealing'
+iterations = 375
+
+[[runs]]
+objective = 'oxeylyzer'
+solver = 'genetic'
+iterations = 132
+
+[[runs]]
+objective = 'oxeylyzer'
+solver = 'greedyhill'
+iterations = 253
+
+[[runs]]
+objective = 'oxeylyzer'
+solver = 'steepesthill'
+iterations = 465
