@@ -276,7 +276,7 @@ After generation, a new list of layouts is created in memory. In the example, li
 
 You can control the hardware, objective, and corpus used for generation with `hardware`, `objective`, and `corpus` commands, or by updating `config.toml` to change the defaults for all future sessions.
 
-You can also control the hardware by naming a layout to generate. For example `generate 100 hdpm` will use the same hardware and set of characters as `hdpm`.
+Another way to control the hardware used, is to name an existing layout as an argument. For example `generate 100 hdpm` will use the same hardware and set of characters as `hdpm`.
 
 You can also control where some keys will be placed by pinning them first, and naming a layout that has them. For example, if you want to have the same vowel block as `graphite`:
 
@@ -361,17 +361,19 @@ Jalo uses different "solvers" to optimize layouts in different scenarios. As a u
 
 The core problem in layout optimization is finding the assignments of characters to physical keys that minimizes the objective (that is, typing effort). If there are 30 keys, the space of possibilities is 30 factorial, about 10^32 different layouts, which is simply too many to check one by one (brute force). Thus we need some other approach that allows us to find promising layouts among the wide sea of options.
 
-Jalo leverages four approaches. The basic approach is the "steepest hill": start with a random layout, then check every possible swap, and "accept" the one that improves the score the most, then rinse and repeat, until no more swaps are found that improve the layout. This is fast to converge, but may get stuck on "local minima", that is, layouts where a single swap makes no improvement, but far from the best possible.
+Jalo leverages four approaches. The basic approach is the *steepest hill*: start with a random layout, then check every possible swap, and "accept" the one that improves the score the most, then rinse and repeat, until no more swaps are found that improve the layout. This is fast to converge, but may get stuck on "local minima", that is, layouts where a single swap makes no improvement, but far from the best possible.
 
-A simple, yet surprisingly effective work around is the "greedy hill" approach: start with a random layout, then check possible swaps in random order, and "accept" the first swap that improves the score at all, and continue this way until no further swaps are found to improve things. To avoid "local minima", go back to the original seed layout and run the same algorithm again, re-randomizing the sequence of swaps.
+A simple, yet surprisingly effective work around is the *greedy hill* approach: start with a random layout, then check possible swaps in random order, and "accept" the first swap that improves the score at all, and continue this way until no further swaps are found to improve things. To avoid "local minima", go back to the original seed layout and run the same algorithm again, re-randomizing the sequence of swaps.
 
-A more sohpisticated approach is "simulated annealing": as with the steepest hill approach, check all swaps, "accept" the best one, and repeat. But when no more swaps improve the score, "accept" a swap that makes it worse, with a probability that is proportional to the "temperature". Iterate, while reducing the temperature, until no more swaps are accepted.
+A more sohpisticated approach is *simulated annealing*: as with the steepest hill approach, check all swaps, "accept" the best one, and repeat. But when no more swaps improve the score, "accept" a swap that makes it worse, with a probability that is proportional to the "temperature". Iterate, while reducing the temperature, until no more swaps are accepted.
 
-Finally, Jalo also uses "genetic algorithm": start with a random population of layouts, and run the steepest hill on all of them, so none can be improved further in this way. Now pick two "parents" from this population at random (giving a higher probability to better scoring layouts). Combine the two "parents" into a new layout "child", then improve that child using the steepest hill approach. Add the child to the population, then iterate to the next generation, until you run out of generations.
+Finally, Jalo also uses *genetic algorithm*: start with a random population of layouts, and run the steepest hill on all of them, so none can be improved further in this way. Now pick two "parents" from this population at random (giving a higher probability to better scoring layouts). Combine the two "parents" into a new layout "child", then improve that child using the steepest hill approach. Add the child to the population, then iterate to the next generation, until you run out of generations.
 
 In practice, I found that the genetic algorithm tends to deliver the best population of layouts, for the same amount of compute used, while the naive "greedy hill" approach comes as pretty close second. To assess the quality of the results, I first cluster the population to eliminate layouts that are very similar to each other, then look at the area under the curve of the score. The genetic algorithm seems to consistently deliver better scores in top 200 layouts generated, and especially seems to provide better top 10 results.
 
 However, if what you want is to explore near a reference layout, than simulated annealing seems to be the best option. The annealing process visits many layouts within 5 swaps of the seed very efficiently, providing higher density of good layouts.
+
+![Diagram of a sample output comparing layout score curves for different algorithms](solvers/tuning/sample_run_results.png)
 
 Given these (adimitedly not totally robust) results, Jalo leverages the genetic algorithm for `generate`, simulated annealing for `improve`, and steepest hill for `polish`.
 
