@@ -371,7 +371,9 @@ Finally, Jalo also uses *genetic algorithm*: start with a random population of l
 
 In practice, I found that the genetic algorithm tends to deliver the best population of layouts, for the same amount of compute used, while the naive "greedy hill" approach comes as pretty close second. To assess the quality of the results, I first cluster the population to eliminate layouts that are very similar to each other, then look at the area under the curve of the score. The genetic algorithm seems to consistently deliver better scores in top 200 layouts generated, and especially seems to provide better top 10 results.
 
-However, if what you want is to explore near a reference layout, than simulated annealing seems to be the best option. The annealing process visits many layouts within 5 swaps of the seed very efficiently, providing higher density of good layouts.
+However, if what you want is to explore near a reference layout, then simulated annealing seems to be the best option. The annealing process visits many layouts within 5 swaps of the seed very efficiently, providing higher density of good layouts.
+
+Here's an example run comparing the layout score curves for the four different approaches. Each run used ~30s of compute on a c2-standard-16.
 
 ![Diagram of a sample output comparing layout score curves for different algorithms](solvers/tuning/sample_run_results.png)
 
