@@ -48,7 +48,7 @@ def exec(shell: "JaloShell", arg: str) -> None:
     elif args[0].lower() in ("nothing", "clear"):
         shell.pinned_chars = []
     else:
-        all_chars = [char for chars in args for char in chars]
+        all_chars = [char for chars in args for char in chars if char not in shell.pinned_chars]
 
         invalid_chars = [char for char in all_chars if char not in shell.model.freqdist.char_seq]
         if invalid_chars:
@@ -62,4 +62,5 @@ def exec(shell: "JaloShell", arg: str) -> None:
     else:
         str_pinned_chars = " ".join(shell.pinned_chars)
         shell._info(f"pinned: {str_pinned_chars}")
+    shell._info("")
 
