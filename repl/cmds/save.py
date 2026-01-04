@@ -53,11 +53,13 @@ def exec(shell: "JaloShell", arg: str) -> None:
 
     if os.path.exists(filepath):
         shell._warn(
-            f"layout file already exists: {filepath}, not overwriting. Specify a different name: save <keyboard> <name>"
+            f"Error: layout file already exists: {filepath}, not overwriting. \nSpecify a different name: save <keyboard> <name>"
         )
         return
 
     with open(filepath, "w", encoding="utf-8") as file_handle:
+        if not layout.hardware.is_standard_size:
+            file_handle.write(f"# use: {layout.hardware.name}\n")
         file_handle.write(str(layout))
 
     shell._info(f"saved layout to {filepath}")

@@ -80,7 +80,7 @@ def exec(shell: "JaloShell", arg: str) -> None:
                 f"pins will be ignored ({pins})"
             )
 
-    shell._info(f"generating {seeds} seeds.")
+    shell._info(f"generating from {seeds} seeds.")
 
     optimizer = Optimizer(model, population_size=100, solver="genetic")
 

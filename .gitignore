@@ -9,7 +9,6 @@ WIP/
 .DS_Store
 .DS_Store/
 AGENTS.md
-# solvers/logs/*.csv
 solvers/tuning/*.xlsx
 build/
 dist/

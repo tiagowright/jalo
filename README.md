@@ -2,11 +2,11 @@
 
 Jalo is an interactive keyboard layout analyzer and optmizer, with the following capabilities;
 
-* *Flexible number of keys*: Jalo can analyze keyboards with any number of keys and physical configurations, including keys on thumbs, any number of pinky or central columns, extra rows, keys on layers, and more. 
-* *Powerful optimization*: Optimization features can generate a wide range of layouts, improve existing layouts, and fine tune them by suggesting the most promising swaps. Under the hood, Jalo combines simulated annealing, genetic algorithms, and different flavors of hill climbing depending on the job.
-* *Your own scoring function*: To score layouts, Jalo allows any (linear) combination of metrics with user-defined weights, and makes it simple and interactive to change them. Jalo also provides clear reporting on how each metric contributes to each layout's final score, so it's easy to understand how to improve both. 
-* *Your metrics*: Most of the metrics in the [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o) are included, but the definitions of the metrics can be changed, and new metrics can be added. Jalo makes it easy to analyze layouts, identify what key combiniations are contributing to any metric, and compare layouts side-by-side. 
-* *Editing*: Editing layouts is simple, with commands to mirror and invert layouts, and swap pairs of keys.
+* **Flexible number and arrangement of keys**: Jalo can analyze keyboards with any number of keys and physical configurations, including keys on thumbs, any number of pinky or central columns, extra rows, keys on layers, and more. 
+* **Powerful optimization**: Optimization features can generate a wide range of layouts, improve existing layouts, and fine tune them by suggesting the most promising swaps. Under the hood, Jalo combines simulated annealing, genetic algorithms, and different flavors of hill climbing depending on the job.
+* **Your own scoring function**: To score layouts, Jalo allows any (linear) combination of metrics with user-defined weights, and makes it simple and interactive to change them. Jalo also provides clear reporting on how each metric contributes to each layout's final score, so it's easy to understand how to improve both. 
+* **Your metrics**: Most of the metrics in the [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o) are included, but the definitions of the metrics can be changed, and new metrics can be added. Jalo makes it easy to analyze layouts, identify what key combiniations are contributing to any metric, and compare layouts side-by-side. 
+* **Editing**: Editing layouts is simple, with commands to mirror and invert layouts, and swap pairs of keys.
 
 Jalo works as a command line tool with an interactive mode (REPL), or by invoking it with commands or a script file. Start the interactive mode `./jalo.py` then type `help` to get a list of commands. Use tab to auto-complete command names and arguments, and up/down to cycle through command history.
 
@@ -40,12 +40,11 @@ Jalo analyzes layouts and reports on 30+ common metrics, plus finger-level metri
 ```
 jalo> analyze enthium
 
-enthium                      ortho_pinky_33
----------------------------  ----------------------------
-|   z p d l x   = u o y q    |    0 1 2 3 3   6 6 7 8 9
-| w s n t h k   - e a i c b  |  0 0 1 2 3 3   6 6 7 8 9 9
-|   v f g m j   ; / . , '    |    0 1 2 3 3   6 6 7 8 9
-|           r                |            4
+enthium                     ortho_pinky_33          
+  z p d l x  = u o y q        0 1 2 3 3  6 6 7 8 9  
+w s n t h k  - e a i c b    0 0 1 2 3 3  6 6 7 8 9 9
+  v f g m j  ; / . , '        0 1 2 3 3  6 6 7 8 9  
+          r                           4             
 
 metric                     enthium  top n-gram
                     ortho_pinky_33
@@ -93,26 +92,24 @@ asto_22    colemak_dh engram     gallium    hdgold     hdpm       inrolly    mtg
 
 Creating your own layout is easy. You can add a `.kb` file in the `./layouts/` folder using a text editor (use any of the existing files there as examples). 
 
-You can also create layouts in Jalo, for example, using `generate` or by editing an existing layout with `swap`, `mirror`, `invert`, and so on. Layouts created in jalo are kept in memory and can be accessed by their number (use `list` command to see what is in memory). If you are happy with a layout, you can use `save` to create a new file in the `./layouts/` folder that can be referenced later, edited by hand for any additional changes, shared, etc.
+You can also create layouts in Jalo, for example, using `generate` or by editing an existing layout with `swap`, `mirror`, `invert`, and so on. Layouts created in Jalo are kept in memory and can be accessed by their number (use `list` command to see what is in memory). If you are happy with a layout, you can use `save` to create a new file in the `./layouts/` folder that can be referenced later, edited by hand for any additional changes, shared, etc.
 
 ```
 jalo> invert hdpm
 
-layout 2 3004.163 (30.686)  > invert hdpm
-v w g m j   - . ' = / z
-s n t h k   , a e i c q
-f p d l x   ; u o y b  
-        r            
+4                                       
+v w g m j  - . ' = / z    > invert hdpm 
+s n t h k  , a e i c q    3004.163 score
+f p d l x  ; u o y b        30.686 Δ    
+        r                               
 
-jalo> save 2 hdpm_inverted
+jalo> save 4 hdpm_inverted
 saved layout to layouts/hdpm_inverted.kb
 ```
 
-Layout files can optionally name the hardware to be used for the layout. Many layouts are created using a 3 x 10 grid of 30 keys that are compatible with `ansi` or `ortho` hardware. When a layout is needed, jalo tries to load it into the default hardware, typically `ansi` or `ortho`. You can change the default with the `hardware` command, or by editing the `config.toml` file to change it for all future sessions.
+Layout files can optionally name the hardware to be used for the layout. Many layouts are created using a 3 x 10 grid of 30 keys that are compatible with `ansi` or `ortho` hardware. When a layout is needed, Jalo tries to load it into the default hardware, typically `ansi` or `ortho`. You can change the default with the `hardware` command, or by editing the `config.toml` file to change it for all future sessions.
 
-But you may be interested in adding thumb letter keys, more keys to the pinky finger, removing keys, adding layers, etc. Layouts that are not compatible with the 3 x 10 grid can name the hardware setup to be used for that layout by adding a comment with a hint, for example, `# use: ortho_thumb` will tell jalo to use `ortho_thumb` hardware for this layout (see `hdpm.kb` for an example).
-
-See [Keebs](#keebs) section for more information about customizing the hardware, and [Defaults](#defaults) to change the default hardware.
+But you may be interested in adding thumb letter keys, more keys to the pinky finger, removing keys, adding layers, etc. Layouts that are not compatible with the 3 x 10 grid can name the hardware setup to be used for that layout by adding a comment with a hint, for example, `# use: ortho_thumb` will tell Jalo to use `ortho_thumb` hardware for this layout (see `hdpm.kb` for an example). When you `save`, Jalo will automatically add this hint if the layout does not conform to the 3 x 10 grid.
 
 ## Keebs
 
@@ -127,38 +124,34 @@ Jalo shows layouts and the hardware they are loaded on side by side. The hardwar
 ```
 jalo> show qwerty
 
-qwerty                   ansi
------------------------  --------------------------
-| q w e r t   y u i o p  |  0 1 2 3 3   6 6 7 8 9
-| a s d f g   h j k l ;  |   0 1 2 3 3   6 6 7 8 9
-| z x c v b   n m , . /  |    0 1 2 3 3   6 6 7 8 9
+qwerty                      ansi                    
+q w e r t    y u i o p      0 1 2 3 3    6 6 7 8 9  
+ a s d f g    h j k l ;      0 1 2 3 3    6 6 7 8 9 
+  z x c v b    n m , . /      0 1 2 3 3    6 6 7 8 9
 
 jalo> hardware ortho
 Updated hardware to: ortho
 jalo> show graphite
 
-graphite                 ortho
------------------------  ------------------------
-| b l d w z   ' f o u j  |  0 1 2 3 3   6 6 7 8 9
-| n r t s g   y h a e i  |  0 1 2 3 3   6 6 7 8 9
-| q x m c v   k p . - ,  |  0 1 2 3 3   6 6 7 8 9
+graphite                ortho               
+b l d w z  ' f o u j    0 1 2 3 3  6 6 7 8 9
+n r t s g  y h a e i    0 1 2 3 3  6 6 7 8 9
+q x m c v  k p . - ,    0 1 2 3 3  6 6 7 8 9
 
 jalo> show hdpm
 
-hdpm                       ortho_thumb_33
--------------------------  --------------------------
-| f p d l x   ; u o y b z  |  0 1 2 3 3   6 6 7 8 9 9
-| s n t h k   , a e i c q  |  0 1 2 3 3   6 6 7 8 9 9
-| v w g m j   - . ' = /    |  0 1 2 3 3   6 6 7 8 9
-|         r                |          4
+hdpm                      ortho_thumb_33        
+f p d l x  ; u o y b z    0 1 2 3 3  6 6 7 8 9 9
+s n t h k  , a e i c q    0 1 2 3 3  6 6 7 8 9 9
+v w g m j  - . ' = /      0 1 2 3 3  6 6 7 8 9  
+        r                         4             
 
 jalo> show inrolly
 
-inrolly                  ansi_angle
------------------------  --------------------------
-| y o u q x   k d l w ,  |  0 1 2 3 3   6 6 7 8 9
-| i a e n j   v h t s c  |   0 1 2 3 3   6 6 7 8 9
-| " - r b z   f p m g .  |    1 2 3 3 3   6 6 7 8 9
+inrolly                     ansi_angle              
+y o u q x    k d l w ,      0 1 2 3 3    6 6 7 8 9  
+ i a e n j    v h t s c      0 1 2 3 3    6 6 7 8 9 
+  " - r b z    f p m g .      1 2 3 3 3    6 6 7 8 9
 ```
 
 To create your own hardware setup, add a file to the `./keebs` directory that exports a `KEYBOARD` attribute. The exported object needs to be an instance of `hardware.KeyboardHardware`. The simplest way is to modify the ansi/ortho setup by adding or modifying keys (e.g. see `ortho_pinky_33`). If you must / want to start from scratch, use `ansi` or `cr8` as examples for the approach. Once the file is created, you can refer to the keyboard by the file's name in Jalo.
@@ -166,7 +159,7 @@ To create your own hardware setup, add a file to the `./keebs` directory that ex
 
 ## Metrics
 
-The metrics were carefully created to match as closely as possible the definitions in the [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o) and to work with a wide range of different hardware configurations. Use the `metric` command to review the metrics and their descriptions.
+The metrics were carefully created to match as closely as possible the definitions in the [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o) and to work with a wide range of different hardware configurations. Use the `metrics` command to review the metrics and their descriptions.
 
 ```
 jalo> metrics
@@ -180,7 +173,7 @@ sfs               single finger skipgram
 
 You can also inspect, update, or create your own metrics. All metrics are defined in `metrics.py`. Metrics are defined as a method that takes either 1, 2, or 3 key positions, and returns a floating point value. You can inspect the definitions and modify the functions to better align with your preferences if needed. For instance, `scissors` are especially difficult to define, and you may have different preferences for what should be included or not.
 
-To create your own metric, add a new function to `metrics.py`, then add your new metric to the `METRICS` array at the end of the file. Copy the patterns of an existing metric that is of the same type. If you define a new trigram based metric (three position inputs), it may be worth thinking about efficiency in your code, since these are computed for every combination of 3 positions on the keyboard you are analyzing (`O(N^3)`). After defining your metric, use `analyze` to check on the most common key combinations to inspect the quality of the definition.
+To create your own metric, add a new function to `metrics.py`, then add your new metric to the `METRICS` array at the end of the file. Copy the patterns of an existing metric that is of the same type. If you define a new trigram based metric (three position inputs), it may be worth thinking about efficiency in your code, since these are computed for every combination of 3 positions on the keyboard you are analyzing (O(N^3)). After defining your metric, use `analyze` to check on the most common key combinations to inspect the quality of the definition.
 
 
 ## Editing layouts
@@ -191,22 +184,23 @@ Jalo provides a number of functions to quickly edit layouts in the interactive s
 * `invert`: vertical mirroring, swap top and bottom rows (for one or both hands)
 
 ```
-jalo> invert hdpm
+jalo> mirror graphite  # this is a comment 
 
-layout 1 3004.163 (30.686)  > invert hdpm
-v w g m j   - . ' = / z
-s n t h k   , a e i c q
-f p d l x   ; u o y b  
-        r            
+2                                                             
+j u o f '  z w d l b    > mirror graphite  # this is a comment
+i e a h y  g s t r n    3077.332 score                        
+, - . p k  v c m x q      -0.000 Δ                            
+
 ```
 
+Note that Jalo keeps the command that was used to generate the layout in memory and shows it when you `list` it. You can also add comments at the end of the line with `#` for future reference.
 
 ## Scoring layouts
 
 The "magic" in optimizing layouts using most computer optimization tools is figuring out how to score them. The workflow often involves coming up with a way to score layouts (such as setting a bunch of weights), running the optimization, then tweaking the weights again to improve the outputs. Jalo makes it easier to understand how the current score is calculated and what drives it, and then simple to update the scoring function.
 
 
-In Jalo, the score is an amount of *effort*, so that lower scores are always considered better. Jalo allows any weighted combination of any of it's metrics to create a score. Typically, this is a combination of positive weights, indicating increased effort, for metrics such as `sfb`, `sfs`, `scissors`, `redirect`, and negative weights, indicating reduced effort, for metrics such as `in_roll`, `home`, `alt`. This combination of weights into a single score is called an "objective".
+In Jalo, the score is an amount of *effort*, so that lower scores are always considered better. Jalo allows any weighted combination of any of its metrics to create a score. Typically, this is a combination of positive weights, indicating increased effort, for metrics such as `sfb`, `sfs`, `scissors`, `redirect`, and negative weights, indicating reduced effort, for metrics such as `in_roll`, `home`, `alt`. This combination of weights into a single score is called an "objective".
 
 Jalo ships with some objectives that are available in `./objectives`. Use the `objective` command to name one of these as your objective function (e.g., `objective default` for the "default" function), or update `config.toml` to change the default for all future sessions as well.
 
@@ -254,20 +248,21 @@ The general workflow is to start with an objective (score function), use `genera
 
 ```
 jalo> generate
-generating 100 seeds.
-Generating: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:22<00:00,  4.41it/s]
+generating from 100 seeds.
+Generating: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:24<00:00,  4.05it/s]
 
 layout list 1 > generate
 
-layout 1.1 2923.780
-g v n h k   ; o e y -
-c t r d p   , a u i s
-w m l f b   q . ' j x
+1.1                                       
+v g d h k    x o l - ;      2924.906 score
+ s c t n f    , a r e i                   
+  y w m p b    q . ' j u                  
 
-layout 1.2 2930.505
-- g m p b   q l a , ;
-s c t h f   x n o i e
-y w v d k   j r . u '
+1.2                                       
+; - l o q    k h d g v      2926.556 score
+ i e r a ,    f n t c s                   
+  u j ' . x    b p m w y                  
+...
 ```
 
 You can control how much compute to put into generate by changing the number of seeds: `generate 10` is faster, `generate 200` takes longer. In practice, I find that 200 is typically enough to find good results.
@@ -284,16 +279,17 @@ You can also control where some keys will be placed by pinning them first, and n
 jalo> pin aeiou
 pinned: a e i o u
 
-jalo> generate 100 graphite
-generating 100 seeds.
-Generating: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:10<00:00,  9.23it/s]
+jalo> generate 100 graphite  # using graphite vowel block
+generating from 100 seeds.
+Generating: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:10<00:00,  9.58it/s]
 
-layout list 3 > generate 100 graphite
+layout list 2 > generate 100 graphite  # using graphite vowel block
 
-layout 3.1 2937.478
-z g m p b   q l o u -
-s c t h f   x n a e i
-y w v d k   j r . ' ,
+2.1                                   
+z g m p b  j l o u -    2941.869 score
+s c t h f  x n a e i                  
+y w v d k  q r . ' ,                  
+...
 ```
 
 ## Improving and Polishing
@@ -304,17 +300,17 @@ Improving and polishing optimizations work similarly to `generate` (read [Genera
 jalo> pin snth aeiou
 pinned: s n t h a e i o u
 
-jalo> improve hdpm
-improving hdpm with 100 seeds.
-Improving: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:03<00:00, 28.18it/s]
+jalo> improve hdpm  # keeping home and vowels pinned
+improving hdpm from 100 seeds.
+Improving: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:03<00:00, 25.66it/s]
 
-layout list 1 > improve hdpm
+layout list 4 > improve hdpm  # keeping home and vowels pinned
 
-layout 1.1 2819.187 (-154.290)
-x p d l k   ; u o y ' q
-s n t h f   , a e i c w
-v b z m j   - . / = g  
-        r                       
+4.1                                     
+x p d l k  ; u o y ' q    2819.187 score
+s n t h f  , a e i c w    -154.290 Δ    
+v b z m j  - . / = g                    
+        r                               
 ...
 ```
 
@@ -361,13 +357,13 @@ Jalo uses different "solvers" to optimize layouts in different scenarios. As a u
 
 The core problem in layout optimization is finding the assignments of characters to physical keys that minimizes the objective (that is, typing effort). If there are 30 keys, the space of possibilities is 30 factorial, about 10^32 different layouts, which is simply too many to check one by one (brute force). Thus we need some other approach that allows us to find promising layouts among the wide sea of options.
 
-Jalo leverages four approaches. The basic approach is the *steepest hill*: start with a random layout, then check every possible swap, and "accept" the one that improves the score the most, then rinse and repeat, until no more swaps are found that improve the layout. This is fast to converge, but may get stuck on "local minima", that is, layouts where a single swap makes no improvement, but far from the best possible.
+Jalo leverages four approaches. The basic approach is the **steepest hill**: start with a random layout, then check every possible swap, and "accept" the one that improves the score the most, then rinse and repeat, until no more swaps are found that improve the layout. This is fast to converge, but may get stuck on "local minima", that is, layouts where a single swap makes no improvement, but far from the best possible.
 
-A simple, yet surprisingly effective work around is the *greedy hill* approach: start with a random layout, then check possible swaps in random order, and "accept" the first swap that improves the score at all, and continue this way until no further swaps are found to improve things. To avoid "local minima", go back to the original seed layout and run the same algorithm again, re-randomizing the sequence of swaps.
+A simple, yet surprisingly effective work around is the **greedy hill** approach: start with a random layout, then check possible swaps in random order, and "accept" the first swap that improves the score at all, and continue this way until no further swaps are found to improve things. To avoid "local minima", go back to the original seed layout and run the same algorithm again, re-randomizing the sequence of swaps.
 
-A more sohpisticated approach is *simulated annealing*: as with the steepest hill approach, check all swaps, "accept" the best one, and repeat. But when no more swaps improve the score, "accept" a swap that makes it worse, with a probability that is proportional to the "temperature". Iterate, while reducing the temperature, until no more swaps are accepted.
+A more sohpisticated approach is **simulated annealing**: as with the steepest hill approach, check all swaps, "accept" the best one, and repeat. But when no more swaps improve the score, "accept" a swap that makes it worse, with a probability that is proportional to the "temperature". Iterate, while reducing the temperature, until no more swaps are accepted.
 
-Finally, Jalo also uses *genetic algorithm*: start with a random population of layouts, and run the steepest hill on all of them, so none can be improved further in this way. Now pick two "parents" from this population at random (giving a higher probability to better scoring layouts). Combine the two "parents" into a new layout "child", then improve that child using the steepest hill approach. Add the child to the population, then iterate to the next generation, until you run out of generations.
+Finally, Jalo also uses **genetic algorithm**: start with a random population of layouts, and run the steepest hill on all of them, so none can be improved further in this way. Now pick two "parents" from this population at random (giving a higher probability to better scoring layouts). Combine the two "parents" into a new layout "child", then improve that child using the steepest hill approach. Add the child to the population, then iterate to the next generation, until you run out of generations.
 
 In practice, I found that the genetic algorithm tends to deliver the best population of layouts, for the same amount of compute used, while the naive "greedy hill" approach comes as pretty close second. To assess the quality of the results, I first cluster the population to eliminate layouts that are very similar to each other, then look at the area under the curve of the score. The genetic algorithm seems to consistently deliver better scores in top 200 layouts generated, and especially seems to provide better top 10 results.
 

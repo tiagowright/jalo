@@ -72,7 +72,7 @@ def exec(shell: "JaloShell", arg: str) -> None:
         seeds = 100
 
     layout = layouts[0]
-    shell._info(f"improving {layout.name} with {seeds} seeds.")
+    shell._info(f"improving {layout.name} from {seeds} seeds.")
 
     model = shell._get_model(layout)
     pinned_positions = model.pinned_positions_from_layout(layout, shell.pinned_chars)

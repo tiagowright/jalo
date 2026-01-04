@@ -5,12 +5,14 @@ and various UI elements used throughout the Jalo REPL.
 """
 
 import textwrap
+import itertools
 from pathlib import Path
 from typing import Any, Callable, Optional, Sequence
 
 from tabulate import tabulate
 
-from layout import KeyboardLayout
+from layout import KeyboardLayout, LayoutKey
+from hardware import Hand
 from repl.memory import LayoutMemoryManager
 
 
@@ -46,6 +48,113 @@ def format_table(
         kwargs["headers"] = headers
     
     return tabulate(rows, **kwargs)
+
+
+def merge_columns(*args: str, sep: str = "  ") -> str:
+    """Merge multiple multiline strings side by side."""
+    split_cols = [
+        arg.split('\n') for arg in args
+    ]
+
+    col_widths = [max(len(line) for line in col) for col in split_cols]
+
+    merged_lines = [
+        sep.join(li.ljust(col_width) for li, col_width in zip(row_lines, col_widths))
+        for row_lines in itertools.zip_longest(*split_cols, fillvalue='')
+    ]
+
+    return '\n'.join(merged_lines)
+
+
+def format_grid(grid: dict[int, dict[int, str]], col_sep: str = " ", row_sep: str = "\n", stagger_strs: dict[int, str] = {}) -> str:
+    """Formats a grid into a string where the columns line up and the indexes are honored"""
+    min_row = min(grid.keys())
+    max_row = max(grid.keys())
+    min_col = min(col for row in grid.keys() for col in grid[row].keys())
+    max_col = max(col for row in grid.keys() for col in grid[row].keys())
+
+    item_width = max(len(item) for row in grid.values() for item in row.values())
+    blank_item = ' ' * item_width
+
+    return row_sep.join(
+        (
+            stagger_strs.get(r, '') +
+            col_sep.join(grid[r][c].ljust(item_width) if r in grid and c in grid[r] else blank_item for c in range(min_col, max_col + 1))
+        )
+        for r in range(min_row, max_row + 1)
+    )
+
+
+def format_layout(layout: KeyboardLayout, show_chars: bool = True, show_hardware: bool = True, show_header: bool = True) -> str:
+    """format a keyboard layout into a string for display"""
+    char_sep = ""
+    col_sep = " "
+    row_stagger_step = " "
+    hand_sep = "  "
+    row_sep = "\n"
+    hardware_sep = "    "
+
+    if not show_chars and not show_hardware:
+        return ""
+    
+    res = []
+
+    hand_grid =  {
+        hand: {
+            row: {
+                col: list(key for key in layout.grid[row][col] if key.finger.hand == hand)
+                for col in layout.grid[row]
+                if any(key.finger.hand == hand for key in layout.grid[row][col])
+            }
+            for row in layout.grid
+        }
+        for hand in Hand
+    }
+
+    first_col_at_row = {
+        row: min(layout.grid[row].keys())
+        for row in layout.grid.keys()
+    }
+
+    stagger_at_row = {
+        row: int((layout.grid[row][first_col_at_row[row]][0].x - layout.grid[row][first_col_at_row[row]][0].col)*100)
+        for row in layout.grid.keys()
+    }
+
+    list_staggers = sorted(set(stagger_at_row.values()))
+    
+    stagger_strs = {
+        row: row_stagger_step * list_staggers.index(stagger_at_row[row])
+        for row in layout.grid.keys()
+    }
+
+    def _grid_to_str(formatter: Callable[[LayoutKey], str]) -> str:
+        formatted_hand_grid = {
+            hand: format_grid({
+                row : {
+                    col: char_sep.join(formatter(key) for key in hand_grid[hand][row][col])
+                    for col in hand_grid[hand][row]
+                }
+                for row in hand_grid[hand]
+            }, col_sep=col_sep, row_sep=row_sep, stagger_strs=stagger_strs)
+            for hand in Hand
+        }
+        return merge_columns(*list(formatted_hand_grid.values()), sep=hand_sep)
+
+
+    if show_chars:
+        chars_str = _grid_to_str(lambda key: key.char)
+        if show_header:
+            chars_str = f"{layout.name}\n{chars_str}"
+        res.append(chars_str)
+
+    if show_hardware:
+        hardware_str = _grid_to_str(lambda key: str(key.finger.value))
+        if show_header:
+            hardware_str = f"{layout.hardware.name}\n{hardware_str}"
+        res.append(hardware_str)
+
+    return merge_columns(*res, sep=hardware_sep)
 
 
 def format_layout_display(layout: KeyboardLayout) -> str:
@@ -255,6 +364,22 @@ def format_layout_memory(
     Returns:
         Formatted string of layouts
     """
+
+    def _format_layout_info(layout: KeyboardLayout, original_score: Optional[float], command: Optional[str]) -> str:
+        score = score_fn(layout)
+        score_str = f"{score*100:.3f} score"
+        delta_str = f"{(score - original_score)*100:.3f} Δ    " if original_score is not None else ''
+        score_len = max(len(ss) for ss in [score_str, delta_str])
+        score_str = score_str.rjust(score_len)
+        delta_str = delta_str.rjust(score_len)
+        info_col_str = "\n" + (f"> {command}\n" if command else "") + score_str + "\n" + delta_str
+        return merge_columns(
+            format_layout(layout, show_chars=True, show_hardware=False, show_header=True),
+            info_col_str,
+            sep = "    "
+        ) + "\n"
+
+
     if list_num is None or list_num == 0:
         # Show stack
         if len(memory.stack) == 0:
@@ -267,14 +392,9 @@ def format_layout_memory(
         
         res = []
         for li, (layout, metadata) in enumerate(zip(items_to_show, metadata_to_show)):
-            score = score_fn(layout)
             original_score = score_fn(metadata.original_layout) if metadata.original_layout else None
-            delta_str = f" ({(score - original_score)*100:.3f})" if original_score is not None else ''
+            res.append(_format_layout_info(layout, original_score, metadata.command))
             
-            layout_str = f"layout {layout.name} {score*100:.3f}{delta_str}  > {metadata.command}\n"
-            layout_str += f'{layout}\n'
-            res.append(layout_str)
-        
         return '\n'.join(res)
     else:
         # Show numbered list
@@ -293,14 +413,9 @@ def format_layout_memory(
         original_layout = memory.lists[list_num].original_layout
         
         for li, layout in enumerate(layouts_to_show):
-            score = score_fn(layout)
             original_score = score_fn(original_layout) if original_layout else None
-            delta_str = f" ({(score - original_score)*100:.3f})" if original_score is not None else ''
-            
-            layout_num = f"{list_num}.{li + 1}"  # Numbered: 1.1, 1.2, ...
-            layout_str = f"layout {layout_num} {score*100:.3f}{delta_str}\n"
-            layout_str += f'{layout}\n'
-            res.append(layout_str)
+            res.append(_format_layout_info(layout, original_score, None))
+        
         
         return '\n'.join(res)
 

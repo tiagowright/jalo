@@ -1,11 +1,9 @@
 """`show` command for the Jalo shell."""
 
-
-
 from typing import TYPE_CHECKING
 
 from repl.completers import list_keyboard_names, parse_keyboard_names
-from repl.formatting import format_layout_display
+from repl.formatting import format_layout_display, format_layout
 from repl.shell import Command, CommandArgument
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -40,5 +38,6 @@ def exec(shell: "JaloShell", arg: str) -> None:
         return
 
     shell._info("")
-    shell._info(format_layout_display(layouts[0]))
+    # shell._info(format_layout_display(layouts[0]))
+    shell._info(format_layout(layouts[0]))
     shell._info("")

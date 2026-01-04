@@ -10,6 +10,9 @@ from typing import List
 from collections import defaultdict
 import os
 
+STANDARD_ANSI_ROWS = 3
+STANDARD_ANSI_COLS = 10
+
 @unique
 class Hand(Enum):
     """
@@ -126,6 +129,12 @@ class KeyboardHardware:
         for position in self.positions:
             self.finger_to_positions[position.finger].append(position)
             self.grid[position.row][position.col].append(position)
+
+        # check if this hardware is compatible with the standard ANSI hardware of 3 rows and 10 columns each
+        self.is_standard_size = (
+            len(self.grid) == STANDARD_ANSI_ROWS and
+            all(len(row) == STANDARD_ANSI_COLS for row in self.grid.values())
+        )
 
     def __len__(self) -> int:
         return len(self.positions)
