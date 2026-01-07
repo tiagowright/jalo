@@ -1,10 +1,10 @@
 # Jalo: just another layout optimizer
 
-**Jalo** is an interactive keyboard layout analyzer and optimizer designed for people who want to understand and control the layout design process. It is built to show you why some layouts score better than others, and give you the tools to iterate and make improvements. Every assumption — from metric definitions to hardware geometry to objective weights — is inspectable and adjustable.
+**Jalo** is an interactive keyboard layout analyzer and optimizer designed to help people understand and control the layout design process. It is built to show you why some layouts score better than others, and give you the tools to iterate and make improvements. Metric definitions, hardware geometry, objective weights, are inspectable and adjustable.
 
-Jalo supports a wide range of keyboard geometries (ANSI, ortho, angle mods, thumb keys, extended pinky columns, layers), and combines multiple optimization strategies (genetic algorithms, simulated annealing, hill climbing) to explore both radically different layouts and fine-grained improvements to existing ones.
+Jalo supports a range of keyboard geometries (ANSI, ortho, angle mods, thumb keys, extended pinky columns, layers), and combines multiple optimization strategies (genetic algorithms, simulated annealing, hill climbing) to explore both radically different layouts and fine-grained improvements to existing ones.
 
-Whether you’re evaluating existing layouts, iterating on a personal design, or experimenting with new metrics and hardware ideas, Jalo aims to be a transparent, human-in-the-loop tool to help you make fast progress.
+Whether evaluating existing layouts, iterating on a personal design, or experimenting with new metrics and hardware ideas, Jalo aims to be a transparent, human-in-the-loop tool to help make fast progress.
 
 Key capabilities are:
 
