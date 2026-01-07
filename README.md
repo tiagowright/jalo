@@ -1,11 +1,17 @@
 # Jalo: just another layout optimizer
 
-Jalo is an interactive keyboard layout analyzer and optmizer, with the following capabilities;
+**Jalo** is an interactive keyboard layout analyzer and optimizer designed for people who want to understand and control the layout design process. It is built to show you why some layouts score better than others, and give you the tools to iterate and make improvements. Every assumption — from metric definitions to hardware geometry to objective weights — is inspectable and adjustable.
+
+Jalo supports a wide range of keyboard geometries (ANSI, ortho, angle mods, thumb keys, extended pinky columns, layers), and combines multiple optimization strategies (genetic algorithms, simulated annealing, hill climbing) to explore both radically different layouts and fine-grained improvements to existing ones.
+
+Whether you’re evaluating existing layouts, iterating on a personal design, or experimenting with new metrics and hardware ideas, Jalo aims to be a transparent, human-in-the-loop tool to help you make fast progress.
+
+Key capabilities are:
 
 * **Flexible number and arrangement of keys**: Jalo can analyze keyboards with any number of keys and physical configurations, including keys on thumbs, any number of pinky or central columns, extra rows, keys on layers, and more. 
-* **Powerful optimization**: Optimization features can generate a wide range of layouts, improve existing layouts, and fine tune them by suggesting the most promising swaps. Under the hood, Jalo combines simulated annealing, genetic algorithms, and different flavors of hill climbing depending on the job.
+* **Multiple optimization strategies**: Optimization features can generate a wide range of layouts, improve existing layouts, and fine tune them by suggesting the most promising swaps. Under the hood, Jalo combines simulated annealing, genetic algorithms, and different flavors of hill climbing depending on the job.
 * **Your own scoring function**: To score layouts, Jalo allows any (linear) combination of metrics with user-defined weights, and makes it simple and interactive to change them. Jalo also provides clear reporting on how each metric contributes to each layout's final score, so it's easy to understand how to improve both. 
-* **Your metrics**: Most of the metrics in the [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o) are included, but the definitions of the metrics can be changed, and new metrics can be added. Jalo makes it easy to analyze layouts, identify what key combiniations are contributing to any metric, and compare layouts side-by-side. 
+* **Your metrics**: Most of the metrics in the [Keyboard layout doc](https://docs.google.com/document/d/1W0jhfqJI2ueJ2FNseR4YAFpNfsUM-_FlREHbpNGmC2o) are included, but the definitions of the metrics can be changed, and new metrics can be added. Jalo makes it easy to analyze layouts, identify what key combinations are contributing to any metric, and compare layouts side-by-side. 
 * **Editing**: Editing layouts is simple, with commands to mirror and invert layouts, and swap pairs of keys.
 
 Jalo works as a command line tool with an interactive mode (REPL), or by invoking it with commands or a script file. Start the interactive mode `./jalo.py` then type `help` to get a list of commands. Use tab to auto-complete command names and arguments, and up/down to cycle through command history.
@@ -367,9 +373,9 @@ Finally, Jalo also uses **genetic algorithm**: start with a random population of
 
 In practice, I found that the genetic algorithm tends to deliver the best population of layouts, for the same amount of compute used, while the naive "greedy hill" approach comes as pretty close second. To assess the quality of the results, I first cluster the population to eliminate layouts that are very similar to each other, then look at the area under the curve of the score. The genetic algorithm seems to consistently deliver better scores in top 200 layouts generated, and especially seems to provide better top 10 results.
 
-However, if what you want is to explore near a reference layout, then simulated annealing seems to be the best option. The annealing process visits many layouts within 5 swaps of the seed very efficiently, providing higher density of good layouts.
+However, if what you want is to explore near a reference layout, then simulated annealing seems to be the best option. The annealing process visits many layouts within 5 swaps of the seed very efficiently, providing higher density of good layouts. If you *don't* cluster results and remove similar layouts, then annealing seems to produce the best results consistently.
 
-Here's an example run comparing the layout score curves for the four different approaches. Each run used ~30s of compute on a c2-standard-16.
+Here's an example run comparing the layout score curves for the four different approaches. Each run used ~30s of compute on a c2-standard-16. The Y-axis is the score (lower is better), and the X-axis is the ranking of the layout, after clustering and removing similar layouts.
 
 ![Diagram of a sample output comparing layout score curves for different algorithms](solvers/tuning/sample_run_results.png)
 
