@@ -373,15 +373,15 @@ Finally, Jalo also uses **genetic algorithm**: start with a random population of
 
 In practice, I found that the genetic algorithm tends to deliver the best population of layouts, for the same amount of compute used, while the naive "greedy hill" approach comes as pretty close second. To assess the quality of the results, I first cluster the population to eliminate layouts that are very similar to each other, then look at the area under the curve of the score. The genetic algorithm seems to consistently deliver better scores in top 200 layouts generated, and especially seems to provide better top 10 results.
 
-However, if what you want is to explore near a reference layout, then simulated annealing seems to be the best option. The annealing process visits many layouts within 5 swaps of the seed very efficiently, providing higher density of good layouts. If you *don't* cluster results and remove similar layouts, then annealing seems to produce the best results consistently.
-
-Here's an example run comparing the layout score curves for the four different approaches. Each run used ~30s of compute on a c2-standard-16. The Y-axis is the score (lower is better), and the X-axis is the ranking of the layout, after clustering and removing similar layouts.
+Here's an example run comparing the layout score curves for the four different approaches. Each run used ~30s of compute on a c2-standard-16. The Y-axis is the score (lower is better), and the X-axis is the ranking of the top 200 layouts produced, after clustering and removing similar layouts.
 
 ![Diagram of a sample output comparing layout score curves for different algorithms](solvers/tuning/sample_run_results.png)
 
+However, if what you want is to explore near a reference layout, then simulated annealing seems to be the best option. The annealing process visits many layouts within 5 swaps of the seed very efficiently, providing higher density of good layouts. If you *don't* cluster results and remove similar layouts, then annealing seems to produce the best results consistently.
+
 Given these (adimitedly not totally robust) results, Jalo leverages the genetic algorithm for `generate`, simulated annealing for `improve`, and steepest hill for `polish`.
 
-In practice, other optimizations are needed. First is to do full column swaps, in addition to single position swaps. All algorithms implement incorporate both types of swaps. The second is to optimize the code that computes the score after a swap, as this is the bottleneck for performance. In jalo, this function is implemented as a delta calculation that runs in O(N^2) instead of O(N^3) that would be needed for a full score compute, and the function is optimized with `numba`, and compiled into machine code. Third, is parallelization: Jalo will leverage all available CPUs for an optimization run in parallel.
+In practice, other optimizations are needed. First is to do full column swaps, in addition to single position swaps. All algorithms incorporate both types of swaps. The second is to optimize the code that computes the score after a swap, as this is the bottleneck for performance. In jalo, this function is implemented as a delta calculation that runs in O(N^2) instead of O(N^3) that would be needed for a full score compute, and the function is optimized with `numba`, and compiled into machine code. Third, is parallelization: Jalo will leverage all available CPUs for an optimization run in parallel.
 
 To go deeper, the entry point is `optim.py`, the algorithms are implemented in `./solvers/`, parameter tuning settings in `./solvers/tuning`, and some of these tuning runs results are available in `./solvers/logs`.
 
