@@ -1,9 +1,7 @@
 # Enthium v13 (sunaku) 
-# This version is mirror (left/right hands swaped) because the thumb key is 
-# on the left, as typical in hands down layouts
 # use: ortho_pinky_33
 
-  z p d l x   = u o y q  
-w s n t h k   - e a i c b
-  v f g m j   ; / . , '  
-          r            
+  q y o u =  x l d p z  
+b c i a e -  k h t n s w
+  ' , . / ;  j m g f v  
+             r

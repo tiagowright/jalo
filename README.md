@@ -47,10 +47,10 @@ Jalo analyzes layouts and reports on 30+ common metrics, plus finger-level metri
 jalo> analyze enthium
 
 enthium                     ortho_pinky_33          
-  z p d l x  = u o y q        0 1 2 3 3  6 6 7 8 9  
-w s n t h k  - e a i c b    0 0 1 2 3 3  6 6 7 8 9 9
-  v f g m j  ; / . , '        0 1 2 3 3  6 6 7 8 9  
-          r                           4             
+  q y o u =  x l d p z        0 1 2 3 3  6 6 7 8 9  
+b c i a e -  k h t n s w    0 0 1 2 3 3  6 6 7 8 9 9
+  ' , . / ;  j m g f v        0 1 2 3 3  6 6 7 8 9  
+             r                           5          
 
 metric                     enthium  top n-gram
                     ortho_pinky_33
