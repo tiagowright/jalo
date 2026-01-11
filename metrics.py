@@ -82,6 +82,10 @@ def rep(a, b):
 def sfb(a, b):
     return a.finger == b.finger and a != b
 
+# "good" sfbs, where the finger moves down a row
+def sfb_rake(a, b):
+    return sfb(a, b) and a.row + 1 == b.row
+
 # sfb by finger
 def sfb_finger(a, b, finger):
     return sfb(a, b) and a.finger == finger
@@ -450,6 +454,7 @@ def home(a):
 METRICS = [
     Metric(name="rep", description="single finger repetition", ngramType=NgramType.BIGRAM, function=rep),
     Metric(name="sfb", description="single finger bigram", ngramType=NgramType.BIGRAM, function=sfb),
+    Metric(name="sfb_rake", description="single finger bigram where the finger moves down a row", ngramType=NgramType.BIGRAM, function=sfb_rake),
     Metric(name="sfs", description="single finger skipgram", ngramType=NgramType.SKIPGRAM, function=sfs),
     Metric(name="sft", description="single finger trigram", ngramType=NgramType.TRIGRAM, function=sft),
     Metric(name="home", description="home position", ngramType=NgramType.MONOGRAM, function=home),
