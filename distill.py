@@ -421,6 +421,8 @@ if __name__ == "__main__":
             print(f"objective {learned_objective}")
             print()
             print()
+            sys.stdout.flush()
+            
     except KeyboardInterrupt:
         print("Interrupted. Bye bye.")
         sys.exit(1)
