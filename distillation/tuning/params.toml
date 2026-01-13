@@ -5,9 +5,9 @@
 layout = 'sturdy'
 hardware = 'ansi'
 corpus = 'en'
-depth = 8
-samples_per_layer = 100
-name_format = '{layout}_C_{misclassification_penalty}_L1_{stability_penalty}_L2_{sparsity_penalty}'
+depth = 7
+samples_per_layer = 80
+name_format = '{layout}__C_{misclassification_penalty}__L1_{stability_penalty}__L2_{sparsity_penalty}'
 
 misclassification_penalty = 100.0
 stability_penalty = 1000.0
@@ -16,2402 +16,1373 @@ sparsity_penalty = 1.0
 
 
 [[runs]]
+# C_0.01__L1_0.01__L2_0.01
 misclassification_penalty = 0.01
 stability_penalty = 0.01
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.01
-sparsity_penalty = 0.1
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.01
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.01
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.01
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.01
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.01
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.01__L1_0.1__L2_0.01
 misclassification_penalty = 0.01
 stability_penalty = 0.1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.01__L1_0.1__L2_0.1
 misclassification_penalty = 0.01
 stability_penalty = 0.1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.1
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 0.1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.01__L1_1__L2_0.01
 misclassification_penalty = 0.01
 stability_penalty = 1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.01__L1_1__L2_0.1
 misclassification_penalty = 0.01
 stability_penalty = 1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.01__L1_1__L2_1
 misclassification_penalty = 0.01
 stability_penalty = 1
 sparsity_penalty = 1
 
 
-
 [[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.01__L1_10.0__L2_0.01
 misclassification_penalty = 0.01
 stability_penalty = 10.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.01__L1_10.0__L2_0.1
 misclassification_penalty = 0.01
 stability_penalty = 10.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.01__L1_10.0__L2_1
 misclassification_penalty = 0.01
 stability_penalty = 10.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_0.01__L1_10.0__L2_10.0
 misclassification_penalty = 0.01
 stability_penalty = 10.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 10.0
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 10.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 10.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.01__L1_100.0__L2_0.01
 misclassification_penalty = 0.01
 stability_penalty = 100.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.01__L1_100.0__L2_0.1
 misclassification_penalty = 0.01
 stability_penalty = 100.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.01__L1_100.0__L2_1
 misclassification_penalty = 0.01
 stability_penalty = 100.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_0.01__L1_100.0__L2_10.0
 misclassification_penalty = 0.01
 stability_penalty = 100.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_0.01__L1_100.0__L2_100.0
 misclassification_penalty = 0.01
 stability_penalty = 100.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 100.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 100.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.01__L1_1000.0__L2_0.01
 misclassification_penalty = 0.01
 stability_penalty = 1000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.01__L1_1000.0__L2_0.1
 misclassification_penalty = 0.01
 stability_penalty = 1000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.01__L1_1000.0__L2_1
 misclassification_penalty = 0.01
 stability_penalty = 1000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_0.01__L1_1000.0__L2_10.0
 misclassification_penalty = 0.01
 stability_penalty = 1000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_0.01__L1_1000.0__L2_100.0
 misclassification_penalty = 0.01
 stability_penalty = 1000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_0.01__L1_1000.0__L2_1000.0
 misclassification_penalty = 0.01
 stability_penalty = 1000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
-misclassification_penalty = 0.01
-stability_penalty = 1000.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.01__L1_10000.0__L2_0.01
 misclassification_penalty = 0.01
 stability_penalty = 10000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.01__L1_10000.0__L2_0.1
 misclassification_penalty = 0.01
 stability_penalty = 10000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.01__L1_10000.0__L2_1
 misclassification_penalty = 0.01
 stability_penalty = 10000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_0.01__L1_10000.0__L2_10.0
 misclassification_penalty = 0.01
 stability_penalty = 10000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_0.01__L1_10000.0__L2_100.0
 misclassification_penalty = 0.01
 stability_penalty = 10000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_0.01__L1_10000.0__L2_1000.0
 misclassification_penalty = 0.01
 stability_penalty = 10000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
+# C_0.01__L1_10000.0__L2_10000.0
 misclassification_penalty = 0.01
 stability_penalty = 10000.0
 sparsity_penalty = 10000.0
 
 
-
 [[runs]]
+# C_0.1__L1_0.01__L2_0.01
 misclassification_penalty = 0.1
 stability_penalty = 0.01
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.01
-sparsity_penalty = 0.1
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.01
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.01
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.01
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.01
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.01
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.1__L1_0.1__L2_0.01
 misclassification_penalty = 0.1
 stability_penalty = 0.1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.1__L1_0.1__L2_0.1
 misclassification_penalty = 0.1
 stability_penalty = 0.1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.1
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 0.1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.1__L1_1__L2_0.01
 misclassification_penalty = 0.1
 stability_penalty = 1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.1__L1_1__L2_0.1
 misclassification_penalty = 0.1
 stability_penalty = 1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.1__L1_1__L2_1
 misclassification_penalty = 0.1
 stability_penalty = 1
 sparsity_penalty = 1
 
 
-
 [[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.1__L1_10.0__L2_0.01
 misclassification_penalty = 0.1
 stability_penalty = 10.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.1__L1_10.0__L2_0.1
 misclassification_penalty = 0.1
 stability_penalty = 10.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.1__L1_10.0__L2_1
 misclassification_penalty = 0.1
 stability_penalty = 10.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_0.1__L1_10.0__L2_10.0
 misclassification_penalty = 0.1
 stability_penalty = 10.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 10.0
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 10.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 10.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.1__L1_100.0__L2_0.01
 misclassification_penalty = 0.1
 stability_penalty = 100.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.1__L1_100.0__L2_0.1
 misclassification_penalty = 0.1
 stability_penalty = 100.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.1__L1_100.0__L2_1
 misclassification_penalty = 0.1
 stability_penalty = 100.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_0.1__L1_100.0__L2_10.0
 misclassification_penalty = 0.1
 stability_penalty = 100.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_0.1__L1_100.0__L2_100.0
 misclassification_penalty = 0.1
 stability_penalty = 100.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 100.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 100.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.1__L1_1000.0__L2_0.01
 misclassification_penalty = 0.1
 stability_penalty = 1000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.1__L1_1000.0__L2_0.1
 misclassification_penalty = 0.1
 stability_penalty = 1000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.1__L1_1000.0__L2_1
 misclassification_penalty = 0.1
 stability_penalty = 1000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_0.1__L1_1000.0__L2_10.0
 misclassification_penalty = 0.1
 stability_penalty = 1000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_0.1__L1_1000.0__L2_100.0
 misclassification_penalty = 0.1
 stability_penalty = 1000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_0.1__L1_1000.0__L2_1000.0
 misclassification_penalty = 0.1
 stability_penalty = 1000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
-misclassification_penalty = 0.1
-stability_penalty = 1000.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_0.1__L1_10000.0__L2_0.01
 misclassification_penalty = 0.1
 stability_penalty = 10000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_0.1__L1_10000.0__L2_0.1
 misclassification_penalty = 0.1
 stability_penalty = 10000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_0.1__L1_10000.0__L2_1
 misclassification_penalty = 0.1
 stability_penalty = 10000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_0.1__L1_10000.0__L2_10.0
 misclassification_penalty = 0.1
 stability_penalty = 10000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_0.1__L1_10000.0__L2_100.0
 misclassification_penalty = 0.1
 stability_penalty = 10000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_0.1__L1_10000.0__L2_1000.0
 misclassification_penalty = 0.1
 stability_penalty = 10000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
+# C_0.1__L1_10000.0__L2_10000.0
 misclassification_penalty = 0.1
 stability_penalty = 10000.0
 sparsity_penalty = 10000.0
 
 
-
 [[runs]]
+# C_1__L1_0.01__L2_0.01
 misclassification_penalty = 1
 stability_penalty = 0.01
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.01
-sparsity_penalty = 0.1
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.01
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.01
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.01
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.01
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.01
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1__L1_0.1__L2_0.01
 misclassification_penalty = 1
 stability_penalty = 0.1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1__L1_0.1__L2_0.1
 misclassification_penalty = 1
 stability_penalty = 0.1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.1
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 0.1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1__L1_1__L2_0.01
 misclassification_penalty = 1
 stability_penalty = 1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1__L1_1__L2_0.1
 misclassification_penalty = 1
 stability_penalty = 1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1__L1_1__L2_1
 misclassification_penalty = 1
 stability_penalty = 1
 sparsity_penalty = 1
 
 
-
 [[runs]]
-misclassification_penalty = 1
-stability_penalty = 1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1__L1_10.0__L2_0.01
 misclassification_penalty = 1
 stability_penalty = 10.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1__L1_10.0__L2_0.1
 misclassification_penalty = 1
 stability_penalty = 10.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1__L1_10.0__L2_1
 misclassification_penalty = 1
 stability_penalty = 10.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_1__L1_10.0__L2_10.0
 misclassification_penalty = 1
 stability_penalty = 10.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
-misclassification_penalty = 1
-stability_penalty = 10.0
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 10.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 10.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1__L1_100.0__L2_0.01
 misclassification_penalty = 1
 stability_penalty = 100.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1__L1_100.0__L2_0.1
 misclassification_penalty = 1
 stability_penalty = 100.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1__L1_100.0__L2_1
 misclassification_penalty = 1
 stability_penalty = 100.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_1__L1_100.0__L2_10.0
 misclassification_penalty = 1
 stability_penalty = 100.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_1__L1_100.0__L2_100.0
 misclassification_penalty = 1
 stability_penalty = 100.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
-misclassification_penalty = 1
-stability_penalty = 100.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1
-stability_penalty = 100.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1__L1_1000.0__L2_0.01
 misclassification_penalty = 1
 stability_penalty = 1000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1__L1_1000.0__L2_0.1
 misclassification_penalty = 1
 stability_penalty = 1000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1__L1_1000.0__L2_1
 misclassification_penalty = 1
 stability_penalty = 1000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_1__L1_1000.0__L2_10.0
 misclassification_penalty = 1
 stability_penalty = 1000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_1__L1_1000.0__L2_100.0
 misclassification_penalty = 1
 stability_penalty = 1000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_1__L1_1000.0__L2_1000.0
 misclassification_penalty = 1
 stability_penalty = 1000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
-misclassification_penalty = 1
-stability_penalty = 1000.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1__L1_10000.0__L2_0.01
 misclassification_penalty = 1
 stability_penalty = 10000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1__L1_10000.0__L2_0.1
 misclassification_penalty = 1
 stability_penalty = 10000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1__L1_10000.0__L2_1
 misclassification_penalty = 1
 stability_penalty = 10000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_1__L1_10000.0__L2_10.0
 misclassification_penalty = 1
 stability_penalty = 10000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_1__L1_10000.0__L2_100.0
 misclassification_penalty = 1
 stability_penalty = 10000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_1__L1_10000.0__L2_1000.0
 misclassification_penalty = 1
 stability_penalty = 10000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
+# C_1__L1_10000.0__L2_10000.0
 misclassification_penalty = 1
 stability_penalty = 10000.0
 sparsity_penalty = 10000.0
 
 
-
 [[runs]]
+# C_10.0__L1_0.01__L2_0.01
 misclassification_penalty = 10.0
 stability_penalty = 0.01
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.01
-sparsity_penalty = 0.1
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.01
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.01
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.01
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.01
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.01
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10.0__L1_0.1__L2_0.01
 misclassification_penalty = 10.0
 stability_penalty = 0.1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10.0__L1_0.1__L2_0.1
 misclassification_penalty = 10.0
 stability_penalty = 0.1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.1
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 0.1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10.0__L1_1__L2_0.01
 misclassification_penalty = 10.0
 stability_penalty = 1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10.0__L1_1__L2_0.1
 misclassification_penalty = 10.0
 stability_penalty = 1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10.0__L1_1__L2_1
 misclassification_penalty = 10.0
 stability_penalty = 1
 sparsity_penalty = 1
 
 
-
 [[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10.0__L1_10.0__L2_0.01
 misclassification_penalty = 10.0
 stability_penalty = 10.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10.0__L1_10.0__L2_0.1
 misclassification_penalty = 10.0
 stability_penalty = 10.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10.0__L1_10.0__L2_1
 misclassification_penalty = 10.0
 stability_penalty = 10.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_10.0__L1_10.0__L2_10.0
 misclassification_penalty = 10.0
 stability_penalty = 10.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 10.0
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 10.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 10.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10.0__L1_100.0__L2_0.01
 misclassification_penalty = 10.0
 stability_penalty = 100.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10.0__L1_100.0__L2_0.1
 misclassification_penalty = 10.0
 stability_penalty = 100.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10.0__L1_100.0__L2_1
 misclassification_penalty = 10.0
 stability_penalty = 100.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_10.0__L1_100.0__L2_10.0
 misclassification_penalty = 10.0
 stability_penalty = 100.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_10.0__L1_100.0__L2_100.0
 misclassification_penalty = 10.0
 stability_penalty = 100.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 100.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 100.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10.0__L1_1000.0__L2_0.01
 misclassification_penalty = 10.0
 stability_penalty = 1000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10.0__L1_1000.0__L2_0.1
 misclassification_penalty = 10.0
 stability_penalty = 1000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10.0__L1_1000.0__L2_1
 misclassification_penalty = 10.0
 stability_penalty = 1000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_10.0__L1_1000.0__L2_10.0
 misclassification_penalty = 10.0
 stability_penalty = 1000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_10.0__L1_1000.0__L2_100.0
 misclassification_penalty = 10.0
 stability_penalty = 1000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_10.0__L1_1000.0__L2_1000.0
 misclassification_penalty = 10.0
 stability_penalty = 1000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
-misclassification_penalty = 10.0
-stability_penalty = 1000.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10.0__L1_10000.0__L2_0.01
 misclassification_penalty = 10.0
 stability_penalty = 10000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10.0__L1_10000.0__L2_0.1
 misclassification_penalty = 10.0
 stability_penalty = 10000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10.0__L1_10000.0__L2_1
 misclassification_penalty = 10.0
 stability_penalty = 10000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_10.0__L1_10000.0__L2_10.0
 misclassification_penalty = 10.0
 stability_penalty = 10000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_10.0__L1_10000.0__L2_100.0
 misclassification_penalty = 10.0
 stability_penalty = 10000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_10.0__L1_10000.0__L2_1000.0
 misclassification_penalty = 10.0
 stability_penalty = 10000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
+# C_10.0__L1_10000.0__L2_10000.0
 misclassification_penalty = 10.0
 stability_penalty = 10000.0
 sparsity_penalty = 10000.0
 
 
-
 [[runs]]
+# C_100.0__L1_0.01__L2_0.01
 misclassification_penalty = 100.0
 stability_penalty = 0.01
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.01
-sparsity_penalty = 0.1
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.01
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.01
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.01
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.01
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.01
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_100.0__L1_0.1__L2_0.01
 misclassification_penalty = 100.0
 stability_penalty = 0.1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_100.0__L1_0.1__L2_0.1
 misclassification_penalty = 100.0
 stability_penalty = 0.1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.1
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 0.1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_100.0__L1_1__L2_0.01
 misclassification_penalty = 100.0
 stability_penalty = 1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_100.0__L1_1__L2_0.1
 misclassification_penalty = 100.0
 stability_penalty = 1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_100.0__L1_1__L2_1
 misclassification_penalty = 100.0
 stability_penalty = 1
 sparsity_penalty = 1
 
 
-
 [[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_100.0__L1_10.0__L2_0.01
 misclassification_penalty = 100.0
 stability_penalty = 10.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_100.0__L1_10.0__L2_0.1
 misclassification_penalty = 100.0
 stability_penalty = 10.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_100.0__L1_10.0__L2_1
 misclassification_penalty = 100.0
 stability_penalty = 10.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_100.0__L1_10.0__L2_10.0
 misclassification_penalty = 100.0
 stability_penalty = 10.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 10.0
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 10.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 10.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_100.0__L1_100.0__L2_0.01
 misclassification_penalty = 100.0
 stability_penalty = 100.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_100.0__L1_100.0__L2_0.1
 misclassification_penalty = 100.0
 stability_penalty = 100.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_100.0__L1_100.0__L2_1
 misclassification_penalty = 100.0
 stability_penalty = 100.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_100.0__L1_100.0__L2_10.0
 misclassification_penalty = 100.0
 stability_penalty = 100.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_100.0__L1_100.0__L2_100.0
 misclassification_penalty = 100.0
 stability_penalty = 100.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 100.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 100.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_100.0__L1_1000.0__L2_0.01
 misclassification_penalty = 100.0
 stability_penalty = 1000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_100.0__L1_1000.0__L2_0.1
 misclassification_penalty = 100.0
 stability_penalty = 1000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_100.0__L1_1000.0__L2_1
 misclassification_penalty = 100.0
 stability_penalty = 1000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_100.0__L1_1000.0__L2_10.0
 misclassification_penalty = 100.0
 stability_penalty = 1000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_100.0__L1_1000.0__L2_100.0
 misclassification_penalty = 100.0
 stability_penalty = 1000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_100.0__L1_1000.0__L2_1000.0
 misclassification_penalty = 100.0
 stability_penalty = 1000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
-misclassification_penalty = 100.0
-stability_penalty = 1000.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_100.0__L1_10000.0__L2_0.01
 misclassification_penalty = 100.0
 stability_penalty = 10000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_100.0__L1_10000.0__L2_0.1
 misclassification_penalty = 100.0
 stability_penalty = 10000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_100.0__L1_10000.0__L2_1
 misclassification_penalty = 100.0
 stability_penalty = 10000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_100.0__L1_10000.0__L2_10.0
 misclassification_penalty = 100.0
 stability_penalty = 10000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_100.0__L1_10000.0__L2_100.0
 misclassification_penalty = 100.0
 stability_penalty = 10000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_100.0__L1_10000.0__L2_1000.0
 misclassification_penalty = 100.0
 stability_penalty = 10000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
+# C_100.0__L1_10000.0__L2_10000.0
 misclassification_penalty = 100.0
 stability_penalty = 10000.0
 sparsity_penalty = 10000.0
 
 
-
 [[runs]]
+# C_1000.0__L1_0.01__L2_0.01
 misclassification_penalty = 1000.0
 stability_penalty = 0.01
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.01
-sparsity_penalty = 0.1
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.01
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.01
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.01
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.01
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.01
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1000.0__L1_0.1__L2_0.01
 misclassification_penalty = 1000.0
 stability_penalty = 0.1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1000.0__L1_0.1__L2_0.1
 misclassification_penalty = 1000.0
 stability_penalty = 0.1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.1
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 0.1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1000.0__L1_1__L2_0.01
 misclassification_penalty = 1000.0
 stability_penalty = 1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1000.0__L1_1__L2_0.1
 misclassification_penalty = 1000.0
 stability_penalty = 1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1000.0__L1_1__L2_1
 misclassification_penalty = 1000.0
 stability_penalty = 1
 sparsity_penalty = 1
 
 
-
 [[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1000.0__L1_10.0__L2_0.01
 misclassification_penalty = 1000.0
 stability_penalty = 10.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1000.0__L1_10.0__L2_0.1
 misclassification_penalty = 1000.0
 stability_penalty = 10.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1000.0__L1_10.0__L2_1
 misclassification_penalty = 1000.0
 stability_penalty = 10.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_1000.0__L1_10.0__L2_10.0
 misclassification_penalty = 1000.0
 stability_penalty = 10.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 10.0
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 10.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 10.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1000.0__L1_100.0__L2_0.01
 misclassification_penalty = 1000.0
 stability_penalty = 100.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1000.0__L1_100.0__L2_0.1
 misclassification_penalty = 1000.0
 stability_penalty = 100.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1000.0__L1_100.0__L2_1
 misclassification_penalty = 1000.0
 stability_penalty = 100.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_1000.0__L1_100.0__L2_10.0
 misclassification_penalty = 1000.0
 stability_penalty = 100.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_1000.0__L1_100.0__L2_100.0
 misclassification_penalty = 1000.0
 stability_penalty = 100.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 100.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 100.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1000.0__L1_1000.0__L2_0.01
 misclassification_penalty = 1000.0
 stability_penalty = 1000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1000.0__L1_1000.0__L2_0.1
 misclassification_penalty = 1000.0
 stability_penalty = 1000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1000.0__L1_1000.0__L2_1
 misclassification_penalty = 1000.0
 stability_penalty = 1000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_1000.0__L1_1000.0__L2_10.0
 misclassification_penalty = 1000.0
 stability_penalty = 1000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_1000.0__L1_1000.0__L2_100.0
 misclassification_penalty = 1000.0
 stability_penalty = 1000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_1000.0__L1_1000.0__L2_1000.0
 misclassification_penalty = 1000.0
 stability_penalty = 1000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
-misclassification_penalty = 1000.0
-stability_penalty = 1000.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_1000.0__L1_10000.0__L2_0.01
 misclassification_penalty = 1000.0
 stability_penalty = 10000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_1000.0__L1_10000.0__L2_0.1
 misclassification_penalty = 1000.0
 stability_penalty = 10000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_1000.0__L1_10000.0__L2_1
 misclassification_penalty = 1000.0
 stability_penalty = 10000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_1000.0__L1_10000.0__L2_10.0
 misclassification_penalty = 1000.0
 stability_penalty = 10000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_1000.0__L1_10000.0__L2_100.0
 misclassification_penalty = 1000.0
 stability_penalty = 10000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_1000.0__L1_10000.0__L2_1000.0
 misclassification_penalty = 1000.0
 stability_penalty = 10000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
+# C_1000.0__L1_10000.0__L2_10000.0
 misclassification_penalty = 1000.0
 stability_penalty = 10000.0
 sparsity_penalty = 10000.0
 
 
-
 [[runs]]
+# C_10000.0__L1_0.01__L2_0.01
 misclassification_penalty = 10000.0
 stability_penalty = 0.01
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.01
-sparsity_penalty = 0.1
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.01
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.01
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.01
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.01
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.01
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10000.0__L1_0.1__L2_0.01
 misclassification_penalty = 10000.0
 stability_penalty = 0.1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10000.0__L1_0.1__L2_0.1
 misclassification_penalty = 10000.0
 stability_penalty = 0.1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.1
-sparsity_penalty = 1
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 0.1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10000.0__L1_1__L2_0.01
 misclassification_penalty = 10000.0
 stability_penalty = 1
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10000.0__L1_1__L2_0.1
 misclassification_penalty = 10000.0
 stability_penalty = 1
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10000.0__L1_1__L2_1
 misclassification_penalty = 10000.0
 stability_penalty = 1
 sparsity_penalty = 1
 
 
-
 [[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 1
-sparsity_penalty = 10.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 1
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 1
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 1
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10000.0__L1_10.0__L2_0.01
 misclassification_penalty = 10000.0
 stability_penalty = 10.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10000.0__L1_10.0__L2_0.1
 misclassification_penalty = 10000.0
 stability_penalty = 10.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10000.0__L1_10.0__L2_1
 misclassification_penalty = 10000.0
 stability_penalty = 10.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_10000.0__L1_10.0__L2_10.0
 misclassification_penalty = 10000.0
 stability_penalty = 10.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 10.0
-sparsity_penalty = 100.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 10.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 10.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10000.0__L1_100.0__L2_0.01
 misclassification_penalty = 10000.0
 stability_penalty = 100.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10000.0__L1_100.0__L2_0.1
 misclassification_penalty = 10000.0
 stability_penalty = 100.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10000.0__L1_100.0__L2_1
 misclassification_penalty = 10000.0
 stability_penalty = 100.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_10000.0__L1_100.0__L2_10.0
 misclassification_penalty = 10000.0
 stability_penalty = 100.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_10000.0__L1_100.0__L2_100.0
 misclassification_penalty = 10000.0
 stability_penalty = 100.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 100.0
-sparsity_penalty = 1000.0
-
-
-
-[[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 100.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10000.0__L1_1000.0__L2_0.01
 misclassification_penalty = 10000.0
 stability_penalty = 1000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10000.0__L1_1000.0__L2_0.1
 misclassification_penalty = 10000.0
 stability_penalty = 1000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10000.0__L1_1000.0__L2_1
 misclassification_penalty = 10000.0
 stability_penalty = 1000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_10000.0__L1_1000.0__L2_10.0
 misclassification_penalty = 10000.0
 stability_penalty = 1000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_10000.0__L1_1000.0__L2_100.0
 misclassification_penalty = 10000.0
 stability_penalty = 1000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_10000.0__L1_1000.0__L2_1000.0
 misclassification_penalty = 10000.0
 stability_penalty = 1000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
-misclassification_penalty = 10000.0
-stability_penalty = 1000.0
-sparsity_penalty = 10000.0
-
-
-
-[[runs]]
+# C_10000.0__L1_10000.0__L2_0.01
 misclassification_penalty = 10000.0
 stability_penalty = 10000.0
 sparsity_penalty = 0.01
 
 
-
 [[runs]]
+# C_10000.0__L1_10000.0__L2_0.1
 misclassification_penalty = 10000.0
 stability_penalty = 10000.0
 sparsity_penalty = 0.1
 
 
-
 [[runs]]
+# C_10000.0__L1_10000.0__L2_1
 misclassification_penalty = 10000.0
 stability_penalty = 10000.0
 sparsity_penalty = 1
 
 
-
 [[runs]]
+# C_10000.0__L1_10000.0__L2_10.0
 misclassification_penalty = 10000.0
 stability_penalty = 10000.0
 sparsity_penalty = 10.0
 
 
-
 [[runs]]
+# C_10000.0__L1_10000.0__L2_100.0
 misclassification_penalty = 10000.0
 stability_penalty = 10000.0
 sparsity_penalty = 100.0
 
 
-
 [[runs]]
+# C_10000.0__L1_10000.0__L2_1000.0
 misclassification_penalty = 10000.0
 stability_penalty = 10000.0
 sparsity_penalty = 1000.0
 
 
-
 [[runs]]
+# C_10000.0__L1_10000.0__L2_10000.0
 misclassification_penalty = 10000.0
 stability_penalty = 10000.0
 sparsity_penalty = 10000.0
-
 

@@ -1,3 +1,5 @@
+f_output = r'./distillation/tuning/params/'
+
 misclassification_penalty = 100.0
 stability_penalty = 1000.0
 sparsity_penalty = 1.0
@@ -14,9 +16,9 @@ f_header = r'''
 layout = 'sturdy'
 hardware = 'ansi'
 corpus = 'en'
-depth = 10
-samples_per_layer = 100
-name_format = '{layout}_C_{misclassification_penalty}_l1_{stability_penalty}_l2_{sparsity_penalty}'
+depth = 7
+samples_per_layer = 80
+name_format = '{layout}__C_{misclassification_penalty}__L1_{stability_penalty}__L2_{sparsity_penalty}'
 
 misclassification_penalty = 100.0
 stability_penalty = 1000.0
@@ -26,15 +28,17 @@ sparsity_penalty = 1.0
 
 f_run = r'''
 [[runs]]
+# C_{misclassification_penalty}__L1_{stability_penalty}__L2_{sparsity_penalty}
 misclassification_penalty = {misclassification_penalty}
 stability_penalty = {stability_penalty}
 sparsity_penalty = {sparsity_penalty}
-
 '''
 
 print(f_header)
 for misclassification_penalty in misclassification_penalty_ranges:
     for stability_penalty in stability_penalty_ranges:
         for sparsity_penalty in sparsity_penalty_ranges:
+            if sparsity_penalty > stability_penalty:
+                continue
             print(f_run.format(misclassification_penalty=misclassification_penalty, stability_penalty=stability_penalty, sparsity_penalty=sparsity_penalty))
 
