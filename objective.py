@@ -34,6 +34,9 @@ class ObjectiveFunction:
                 raise ValueError(f"Invalid metric: {metric}")
 
     def __str__(self):
+        if not self.metrics:
+            return "0"
+            
         first_metric = next(iter(self.metrics))
 
         formatted_weights = {
