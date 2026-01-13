@@ -1,0 +1,2417 @@
+
+# output = './distillation/logs/simple.csv'
+
+[default]
+layout = 'sturdy'
+hardware = 'ansi'
+corpus = 'en'
+depth = 8
+samples_per_layer = 100
+name_format = '{layout}_C_{misclassification_penalty}_l1_{stability_penalty}_l2_{sparsity_penalty}'
+
+misclassification_penalty = 100.0
+stability_penalty = 1000.0
+sparsity_penalty = 1.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.01
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.01
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.01
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.01
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.01
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.01
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.01
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 0.1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 100.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 100.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 100.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 100.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 100.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 100.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 100.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 1000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.01
+stability_penalty = 10000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.01
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.01
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.01
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.01
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.01
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.01
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.01
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 0.1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 100.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 100.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 100.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 100.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 100.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 100.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 100.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 1000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 0.1
+stability_penalty = 10000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.01
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.01
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.01
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.01
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.01
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.01
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.01
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 0.1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 100.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 100.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 100.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 100.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 100.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 100.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 100.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 1000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1
+stability_penalty = 10000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.01
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.01
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.01
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.01
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.01
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.01
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.01
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 0.1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 100.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 100.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 100.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 100.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 100.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 100.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 100.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 1000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10.0
+stability_penalty = 10000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.01
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.01
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.01
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.01
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.01
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.01
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.01
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 0.1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 100.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 100.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 100.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 100.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 100.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 100.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 100.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 1000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 100.0
+stability_penalty = 10000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.01
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.01
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.01
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.01
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.01
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.01
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.01
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 0.1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 100.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 100.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 100.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 100.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 100.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 100.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 100.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 1000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 1000.0
+stability_penalty = 10000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.01
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.01
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.01
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.01
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.01
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.01
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.01
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 0.1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 100.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 100.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 100.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 100.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 100.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 100.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 100.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 1000.0
+sparsity_penalty = 10000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10000.0
+sparsity_penalty = 0.01
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10000.0
+sparsity_penalty = 0.1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10000.0
+sparsity_penalty = 1
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10000.0
+sparsity_penalty = 10.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10000.0
+sparsity_penalty = 100.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10000.0
+sparsity_penalty = 1000.0
+
+
+
+[[runs]]
+misclassification_penalty = 10000.0
+stability_penalty = 10000.0
+sparsity_penalty = 10000.0
+
+

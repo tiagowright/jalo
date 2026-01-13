@@ -1,0 +1,49 @@
+Starting run: sturdy_1_100
+Depth 0, target score:   -0.081, best score:   -0.095, counting    3 /  435., diff_square:  450.124
+objective 2.69sfb + 5.12sfb_rake + 3.52sfs + 15.08sft - 0.74home + 0.74dist + 1.64dist_linear + 0.74sfb_dist + 1.36sfs_dist + 2.38sft_dist + 0.74heat + 0.63lsb + 1.91rowskip + 2.62scissors + 2.03scissors_ortho + 2.74pinky_ring + 0.77pinky_off + 0.65same_hand - 0.92alt + 2.07alt_sfs - 0.7alt_total - 1.29roll - 0.47in_roll - 0.98out_roll + 0.8roll3 + 1.05redirect + 1.2redirect_sfs + 4.1redirect_bad + 8.29redirect_bad_sfs + 0.94redirect_total + 0.08left_hand - 0.08right_hand + 0.12finger_0 - 0.05finger_1 - 0.06finger_2 + 0.21finger_3 + 0.06finger_6 - 0.33finger_7 - 0.02finger_8 + 0.12finger_9 + 2.83sfb_finger_0 + 2.15sfb_finger_1 + 1.53sfb_finger_2 + 1.69sfb_finger_3 + 1.18sfb_finger_6 + 2.56sfb_finger_7 + 2.25sfb_finger_8 + 3.43sfb_finger_9
+
+
+Starting run: sturdy_2_100
+Depth 0, target score:   -0.081, best score:   -0.095, counting    3 /  435., diff_square:  450.124
+Depth 1, target score:   -0.186, best score:   -0.198, counting   67 /  535., diff_square:    2.756
+objective 2.5sfb + 5.11sfb_rake + 3.01sfs + 15.27sft - 0.71home + 0.71dist + 1.55dist_linear + 0.71sfb_dist + 1.21sfs_dist + 2.44sft_dist + 0.7heat + 0.84lsb + 1.49rowskip + 2.3scissors + 1.83scissors_ortho + 2.55pinky_ring + 0.78pinky_off + 0.63same_hand - 0.84alt + 1.76alt_sfs - 0.68alt_total - 1.29roll - 0.52in_roll - 0.97out_roll + 0.76roll3 + 1.04redirect + 1.16redirect_sfs + 4.11redirect_bad + 8.23redirect_bad_sfs + 0.92redirect_total + 0.11left_hand - 0.11right_hand + 0.16finger_0 - 0.02finger_1 - 0.03finger_2 + 0.21finger_3 + 0.05finger_6 - 0.37finger_7 - 0.06finger_8 + 0.15finger_9 + 4.18sfb_finger_0 + 2.1sfb_finger_1 + 1.73sfb_finger_2 + 1.72sfb_finger_3 + 1.21sfb_finger_6 + 2.55sfb_finger_7 + 2.25sfb_finger_8 + 3.42sfb_finger_9
+
+
+Starting run: sturdy_4_100
+Depth 0, target score:   -0.081, best score:   -0.095, counting    3 /  435., diff_square:  450.124
+Depth 1, target score:   -0.186, best score:   -0.198, counting   67 /  535., diff_square:    2.756
+Depth 2, target score:   -0.356, best score:   -0.364, counting   88 /  635., diff_square:    2.909
+Depth 3, target score:   -0.493, best score:   -0.497, counting   18 /  735., diff_square:    1.945
+objective 2.27sfb + 5.31sfb_rake + 2.28sfs + 15.81sft - 0.69home + 0.69dist + 1.44dist_linear + 0.69sfb_dist + 0.99sfs_dist + 2.61sft_dist + 0.53heat + 1.45lsb + 0.58rowskip + 1.91scissors + 1.85scissors_ortho + 2.51pinky_ring + 0.88pinky_off + 0.62same_hand - 0.76alt + 1.02alt_sfs - 0.66alt_total - 1.3roll - 0.72in_roll - 0.79out_roll + 0.77roll3 + 1.12redirect + 1.34redirect_sfs + 4.14redirect_bad + 7.41redirect_bad_sfs + 0.95redirect_total + 0.14left_hand - 0.14right_hand + 0.23finger_0 + 0.09finger_3 - 0.08finger_6 - 0.32finger_7 - 0.1finger_8 + 0.36finger_9 + 6.34sfb_finger_0 + 2.24sfb_finger_1 + 1.9sfb_finger_2 + 1.66sfb_finger_3 + 1.09sfb_finger_6 + 2.61sfb_finger_7 + 2.28sfb_finger_8 + 3.65sfb_finger_9
+
+
+Starting run: sturdy_8_100
+Depth 0, target score:   -0.081, best score:   -0.095, counting    3 /  435., diff_square:  450.124
+Depth 1, target score:   -0.186, best score:   -0.198, counting   67 /  535., diff_square:    2.756
+Depth 2, target score:   -0.356, best score:   -0.364, counting   88 /  635., diff_square:    2.909
+Depth 3, target score:   -0.493, best score:   -0.497, counting   18 /  735., diff_square:    1.945
+Depth 4, target score:   -0.661, best score:   -0.666, counting   16 /  835., diff_square:    1.980
+Depth 5, target score:   -0.711, best score:   -0.715, counting   35 /  935., diff_square:    0.543
+Depth 6, target score:   -0.714, best score:   -0.716, counting    7 / 1035., diff_square:    0.741
+Depth 7, target score:   -0.671, best score:   -0.673, counting    9 / 1135., diff_square:    0.209
+objective 2sfb + 4.57sfb_rake + 2.23sfs + 14.76sft - 0.66home + 0.68dist + 1.33dist_linear + 0.68sfb_dist + 1.45sfs_dist + 2.44sft_dist + 0.34heat + 0.55lsb + 0.57rowskip + 1.06scissors + 1.06scissors_ortho + 2.43pinky_ring + 0.9pinky_off + 0.58same_hand - 0.69alt + 1.12alt_sfs - 0.6alt_total - 1.24roll - 0.81in_roll - 0.73out_roll + 1.03roll3 + 1.14redirect + 1.33redirect_sfs + 3.92redirect_bad + 6.27redirect_bad_sfs + 0.91redirect_total + 0.13left_hand - 0.13right_hand + 0.22finger_0 + 0.01finger_1 + 0.06finger_3 - 0.2finger_6 - 0.19finger_7 - 0.1finger_8 + 0.42finger_9 + 6.18sfb_finger_0 + 2.26sfb_finger_1 + 1.84sfb_finger_2 + 1.53sfb_finger_3 + 1.01sfb_finger_6 + 2.79sfb_finger_7 + 2.28sfb_finger_8 + 3.93sfb_finger_9
+
+
+Starting run: sturdy_16_100
+Depth 0, target score:   -0.081, best score:   -0.095, counting    3 /  435., diff_square:  450.124
+Depth 1, target score:   -0.186, best score:   -0.198, counting   67 /  535., diff_square:    2.756
+Depth 2, target score:   -0.356, best score:   -0.364, counting   88 /  635., diff_square:    2.909
+Depth 3, target score:   -0.493, best score:   -0.497, counting   18 /  735., diff_square:    1.945
+Depth 4, target score:   -0.661, best score:   -0.666, counting   16 /  835., diff_square:    1.980
+Depth 5, target score:   -0.711, best score:   -0.715, counting   35 /  935., diff_square:    0.543
+Depth 6, target score:   -0.714, best score:   -0.716, counting    7 / 1035., diff_square:    0.741
+Depth 7, target score:   -0.671, best score:   -0.673, counting    9 / 1135., diff_square:    0.209
+Depth 8, target score:   -0.641, best score:   -0.643, counting   11 / 1235., diff_square:    0.067
+Depth 9, target score:   -0.652, best score:   -0.654, counting   56 / 1335., diff_square:    0.042
+Depth 10, target score:   -0.706, best score:   -0.708, counting    3 / 1435., diff_square:    0.358
+Depth 11, target score:   -0.738, best score:   -0.739, counting    1 / 1535., diff_square:    0.049
+Depth 12, target score:   -0.814, best score:   -0.816, counting   55 / 1635., diff_square:    0.253
+Depth 13, target score:   -0.874, best score:   -0.876, counting   49 / 1735., diff_square:    0.086
+Depth 14, target score:   -0.852, best score:   -0.854, counting    1 / 1835., diff_square:    0.163
+Depth 15, target score:   -0.840, best score:   -0.842, counting   54 / 1935., diff_square:    0.253
+objective 1.89sfb + 4.83sfb_rake + 2.1sfs + 14.51sft - 0.64home + 0.76dist + 1.36dist_linear + 0.76sfb_dist + 1.39sfs_dist + 2.47sft_dist + 0.22heat + 0.9lsb + 0.99scissors + 0.1scissors_ortho + 2.54pinky_ring + 0.89pinky_off + 0.57same_hand - 0.68alt + 1.06alt_sfs - 0.59alt_total - 1.2roll - 0.81in_roll - 0.75out_roll + 1.07roll3 + 1.2redirect + 1.26redirect_sfs + 3.87redirect_bad + 5.67redirect_bad_sfs + 0.91redirect_total + 0.1left_hand - 0.1right_hand + 0.22finger_0 + 0.05finger_3 - 0.24finger_6 - 0.14finger_7 - 0.07finger_8 + 0.43finger_9 + 6.03sfb_finger_0 + 2.18sfb_finger_1 + 1.76sfb_finger_2 + 1.48sfb_finger_3 + 1.02sfb_finger_6 + 2.77sfb_finger_7 + 2.59sfb_finger_8 + 4.03sfb_finger_9

@@ -724,24 +724,6 @@ if __name__ == "__main__":
             print("Warning: No solver specified, skipping")
             continue
 
-        # module_path = os.path.join(solvers_dir, run.solver + ".py")
-        # spec = importlib.util.spec_from_file_location(run.solver, module_path)
-        # if spec is None or spec.loader is None:
-        #     print(f"Warning: Could not load spec for {run.solver}")
-        #     continue
-        
-        # optimizer_module = importlib.util.module_from_spec(spec)
-        # spec.loader.exec_module(optimizer_module)
-        
-        # # Register the module in sys.modules so multiprocessing can pickle functions from it
-        # # Set __name__ to match what pickle will look for
-        # full_module_name = f"solvers.{run.solver}"
-        # optimizer_module.__name__ = full_module_name
-        # sys.modules[full_module_name] = optimizer_module
-
-        # # Also register with the simple name for backwards compatibility
-        # sys.modules[run.solver] = optimizer_module
-        
         try:
             optimizer = Optimizer(
                 model, 

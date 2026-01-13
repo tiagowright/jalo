@@ -1,0 +1,25 @@
+[default]
+layout = 'sturdy'
+hardware = 'ansi'
+corpus = 'en'
+depth = 8
+samples_per_layer = 500
+name_format = '{layout}_{depth}_{samples_per_layer}'
+
+[[runs]]
+samples_per_layer = 50
+
+[[runs]]
+samples_per_layer = 100
+
+[[runs]]
+samples_per_layer = 200
+
+[[runs]]
+samples_per_layer = 300
+
+[[runs]]
+samples_per_layer = 400
+
+[[runs]]
+samples_per_layer = 500

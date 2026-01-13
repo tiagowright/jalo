@@ -180,6 +180,13 @@ class KeyboardModel:
             for metric in self.metrics
         }
 
+    def metric_values_from_char_at_positions(self, char_at_pos: np.ndarray | tuple[int, ...]) -> dict[Metric, float]:
+        '''
+        Calculate the values of each metric for the layout specified by char_at_pos.
+        '''
+        P = self.position_freqdist(char_at_pos)
+        return {metric: float(np.sum(P[metric.ngramType] * self.M[metric])) for metric in self.metrics}
+
     def char_at_positions_from_layout(self, layout: KeyboardLayout) -> np.ndarray:
         # validate that layout uses the same hardware
         if layout.hardware != self.hardware:

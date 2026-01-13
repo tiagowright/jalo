@@ -1,0 +1,22 @@
+[default]
+layout = 'sturdy'
+hardware = 'ansi'
+corpus = 'en'
+depth = 8
+samples_per_layer = 100
+name_format = '{layout}_{depth}_{samples_per_layer}'
+
+[[runs]]
+depth = 1
+
+[[runs]]
+depth = 2
+
+[[runs]]
+depth = 4
+
+[[runs]]
+depth = 8
+
+[[runs]]
+depth = 16
