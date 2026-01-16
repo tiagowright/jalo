@@ -1,6 +1,7 @@
 import re
 import os
 import tomllib
+import math
 from enum import Enum
 from typing import Any
 
@@ -34,13 +35,34 @@ class ObjectiveFunction:
                 raise ValueError(f"Invalid metric: {metric}")
 
     def __str__(self):
+        if not self.metrics:
+            return "0"
+
         first_metric = next(iter(self.metrics))
 
+        def sigfigs(x: float, N: int = 3) -> str:
+            if x == 0:
+                return "0"
+
+            e = math.floor(math.log10(abs(x)))
+            # scale so first sig fig is in ones place
+            scaled = x / (10**e)
+            # round to 2 sig figs
+            rounded = round(scaled, N-1)
+            # scale back
+            value = rounded * (10**e)
+            
+            # format without scientific notation
+            return f"{value:.10f}".rstrip('0').rstrip('.')
+
         formatted_weights = {
-            metric: f"{weight:.2f}".rstrip("0").rstrip(".").lstrip("+").lstrip("-") for metric, weight in self.metrics.items() if abs(weight) >= 0.005
+            metric: sigfigs(weight).lstrip("+").lstrip("-") for metric, weight in self.metrics.items() if abs(weight) >= 0.005
         }
         formatted_signs = {metric: '- ' if weight < 0 else '+ ' for metric, weight in self.metrics.items()}
         formatted_signs[first_metric] = '-' if self.metrics[first_metric] < 0 else ''
+
+        if not formatted_weights:
+            return "0"
 
         return ' '.join([
             f"{formatted_signs[metric]}{weight}{metric.name}" for metric, weight in formatted_weights.items()

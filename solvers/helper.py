@@ -35,7 +35,7 @@ def report_progress(internal_counter: int, internal_total: int, external_total: 
         progress_queue.put(1)
 
 def is_progressing(current_score: float, previous_score: float, tolerance: float) -> bool:
-    return previous_score > (1.0 + tolerance) * current_score
+    return previous_score - current_score > tolerance * abs(current_score)
 
 
 def improve_layout(
